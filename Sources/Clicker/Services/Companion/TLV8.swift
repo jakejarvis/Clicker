@@ -73,14 +73,17 @@ enum TLV8 {
     static func encode(_ items: [(Tag, Data)]) -> Data {
         var output = Data()
         for (tag, value) in items {
-            var offset = 0
+            // Walk the value's own indices: `Data` slices (CryptoKit ciphertext,
+            // for example) do not start at zero.
+            var index = value.startIndex
             repeat {
-                let chunk = value.subdata(in: offset..<min(offset + 255, value.count))
+                let end = min(index + 255, value.endIndex)
+                let chunk = value[index..<end]
                 output.append(tag.rawValue)
                 output.append(UInt8(chunk.count))
-                output.append(chunk)
-                offset += chunk.count
-            } while offset < value.count
+                output.append(contentsOf: chunk)
+                index = end
+            } while index < value.endIndex
         }
         return output
     }

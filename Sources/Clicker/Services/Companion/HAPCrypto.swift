@@ -30,7 +30,8 @@ enum HAPCrypto {
             nonce: ChaChaPoly.Nonce(data: nonce),
             authenticating: aad
         )
-        return box.ciphertext + box.tag
+        // Copy so callers get a zero-based Data rather than a slice.
+        return Data(box.ciphertext) + Data(box.tag)
     }
 
     /// Opens ciphertext + 16-byte tag produced by `seal`.
