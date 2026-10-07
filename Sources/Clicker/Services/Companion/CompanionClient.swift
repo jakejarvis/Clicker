@@ -1,0 +1,145 @@
+import Foundation
+import Network
+
+/// High-level remote control session with one Apple TV: connects, verifies the
+/// pairing, registers the session the way the iOS Remote does, and exposes
+/// button, app and power commands.
+actor CompanionClient {
+    let credentials: PairingCredentials
+    let identity: ClientIdentity
+    private let connection: CompanionConnection
+    private(set) var sessionID: UInt64 = 0
+
+    nonisolated var events: AsyncStream<CompanionEvent> { connection.events }
+
+    init(endpoint: NWEndpoint, credentials: PairingCredentials, identity: ClientIdentity) {
+        self.credentials = credentials
+        self.identity = identity
+        self.connection = CompanionConnection(endpoint: endpoint)
+    }
+
+    var isConnected: Bool {
+        get async { await connection.isConnected }
+    }
+
+    func connect() async throws {
+        try await connection.connect()
+        try await CompanionPairing.verify(on: connection, credentials: credentials)
+        try await sendSystemInfo()
+        try await startSession()
+        // Newer tvOS wants a TV Remote Client session before answering some
+        // requests; older versions do not implement it, so failure is fine.
+        _ = try? await request("TVRCSessionStart", ["ProtocolVersionKey": "1.2"])
+        try await subscribe(to: ["TVSystemStatus", "SystemStatus"])
+    }
+
+    func disconnect() async {
+        if sessionID != 0 {
+            _ = try? await request(
+                "_sessionStop",
+                ["_srvT": "com.apple.tvremoteservices", "_sid": .int(Int64(bitPattern: sessionID))],
+                timeout: 1
+            )
+        }
+        await connection.close()
+    }
+
+    // MARK: - Buttons
+
+    func press(_ command: HIDCommand) async throws {
+        try await buttonDown(command)
+        try await buttonUp(command)
+    }
+
+    func buttonDown(_ command: HIDCommand) async throws {
+        _ = try await request("_hidC", ["_hBtS": 1, "_hidC": .int(command.rawValue)])
+    }
+
+    func buttonUp(_ command: HIDCommand) async throws {
+        _ = try await request("_hidC", ["_hBtS": 2, "_hidC": .int(command.rawValue)])
+    }
+
+    // MARK: - Apps
+
+    func fetchApps() async throws -> [AppleTVApp] {
+        let response = try await request("FetchLaunchableApplicationsEvent", [:], timeout: 10)
+        guard let content = response["_c"]?.stringKeyedDictionary else {
+            throw CompanionError.unexpectedResponse("app list missing content")
+        }
+        return content.compactMap { bundleIdentifier, value in
+            guard let name = value.stringValue else { return nil }
+            return AppleTVApp(bundleIdentifier: bundleIdentifier, name: name)
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    func launchApp(bundleIdentifier: String) async throws {
+        _ = try await request("_launchApp", ["_bundleID": .string(bundleIdentifier)])
+    }
+
+    // MARK: - Power
+
+    /// Not implemented on recent tvOS; callers should fall back to pushed events.
+    func fetchPowerState() async throws -> PowerState {
+        let response = try await request("FetchAttentionState", [:])
+        guard let state = response["_c"]?["state"]?.intValue else {
+            throw CompanionError.unexpectedResponse("attention state missing")
+        }
+        return PowerState(rawValue: state) ?? .unknown
+    }
+
+    // MARK: - Session setup
+
+    private func sendSystemInfo() async throws {
+        _ = try await request("_systemInfo", [
+            "_bf": 0,
+            "_cf": 512,
+            "_clFl": 128,
+            "_i": .string(identity.deviceID.replacingOccurrences(of: ":", with: "").lowercased()),
+            "_idsID": .data(Data(credentials.clientIdentifier.utf8)),
+            "_pubID": .string(identity.deviceID),
+            "_sf": 256,
+            "_sv": "170.18",
+            "model": "iPhone14,3",
+            "name": .string(identity.name),
+        ])
+    }
+
+    private func startSession() async throws {
+        let localID = UInt32.random(in: 0...UInt32.max)
+        let response = try await request(
+            "_sessionStart",
+            ["_srvT": "com.apple.tvremoteservices", "_sid": .int(Int64(localID))]
+        )
+        guard let remoteID = response["_c"]?["_sid"]?.intValue else {
+            throw CompanionError.unexpectedResponse("session start missing _sid")
+        }
+        sessionID = (UInt64(UInt32(truncatingIfNeeded: remoteID)) << 32) | UInt64(localID)
+    }
+
+    private func subscribe(to eventNames: [String]) async throws {
+        try await sendEvent("_interest", ["_regEvents": .array(eventNames.map(OPACKValue.string))])
+    }
+
+    // MARK: - Messaging
+
+    private func request(
+        _ identifier: String,
+        _ content: [String: OPACKValue],
+        timeout: TimeInterval = 5
+    ) async throws -> OPACKValue {
+        try await connection.exchange(.encryptedOPACK, [
+            "_i": .string(identifier),
+            "_t": .int(CompanionMessageType.request.rawValue),
+            "_c": .dictionary(content),
+        ], timeout: timeout)
+    }
+
+    private func sendEvent(_ identifier: String, _ content: [String: OPACKValue]) async throws {
+        try await connection.send(.encryptedOPACK, [
+            "_i": .string(identifier),
+            "_t": .int(CompanionMessageType.event.rawValue),
+            "_c": .dictionary(content),
+        ])
+    }
+}
