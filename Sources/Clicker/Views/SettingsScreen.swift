@@ -1,70 +1,76 @@
 import ServiceManagement
 import SwiftUI
 
-/// Settings shown inside the panel in place of the remote: a navigation bar
-/// with a back button, then captioned cards of rows with controls on the
-/// trailing edge, like System Settings.
+/// Settings shown inside the panel in place of the remote.
+///
+/// One rule set keeps it coherent: section headers are subheadline/secondary,
+/// row titles are body, secondary text is caption, every action is a small
+/// bordered button, every switch is a small toggle, and explanations live in
+/// section footers rather than inside rows.
 struct SettingsScreen: View {
     let controller: RemoteController
-    /// Total height to fill, matching the remote screen.
-    let height: CGFloat
+    /// Reports the screen's natural height (title bar plus content) so the
+    /// panel can resize to it instead of inheriting the remote's height.
+    var onNaturalHeightChange: (CGFloat) -> Void = { _ in }
+
+    @State private var barHeight: CGFloat = 0
+    @State private var contentHeight: CGFloat = 0
 
     @AppStorage(IdentityStore.clientNameKey) private var clientName = IdentityStore.defaultClientName
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
+    @State private var pendingForgetID: String?
 
     var body: some View {
         VStack(spacing: 0) {
-            PanelNavigationBar(title: "Settings") {
-                withAnimation(.snappy(duration: 0.3)) { controller.screen = .remote }
+            VStack(spacing: 0) {
+                PanelNavigationBar(title: "Settings") {
+                    withAnimation(.snappy(duration: 0.3)) { controller.screen = .remote }
+                }
+                Divider()
+                    .padding(.horizontal, PanelMetrics.horizontalPadding)
             }
-            Divider()
-                .padding(.horizontal, PanelMetrics.horizontalPadding)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 20) {
                     thisMacSection
                     pairedSection
-                    keyboardSection
                     aboutSection
                 }
                 .padding(.horizontal, PanelMetrics.horizontalPadding)
-                .padding(.top, 12)
+                .padding(.top, 14)
                 .padding(.bottom, 16)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
             }
             .scrollIndicators(.never)
         }
-        .frame(height: height)
+        .onChange(of: barHeight + contentHeight, initial: true) { _, total in
+            if total > 0 { onNaturalHeightChange(total) }
+        }
         .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
+        .animation(.snappy(duration: 0.2), value: pendingForgetID)
     }
 
     // MARK: - Sections
 
     private var thisMacSection: some View {
-        SettingsSection("This Mac") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Name shown on Apple TV")
+        SettingsSection(
+            "This Mac",
+            footer: launchAtLoginError ?? "The name appears under Remotes and Devices on the Apple TV the next time you pair."
+        ) {
+            SettingsRow("Name") {
                 TextField("Name", text: $clientName)
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.small)
-                Text("Appears under Remotes and Devices the next time you pair.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: 160)
             }
-            .settingsRowPadding()
             SettingsDivider()
             SettingsRow("Launch at Login") {
-                Toggle("", isOn: $launchAtLogin)
+                Toggle("Launch at Login", isOn: $launchAtLogin)
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)
                     .onChange(of: launchAtLogin) { _, enabled in updateLaunchAtLogin(enabled) }
-            }
-            if let launchAtLoginError {
-                Text(launchAtLoginError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
             }
         }
     }
@@ -73,54 +79,69 @@ struct SettingsScreen: View {
         SettingsSection("Paired Apple TVs") {
             let credentials = controller.credentialStore.credentials
             if credentials.isEmpty {
-                Text("None yet. Pick an Apple TV from the top of the remote and choose Pair.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .settingsRowPadding()
+                SettingsRow("None yet", subtitle: "Choose an Apple TV at the top of the remote and pair it.") {
+                    EmptyView()
+                }
             } else {
                 ForEach(Array(credentials.enumerated()), id: \.element.deviceID) { index, item in
                     if index > 0 { SettingsDivider() }
-                    HStack(spacing: 10) {
-                        DeviceIcon(
-                            device: controller.devices.first { $0.id == item.deviceID },
-                            isConnected: controller.selectedDeviceID == item.deviceID && controller.connectionState == .connected
-                        )
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(item.deviceName)
-                                .font(.callout.weight(.medium))
-                            Text("Paired \(item.pairedAt.formatted(date: .abbreviated, time: .omitted))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer(minLength: 8)
-                        Button("Forget") {
-                            let device = controller.devices.first { $0.id == item.deviceID }
-                                ?? AppleTVDevice(offline: item)
-                            controller.forgetPairing(for: device)
-                        }
-                        .buttonStyle(.plain)
-                        .font(.callout)
-                        .foregroundStyle(.red)
-                    }
-                    .settingsRowPadding()
+                    pairedRow(item)
                 }
             }
         }
     }
 
-    private var keyboardSection: some View {
-        SettingsSection("Keyboard") {
-            LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 10) {
-                shortcut("↑↓←→", "Navigate")
-                shortcut("⏎", "Select")
-                shortcut("⌫", "Back")
-                shortcut("␣", "Play/Pause")
-                shortcut("H", "TV")
-                shortcut("M", "Mute")
-                shortcut("+ −", "Volume")
-                shortcut("Esc", "Close")
+    @ViewBuilder
+    private func pairedRow(_ item: PairingCredentials) -> some View {
+        let device = controller.devices.first { $0.id == item.deviceID }
+        if pendingForgetID == item.deviceID {
+            // Confirmation takes over the row: the question on one line, the
+            // choices on the next, so nothing has to truncate.
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Forget \(item.deviceName)?")
+                    .font(.body)
+                HStack(spacing: 8) {
+                    Text("You'll need to pair again.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    Button("Cancel") { pendingForgetID = nil }
+                        .buttonStyle(.bordered)
+                    Button("Forget") {
+                        pendingForgetID = nil
+                        controller.forgetPairing(for: device ?? AppleTVDevice(offline: item))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                }
+                .controlSize(.small)
             }
             .settingsRowPadding()
+            .frame(minHeight: SettingsMetrics.rowHeight)
+            .transition(.opacity)
+        } else {
+            HStack(spacing: 10) {
+                DeviceIcon(
+                    device: device,
+                    isConnected: controller.selectedDeviceID == item.deviceID && controller.connectionState == .connected
+                )
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.deviceName)
+                        .font(.body)
+                        .lineLimit(1)
+                    Text("Paired \(item.pairedAt.formatted(.dateTime.month(.abbreviated).day()))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                Button("Forget…") { pendingForgetID = item.deviceID }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+            .settingsRowPadding()
+            .frame(minHeight: SettingsMetrics.rowHeight)
+            .transition(.opacity)
         }
     }
 
@@ -128,28 +149,15 @@ struct SettingsScreen: View {
         SettingsSection("About") {
             SettingsRow("Version") {
                 Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")
+                    .font(.body)
                     .foregroundStyle(.secondary)
             }
             SettingsDivider()
             SettingsRow("Quit Clicker", subtitle: "⌘Q") {
                 Button("Quit") { NSApplication.shared.terminate(nil) }
+                    .buttonStyle(.bordered)
                     .controlSize(.small)
             }
-        }
-    }
-
-    private func shortcut(_ keys: String, _ action: String) -> some View {
-        HStack(spacing: 8) {
-            Text(keys)
-                .font(.caption.weight(.semibold).monospaced())
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 6)
-                .frame(height: 20)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-            Text(action)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
         }
     }
 
@@ -167,6 +175,14 @@ struct SettingsScreen: View {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }
+}
+
+// MARK: - Building blocks
+
+enum SettingsMetrics {
+    static let rowHeight: CGFloat = 40
+    static let rowHorizontalPadding: CGFloat = 12
+    static let rowVerticalPadding: CGFloat = 8
 }
 
 /// Title bar for a secondary panel screen.
@@ -198,26 +214,35 @@ struct PanelNavigationBar: View {
     }
 }
 
-/// Caption header over a flat card of rows.
+/// Header, a flat card of rows, and an optional explanatory footer.
 struct SettingsSection<Content: View>: View {
     let title: String
+    var footer: String?
     @ViewBuilder let content: () -> Content
 
-    init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+    init(_ title: String, footer: String? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.title = title
+        self.footer = footer
         self.content = content
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .padding(.leading, 8)
+                .padding(.leading, SettingsMetrics.rowHorizontalPadding)
             VStack(spacing: 0) {
                 content()
             }
             .card()
+            if let footer {
+                Text(footer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, SettingsMetrics.rowHorizontalPadding)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }
@@ -226,7 +251,7 @@ struct SettingsSection<Content: View>: View {
 struct SettingsDivider: View {
     var body: some View {
         Divider()
-            .padding(.leading, 12)
+            .padding(.leading, SettingsMetrics.rowHorizontalPadding)
     }
 }
 
@@ -246,25 +271,27 @@ struct SettingsRow<Control: View>: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
-                    .font(.callout)
+                    .font(.body)
+                    .fixedSize()
                 if let subtitle {
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 8)
             control()
         }
         .settingsRowPadding()
-        .frame(minHeight: 38)
+        .frame(minHeight: SettingsMetrics.rowHeight)
     }
 }
 
-private extension View {
+extension View {
     func settingsRowPadding() -> some View {
-        padding(.horizontal, 12)
-            .padding(.vertical, 9)
+        padding(.horizontal, SettingsMetrics.rowHorizontalPadding)
+            .padding(.vertical, SettingsMetrics.rowVerticalPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

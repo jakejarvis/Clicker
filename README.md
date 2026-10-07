@@ -49,7 +49,7 @@ needs in order to see the process.
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
 Click the Apple TV icon in the menu bar to open the remote; right-click it for
 Settings and Quit. Settings (name shown on the TV, launch at login, forgetting
-pairings, shortcuts) slide in over the remote behind the gear button or ⌘,;
+pairings) slide in over the remote behind the gear button or ⌘,;
 Esc or the back button returns, and Esc on the remote closes the panel.
 
 ## Pairing

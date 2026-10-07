@@ -7,10 +7,18 @@ struct MenuBarView: View {
 
     static let panelWidth: CGFloat = PanelMetrics.width
 
-    /// Height of the remote screen, measured so Settings can match it: the
-    /// menu bar window keeps one size while screens slide, and Settings
-    /// scrolls inside that height instead of resizing the panel.
-    @State private var remoteHeight: CGFloat = 470
+    /// Natural heights of both screens. The container is pinned to the height
+    /// of the screen being shown, so the panel resizes once per switch while
+    /// the outgoing screen is clipped as it slides away.
+    @State private var remoteHeight: CGFloat?
+    @State private var settingsHeight: CGFloat?
+
+    private var targetHeight: CGFloat? {
+        switch controller.screen {
+        case .remote: return remoteHeight
+        case .settings: return settingsHeight ?? remoteHeight
+        }
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -22,12 +30,15 @@ struct MenuBarView: View {
                     }
                     .transition(.move(edge: .leading))
             case .settings:
-                SettingsScreen(controller: controller, height: remoteHeight)
-                    .transition(.move(edge: .trailing))
+                SettingsScreen(controller: controller) { height in
+                    settingsHeight = height
+                }
+                .transition(.move(edge: .trailing))
             }
         }
-        .clipped()
         .frame(width: Self.panelWidth)
+        .frame(height: targetHeight, alignment: .top)
+        .clipped()
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
