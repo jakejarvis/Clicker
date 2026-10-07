@@ -47,9 +47,10 @@ Launching the binary with `--regular` shows a Dock icon, which some tooling
 needs in order to see the process.
 
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
-Click the Apple TV icon in the menu bar to open the remote. Settings (name shown
-on the TV, launch at login, forgetting pairings, shortcuts) slide in over the
-remote behind the gear button; Esc or the back button returns.
+Click the Apple TV icon in the menu bar to open the remote; right-click it for
+Settings and Quit. Settings (name shown on the TV, launch at login, forgetting
+pairings, shortcuts) slide in over the remote behind the gear button or ⌘,;
+Esc or the back button returns, and Esc on the remote closes the panel.
 
 ## Pairing
 
@@ -66,7 +67,7 @@ permissions in `~/Library/Application Support/Clicker/pairings.json`. Use
 
 ```
 Sources/Clicker
-├── App/            @main app, menu bar extra and settings scenes
+├── App/            @main app, status item, the custom glass NSPanel and its geometry
 ├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, PairingView, SettingsScreen
 ├── Stores/         RemoteController (app state), CredentialStore, IdentityStore
 ├── Services/
@@ -99,6 +100,12 @@ signatures) and derives per-direction session keys. After that, frames are
 encrypted with a counter nonce and the frame header as additional data, and the
 app registers a `com.apple.tvremoteservices` session before sending `_hidC`
 button events.
+
+The panel is a plain `NSStatusItem` plus a borderless, non-activating `NSPanel`
+that can become key (so keystrokes work without activating the app), backed by
+`NSGlassEffectView` on macOS 26 and behind-window vibrancy on macOS 15. SwiftUI
+reports its preferred height and the panel follows it; one corner radius is
+shared by the panel, the device control and the settings cards.
 
 The protocol details were checked against [pyatv](https://github.com/postlund/pyatv),
 whose Companion implementation is the reference for this format. The only

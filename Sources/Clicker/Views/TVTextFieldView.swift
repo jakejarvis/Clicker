@@ -14,7 +14,7 @@ struct TVTextFieldView: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous)
         HStack(spacing: 8) {
             Image(systemName: "keyboard")
                 .foregroundStyle(.secondary)

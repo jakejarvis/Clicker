@@ -18,15 +18,18 @@ struct SettingsScreen: View {
             PanelNavigationBar(title: "Settings") {
                 withAnimation(.snappy(duration: 0.3)) { controller.screen = .remote }
             }
+            Divider()
+                .padding(.horizontal, PanelMetrics.horizontalPadding)
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 18) {
                     thisMacSection
                     pairedSection
                     keyboardSection
                     aboutSection
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+                .padding(.horizontal, PanelMetrics.horizontalPadding)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
             }
             .scrollIndicators(.never)
         }
@@ -34,22 +37,21 @@ struct SettingsScreen: View {
         .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
     }
 
+    // MARK: - Sections
+
     private var thisMacSection: some View {
         SettingsSection("This Mac") {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Name shown on Apple TV")
-                    .font(.callout)
                 TextField("Name", text: $clientName)
                     .textFieldStyle(.roundedBorder)
+                    .controlSize(.small)
                 Text("Appears under Remotes and Devices the next time you pair.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Divider()
-                .padding(.horizontal, 12)
+            .settingsRowPadding()
+            SettingsDivider()
             SettingsRow("Launch at Login") {
                 Toggle("", isOn: $launchAtLogin)
                     .labelsHidden()
@@ -69,21 +71,38 @@ struct SettingsScreen: View {
 
     private var pairedSection: some View {
         SettingsSection("Paired Apple TVs") {
-            if controller.credentialStore.credentials.isEmpty {
-                Text("No Apple TVs paired yet. Pick one from the title menu and choose Pair.")
+            let credentials = controller.credentialStore.credentials
+            if credentials.isEmpty {
+                Text("None yet. Pick an Apple TV from the top of the remote and choose Pair.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                    .padding(12)
+                    .settingsRowPadding()
             } else {
-                ForEach(controller.credentialStore.credentials, id: \.deviceID) { credentials in
-                    SettingsRow(credentials.deviceName, subtitle: "Paired \(credentials.pairedAt.formatted(date: .abbreviated, time: .omitted))") {
-                        Button("Forget", role: .destructive) {
-                            let device = controller.devices.first { $0.id == credentials.deviceID }
-                                ?? AppleTVDevice(offline: credentials)
+                ForEach(Array(credentials.enumerated()), id: \.element.deviceID) { index, item in
+                    if index > 0 { SettingsDivider() }
+                    HStack(spacing: 10) {
+                        DeviceIcon(
+                            device: controller.devices.first { $0.id == item.deviceID },
+                            isConnected: controller.selectedDeviceID == item.deviceID && controller.connectionState == .connected
+                        )
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.deviceName)
+                                .font(.callout.weight(.medium))
+                            Text("Paired \(item.pairedAt.formatted(date: .abbreviated, time: .omitted))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 8)
+                        Button("Forget") {
+                            let device = controller.devices.first { $0.id == item.deviceID }
+                                ?? AppleTVDevice(offline: item)
                             controller.forgetPairing(for: device)
                         }
-                        .controlSize(.small)
+                        .buttonStyle(.plain)
+                        .font(.callout)
+                        .foregroundStyle(.red)
                     }
+                    .settingsRowPadding()
                 }
             }
         }
@@ -91,14 +110,17 @@ struct SettingsScreen: View {
 
     private var keyboardSection: some View {
         SettingsSection("Keyboard") {
-            SettingsRow("Navigate") { shortcut("↑ ↓ ← →") }
-            SettingsRow("Select") { shortcut("Return") }
-            SettingsRow("Back") { shortcut("Delete") }
-            SettingsRow("Play/Pause") { shortcut("Space") }
-            SettingsRow("TV") { shortcut("H") }
-            SettingsRow("Volume") { shortcut("+  −") }
-            SettingsRow("Mute") { shortcut("M") }
-            SettingsRow("Close panel") { shortcut("Esc") }
+            LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 10) {
+                shortcut("↑↓←→", "Navigate")
+                shortcut("⏎", "Select")
+                shortcut("⌫", "Back")
+                shortcut("␣", "Play/Pause")
+                shortcut("H", "TV")
+                shortcut("M", "Mute")
+                shortcut("+ −", "Volume")
+                shortcut("Esc", "Close")
+            }
+            .settingsRowPadding()
         }
     }
 
@@ -108,20 +130,27 @@ struct SettingsScreen: View {
                 Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")
                     .foregroundStyle(.secondary)
             }
-            SettingsRow("Quit Clicker", subtitle: "⌘Q also works") {
+            SettingsDivider()
+            SettingsRow("Quit Clicker", subtitle: "⌘Q") {
                 Button("Quit") { NSApplication.shared.terminate(nil) }
                     .controlSize(.small)
             }
         }
     }
 
-    private func shortcut(_ text: String) -> some View {
-        Text(text)
-            .font(.callout.monospaced())
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+    private func shortcut(_ keys: String, _ action: String) -> some View {
+        HStack(spacing: 8) {
+            Text(keys)
+                .font(.caption.weight(.semibold).monospaced())
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 6)
+                .frame(height: 20)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+            Text(action)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
     }
 
     private func updateLaunchAtLogin(_ enabled: Bool) {
@@ -157,20 +186,19 @@ struct PanelNavigationBar: View {
                         .frame(width: 28, height: 28)
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressFeedbackStyle())
                 .surface(Circle())
-                .help("Back")
+                .help("Back (Esc)")
                 .accessibilityLabel("Back")
-                .keyboardShortcut(.escape, modifiers: [])
                 Spacer()
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, PanelMetrics.horizontalPadding)
+        .padding(.vertical, 10)
     }
 }
 
-/// Caption header over a rounded card of rows.
+/// Caption header over a flat card of rows.
 struct SettingsSection<Content: View>: View {
     let title: String
     @ViewBuilder let content: () -> Content
@@ -185,12 +213,20 @@ struct SettingsSection<Content: View>: View {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .padding(.leading, 6)
+                .padding(.leading, 8)
             VStack(spacing: 0) {
                 content()
             }
-            .surface(RoundedRectangle(cornerRadius: 12, style: .continuous), interactive: false)
+            .card()
         }
+    }
+}
+
+/// Hairline between rows, inset to the row content.
+struct SettingsDivider: View {
+    var body: some View {
+        Divider()
+            .padding(.leading, 12)
     }
 }
 
@@ -220,8 +256,15 @@ struct SettingsRow<Control: View>: View {
             Spacer(minLength: 8)
             control()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(minHeight: 36)
+        .settingsRowPadding()
+        .frame(minHeight: 38)
+    }
+}
+
+private extension View {
+    func settingsRowPadding() -> some View {
+        padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

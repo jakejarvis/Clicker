@@ -2,31 +2,37 @@ import AppKit
 import SwiftUI
 
 /// Clicker lives only in the menu bar: no Dock icon and no main window. The
-/// `LSUIElement` key in Info.plist plus the `.accessory` activation policy
-/// below make that explicit and intentional.
+/// status item and its panel are AppKit-owned (see `StatusItemController`),
+/// which gives a real key window for keyboard input and full control over the
+/// panel's shape, placement and size. `LSUIElement` in Info.plist plus the
+/// `.accessory` activation policy make the no-Dock behavior explicit.
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var controller: RemoteController?
+    private var statusItemController: StatusItemController?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // `--regular` shows a Dock icon, which makes the process visible to
         // tooling that only lists regular apps (useful during development).
         let policy: NSApplication.ActivationPolicy =
             CommandLine.arguments.contains("--regular") ? .regular : .accessory
         NSApp.setActivationPolicy(policy)
+
+        let controller = RemoteController()
+        self.controller = controller
+        statusItemController = StatusItemController(controller: controller)
+        controller.start()
     }
 }
 
 @main
 struct ClickerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var controller = RemoteController()
 
     var body: some Scene {
-        MenuBarExtra {
-            MenuBarView(controller: controller)
-        } label: {
-            Image(systemName: controller.menuBarSymbolName)
-                .accessibilityLabel("Clicker")
-                .onAppear { controller.start() }
+        // SwiftUI needs one scene; an empty Settings scene never opens a window
+        // on its own and keeps the app window-free.
+        Settings {
+            EmptyView()
         }
-        .menuBarExtraStyle(.window)
     }
 }

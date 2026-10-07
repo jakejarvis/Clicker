@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 enum ConnectionState: Equatable, Sendable {
     case disconnected
@@ -265,6 +266,13 @@ final class RemoteController {
     /// Called when the menu bar panel closes.
     func panelDidDisappear() {
         screen = .remote
+    }
+
+    /// Esc backs out of Settings first; returns false when the panel should close.
+    func handleEscape() -> Bool {
+        guard screen != .remote else { return false }
+        withAnimation(.snappy(duration: 0.3)) { screen = .remote }
+        return true
     }
 
     private func listenForEvents(from client: CompanionClient) {

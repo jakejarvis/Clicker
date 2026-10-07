@@ -44,6 +44,16 @@ private struct SurfaceModifier<S: InsettableShape>: ViewModifier {
     }
 }
 
+extension View {
+    /// Quiet, non-interactive container for grouped content (settings cards).
+    /// Flat so it reads as a tray, not as another glass button.
+    func card() -> some View {
+        let shape = RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous)
+        return background(.quaternary.opacity(0.55), in: shape)
+            .overlay(shape.strokeBorder(.separator.opacity(0.6), lineWidth: 1))
+    }
+}
+
 /// Groups glass surfaces so neighbouring shapes blend; a no-op on macOS 15.
 struct SurfaceContainer<Content: View>: View {
     var spacing: CGFloat = 12

@@ -8,7 +8,7 @@ struct DevicePickerMenu: View {
     let controller: RemoteController
     @State private var isPresented = false
 
-    private let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+    private let shape = RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous)
 
     var body: some View {
         Button {
@@ -158,9 +158,9 @@ private struct DeviceRow: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous)
                     .fill(isHovered ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
             )
             .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))

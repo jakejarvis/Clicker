@@ -5,7 +5,7 @@ import SwiftUI
 struct MenuBarView: View {
     let controller: RemoteController
 
-    static let panelWidth: CGFloat = 264
+    static let panelWidth: CGFloat = PanelMetrics.width
 
     /// Height of the remote screen, measured so Settings can match it: the
     /// menu bar window keeps one size while screens slide, and Settings
@@ -28,8 +28,7 @@ struct MenuBarView: View {
         }
         .clipped()
         .frame(width: Self.panelWidth)
-        .onAppear { controller.panelDidAppear() }
-        .onDisappear { controller.panelDidDisappear() }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private var remoteScreen: some View {
@@ -119,12 +118,7 @@ struct MenuBarView: View {
                 Image(systemName: "gearshape")
                     .frame(width: 28, height: 24)
             }
-            .help("Settings")
-            // ⌘Q works while the panel is key; Quit itself lives in Settings.
-            Button("Quit Clicker") { NSApplication.shared.terminate(nil) }
-                .keyboardShortcut("q", modifiers: .command)
-                .hidden()
-                .frame(width: 0, height: 0)
+            .help("Settings (⌘,)")
         }
         .buttonStyle(.borderless)
         .menuStyle(.borderlessButton)
@@ -174,6 +168,6 @@ struct InlineNoticeView: View {
             }
         }
         .padding(8)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
     }
 }
