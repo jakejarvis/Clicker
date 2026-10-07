@@ -83,73 +83,30 @@ struct SettingsScreen: View {
         }
     }
 
+    /// Only the names, with a hover-revealed remove control: the picker on the
+    /// remote already shows model and state, and forgetting is rare. The
+    /// section disappears entirely when nothing is paired.
+    @ViewBuilder
     private var pairedSection: some View {
-        SettingsSection("Paired Apple TVs") {
-            let credentials = controller.credentialStore.credentials
-            if credentials.isEmpty {
-                SettingsRow("None yet", subtitle: "Choose an Apple TV at the top of the remote and pair it.") {
-                    EmptyView()
-                }
-            } else {
+        let credentials = controller.credentialStore.credentials
+        if !credentials.isEmpty {
+            SettingsSection("Paired Apple TVs") {
                 ForEach(Array(credentials.enumerated()), id: \.element.deviceID) { index, item in
                     if index > 0 { SettingsDivider() }
-                    pairedRow(item)
+                    PairedDeviceRow(
+                        name: item.deviceName,
+                        isConfirming: pendingForgetID == item.deviceID,
+                        onRequestForget: { pendingForgetID = item.deviceID },
+                        onCancel: { pendingForgetID = nil },
+                        onForget: {
+                            pendingForgetID = nil
+                            let device = controller.devices.first { $0.id == item.deviceID }
+                                ?? AppleTVDevice(offline: item)
+                            controller.forgetPairing(for: device)
+                        }
+                    )
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func pairedRow(_ item: PairingCredentials) -> some View {
-        let device = controller.devices.first { $0.id == item.deviceID }
-        if pendingForgetID == item.deviceID {
-            // Confirmation takes over the row: the question on one line, the
-            // choices on the next, so nothing has to truncate.
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Forget \(item.deviceName)?")
-                    .font(.body)
-                HStack(spacing: 8) {
-                    Text("You'll need to pair again.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 8)
-                    Button("Cancel") { pendingForgetID = nil }
-                        .buttonStyle(.bordered)
-                    Button("Forget") {
-                        pendingForgetID = nil
-                        controller.forgetPairing(for: device ?? AppleTVDevice(offline: item))
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
-                }
-                .controlSize(.small)
-            }
-            .settingsRowPadding()
-            .frame(minHeight: SettingsMetrics.rowHeight)
-            .transition(.opacity)
-        } else {
-            HStack(spacing: 10) {
-                DeviceIcon(
-                    device: device,
-                    isConnected: controller.selectedDeviceID == item.deviceID && controller.connectionState == .connected
-                )
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(item.deviceName)
-                        .font(.body)
-                        .lineLimit(1)
-                    Text("Paired \(item.pairedAt.formatted(.dateTime.month(.abbreviated).day()))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                Button("Forget…") { pendingForgetID = item.deviceID }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-            }
-            .settingsRowPadding()
-            .frame(minHeight: SettingsMetrics.rowHeight)
-            .transition(.opacity)
         }
     }
 
@@ -245,6 +202,72 @@ struct SettingsSection<Content: View>: View {
                     .padding(.horizontal, SettingsMetrics.rowHorizontalPadding)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+}
+
+/// One paired Apple TV. The remove control appears on hover (and via the
+/// context menu); confirming takes over the row so nothing truncates.
+private struct PairedDeviceRow: View {
+    let name: String
+    let isConfirming: Bool
+    let onRequestForget: () -> Void
+    let onCancel: () -> Void
+    let onForget: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Group {
+            if isConfirming {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Forget \(name)?")
+                        .font(.body)
+                    HStack(spacing: 8) {
+                        Text("You'll need to pair again.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 8)
+                        Button("Cancel", action: onCancel)
+                            .buttonStyle(.bordered)
+                        Button("Forget", action: onForget)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.red)
+                    }
+                    .controlSize(.small)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "appletv.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 22)
+                    Text(name)
+                        .font(.body)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Button(action: onRequestForget) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 15))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24, height: 24)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(PressFeedbackStyle())
+                    .opacity(isHovered ? 1 : 0)
+                    .help("Forget this pairing")
+                    .accessibilityLabel("Forget \(name)")
+                }
+                .contextMenu {
+                    Button("Forget \(name)…", role: .destructive, action: onRequestForget)
+                }
+            }
+        }
+        .settingsRowPadding()
+        .frame(minHeight: SettingsMetrics.rowHeight)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) { isHovered = hovering }
         }
     }
 }
