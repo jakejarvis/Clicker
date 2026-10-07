@@ -107,9 +107,10 @@ final class RemoteController {
         case .failed: return "Connection failed"
         case .disconnected: return "Not connected"
         case .connected:
-            switch powerState {
-            case .unknown: return "Connected"
-            default: return powerState.title
+            // "Ready" means connected and the TV is on; only sleep is called out.
+            switch powerState.isOn {
+            case .some(false): return "Asleep"
+            default: return "Ready"
             }
         }
     }

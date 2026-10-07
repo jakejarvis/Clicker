@@ -1,48 +1,90 @@
 import SwiftUI
 
-/// The selected Apple TV's name as a title; clicking it drops down a list of
-/// every known device with icon, name, state and a checkmark on the current
-/// one. A custom popover is used because system menus cannot show subtitles.
+/// The device selector: a full-width control showing the current Apple TV's
+/// icon, name, model and state. Clicking it drops down a list of every known
+/// device in the same style, with a checkmark on the current one. A custom
+/// popover is used because system menus cannot show subtitles.
 struct DevicePickerMenu: View {
     let controller: RemoteController
     @State private var isPresented = false
+
+    private let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
 
     var body: some View {
         Button {
             isPresented.toggle()
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: controller.selectedDevice?.isOnline == false ? "appletv" : "appletv.fill")
-                    .font(.title3)
-                    .foregroundStyle(controller.connectionState == .connected ? Color.accentColor : .secondary)
-                    .frame(width: 22)
-                Text(controller.selectedDevice?.name ?? "Choose Apple TV")
-                    .font(.title3.weight(.semibold))
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
+            HStack(spacing: 10) {
+                DeviceIcon(device: controller.selectedDevice, isConnected: controller.connectionState == .connected)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(controller.selectedDevice?.name ?? "Choose an Apple TV")
+                        .font(.callout.weight(.semibold))
+                        .lineLimit(1)
+                    subtitle
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 6)
+                Image(systemName: "chevron.up.chevron.down")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .rotationEffect(.degrees(isPresented ? 180 : 0))
-                    .animation(.snappy(duration: 0.2), value: isPresented)
             }
-            .padding(.vertical, 2)
-            .padding(.horizontal, 4)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(shape)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressFeedbackStyle())
+        .surface(shape)
         .disabled(controller.devices.isEmpty)
-        .help(controller.selectedDevice?.modelDisplayName ?? "Choose an Apple TV")
+        .help("Choose an Apple TV")
         .accessibilityLabel("Apple TV: \(controller.selectedDevice?.name ?? "none selected")")
         .accessibilityHint("Opens the list of Apple TVs")
-        // Anchor the popover to the full header width so it centers under the
-        // panel instead of hanging off its left edge.
-        .frame(maxWidth: .infinity, alignment: .leading)
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             DeviceListView(controller: controller) { device in
                 controller.select(device)
                 isPresented = false
             }
         }
+    }
+
+    @ViewBuilder
+    private var subtitle: some View {
+        if let device = controller.selectedDevice {
+            HStack(spacing: 4) {
+                Text(device.shortModelName)
+                    .truncationMode(.tail)
+                Text("·")
+                Text(controller.selectedStateDescription)
+                    .layoutPriority(1)
+            }
+        } else if controller.devices.isEmpty {
+            HStack(spacing: 5) {
+                ProgressView()
+                    .controlSize(.mini)
+                Text("Looking on your network…")
+            }
+        } else {
+            Text("\(controller.devices.count) found")
+        }
+    }
+}
+
+/// Rounded tile with the Apple TV glyph; tinted while connected.
+struct DeviceIcon: View {
+    let device: AppleTVDevice?
+    let isConnected: Bool
+
+    var body: some View {
+        Image(systemName: device?.isOnline == false ? "appletv" : "appletv.fill")
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(.white)
+            .frame(width: 30, height: 30)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isConnected ? AnyShapeStyle(Color.accentColor.gradient) : AnyShapeStyle(Color.gray.gradient))
+            )
     }
 }
 
@@ -55,8 +97,9 @@ private struct DeviceListView: View {
             ForEach(controller.devices) { device in
                 DeviceRow(
                     device: device,
-                    state: stateText(for: device),
+                    subtitle: subtitle(for: device),
                     isSelected: device.id == controller.selectedDeviceID,
+                    isConnected: device.id == controller.selectedDeviceID && controller.connectionState == .connected,
                     isPaired: controller.isPaired(device)
                 ) {
                     onSelect(device)
@@ -64,22 +107,23 @@ private struct DeviceListView: View {
             }
         }
         .padding(6)
-        .frame(width: 240)
+        .frame(width: MenuBarView.panelWidth - 28)
     }
 
-    private func stateText(for device: AppleTVDevice) -> String {
+    private func subtitle(for device: AppleTVDevice) -> String {
         if device.id == controller.selectedDeviceID {
-            return controller.selectedStateDescription
+            return "\(device.shortModelName) · \(controller.selectedStateDescription)"
         }
-        if !device.isOnline { return "Offline" }
-        return controller.isPaired(device) ? device.modelDisplayName : "Not paired"
+        if !device.isOnline { return "\(device.shortModelName) · Offline" }
+        return controller.isPaired(device) ? device.modelDisplayName : "\(device.shortModelName) · Not paired"
     }
 }
 
 private struct DeviceRow: View {
     let device: AppleTVDevice
-    let state: String
+    let subtitle: String
     let isSelected: Bool
+    let isConnected: Bool
     let isPaired: Bool
     let action: () -> Void
 
@@ -88,40 +132,36 @@ private struct DeviceRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: device.isOnline ? "appletv.fill" : "appletv")
-                    .font(.title3)
-                    .foregroundStyle(device.isOnline ? Color.accentColor : .secondary)
-                    .frame(width: 24)
+                DeviceIcon(device: device, isConnected: isConnected)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(device.name)
-                        .font(.body.weight(.medium))
+                        .font(.callout.weight(.semibold))
                         .lineLimit(1)
-                    Text(state)
+                    Text(subtitle)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isHovered ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(Color.accentColor))
                 } else if !isPaired, device.isOnline {
                     Text("Pair")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(.quaternary, in: Capsule())
                 }
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 8)
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isHovered ? AnyShapeStyle(.selection.opacity(0.9)) : AnyShapeStyle(.clear))
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isHovered ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
             )
             .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
         }
@@ -129,7 +169,16 @@ private struct DeviceRow: View {
         .focusEffectDisabled()
         .opacity(device.isOnline ? 1 : 0.6)
         .onHover { isHovered = $0 }
-        .accessibilityLabel("\(device.name), \(state)")
+        .accessibilityLabel("\(device.name), \(subtitle)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// Subtle press feedback for plain, non-remote buttons.
+struct PressFeedbackStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }

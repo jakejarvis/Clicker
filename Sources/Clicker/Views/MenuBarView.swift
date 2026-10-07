@@ -34,17 +34,10 @@ struct MenuBarView: View {
 
     private var remoteScreen: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
-                DevicePickerMenu(controller: controller)
-                header
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.top, 12)
-            .padding(.bottom, 10)
-
-            Divider()
+            DevicePickerMenu(controller: controller)
                 .padding(.horizontal, 14)
+                .padding(.top, 14)
+                .padding(.bottom, 4)
 
             content
                 .frame(maxWidth: .infinity)
@@ -57,31 +50,6 @@ struct MenuBarView: View {
             footer
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-        }
-    }
-
-    @ViewBuilder
-    private var header: some View {
-        if let device = controller.selectedDevice {
-            HStack(spacing: 4) {
-                Text(device.modelDisplayName)
-                    .truncationMode(.tail)
-                Text("·")
-                Text(controller.selectedStateDescription)
-                    .layoutPriority(1)
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .padding(.leading, 30)
-        } else if controller.devices.isEmpty {
-            HStack(spacing: 6) {
-                ProgressView()
-                    .controlSize(.mini)
-                Text("Looking for Apple TVs…")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
     }
 
@@ -152,13 +120,11 @@ struct MenuBarView: View {
                     .frame(width: 28, height: 24)
             }
             .help("Settings")
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Image(systemName: "power.circle")
-                    .frame(width: 28, height: 24)
-            }
-            .help("Quit Clicker")
+            // ⌘Q works while the panel is key; Quit itself lives in Settings.
+            Button("Quit Clicker") { NSApplication.shared.terminate(nil) }
+                .keyboardShortcut("q", modifiers: .command)
+                .hidden()
+                .frame(width: 0, height: 0)
         }
         .buttonStyle(.borderless)
         .menuStyle(.borderlessButton)

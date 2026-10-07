@@ -36,13 +36,20 @@ struct SettingsScreen: View {
 
     private var thisMacSection: some View {
         SettingsSection("This Mac") {
-            SettingsRow("Name", subtitle: "Shown on the Apple TV") {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Name shown on Apple TV")
+                    .font(.callout)
                 TextField("Name", text: $clientName)
                     .textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 124)
-                    .help("Used the next time you pair; appears under Remotes and Devices on the Apple TV.")
+                Text("Appears under Remotes and Devices the next time you pair.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Divider()
+                .padding(.horizontal, 12)
             SettingsRow("Launch at Login") {
                 Toggle("", isOn: $launchAtLogin)
                     .labelsHidden()
@@ -86,11 +93,12 @@ struct SettingsScreen: View {
         SettingsSection("Keyboard") {
             SettingsRow("Navigate") { shortcut("↑ ↓ ← →") }
             SettingsRow("Select") { shortcut("Return") }
-            SettingsRow("Back") { shortcut("Esc") }
+            SettingsRow("Back") { shortcut("Delete") }
             SettingsRow("Play/Pause") { shortcut("Space") }
             SettingsRow("TV") { shortcut("H") }
             SettingsRow("Volume") { shortcut("+  −") }
             SettingsRow("Mute") { shortcut("M") }
+            SettingsRow("Close panel") { shortcut("Esc") }
         }
     }
 
@@ -100,7 +108,7 @@ struct SettingsScreen: View {
                 Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")
                     .foregroundStyle(.secondary)
             }
-            SettingsRow("Quit Clicker") {
+            SettingsRow("Quit Clicker", subtitle: "⌘Q also works") {
                 Button("Quit") { NSApplication.shared.terminate(nil) }
                     .controlSize(.small)
             }

@@ -5,8 +5,8 @@ Apple TVs on your network. It speaks Apple's Companion protocol directly (the
 same one the iPhone Remote uses), so there is no Python, no bridge process and
 no third-party service involved.
 
-- Finds Apple TVs over Bonjour; a dropdown under the TV's name switches between
-  them and shows each one's state.
+- Finds Apple TVs over Bonjour; the device control at the top shows the current
+  TV's model and state and drops down a list to switch.
 - Pairs once with the four-digit PIN the TV shows; credentials are kept so later
   connections are instant.
 - Clickpad with a large Select, Back, TV/Home, Play/Pause, Mute, a volume
@@ -14,8 +14,8 @@ no third-party service involved.
   holds work. Mute remembers the level and sets the TV's volume to zero.
 - When the Apple TV shows its on-screen keyboard, a text field slides into the
   panel and types straight into the TV.
-- Keyboard control while the panel is open: arrows, Return, Esc/Delete, Space,
-  H, M, + and −.
+- Keyboard control while the panel is open: arrows, Return, Delete for Back,
+  Space, H, M, + and −. Esc closes the panel.
 - Launch any installed app from the Apps menu; Wake, Sleep, Screen Saver and
   Control Center from the Power menu; model and power state under the title.
 - Liquid Glass surfaces on macOS 26, system materials on macOS 15.

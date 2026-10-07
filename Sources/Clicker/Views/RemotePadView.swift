@@ -226,7 +226,7 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
         case .leftArrow: command = .left
         case .rightArrow: command = .right
         case .return: command = .select
-        case .escape, .delete: command = .menu
+        case .delete: command = .menu
         case .space: command = .playPause
         default:
             switch press.characters.lowercased() {

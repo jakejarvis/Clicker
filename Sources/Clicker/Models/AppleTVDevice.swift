@@ -26,6 +26,16 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
         }
     }
 
+    /// Model family without the generation, for tight spaces.
+    var shortModelName: String {
+        guard let model else { return "Apple TV" }
+        switch model {
+        case "AppleTV5,3": return "Apple TV HD"
+        case "AppleTV6,2", "AppleTV11,1", "AppleTV14,1": return "Apple TV 4K"
+        default: return "Apple TV"
+        }
+    }
+
     static let pairingDisabledFlag: UInt64 = 0x04
     static let pairingWithPINFlag: UInt64 = 0x4000
 
