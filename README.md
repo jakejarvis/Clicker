@@ -87,3 +87,7 @@ The protocol details were checked against [pyatv](https://github.com/postlund/py
 whose Companion implementation is the reference for this format. The only
 dependency is [BigInt](https://github.com/attaswift/BigInt) for the SRP modular
 arithmetic; everything else is CryptoKit, Network and SwiftUI.
+
+## License
+
+[MIT](LICENSE)
