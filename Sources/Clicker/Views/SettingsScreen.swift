@@ -224,10 +224,7 @@ private struct PairedDeviceRow: View {
                     Text("Forget \(name)?")
                         .font(.body)
                     HStack(spacing: 8) {
-                        Text("You'll need to pair again.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer(minLength: 8)
+                        Spacer(minLength: 0)
                         Button("Cancel", action: onCancel)
                             .buttonStyle(.bordered)
                         Button("Forget", action: onForget)
