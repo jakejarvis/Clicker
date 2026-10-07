@@ -266,7 +266,7 @@ struct PanelActionButton: View {
                 Text(title)
                     .font(.callout)
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
             .frame(height: 30)
             .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
