@@ -45,6 +45,8 @@ final class PanelOutsideClickMonitor {
     }
 
     private func handleClick(windowID: ObjectIdentifier?, windowTypeName: String?, screenPoint: NSPoint) {
+        // A confirmation sheet owns the interaction; never dismiss under it.
+        if panel.attachedSheet != nil { return }
         if panel.frame.contains(screenPoint) { return }
         if windowID == ObjectIdentifier(panel) { return }
         if let buttonWindow = statusItem.button?.window, windowID == ObjectIdentifier(buttonWindow) { return }

@@ -19,7 +19,8 @@ struct SettingsScreen: View {
     @AppStorage(IdentityStore.clientNameKey) private var clientName = IdentityStore.defaultClientName
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
-    @State private var pendingForgetID: String?
+    /// The pairing awaiting confirmation in the alert sheet.
+    @State private var forgetCandidate: PairingCredentials?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,7 +57,22 @@ struct SettingsScreen: View {
             if total > 0 { onNaturalHeightChange(total) }
         }
         .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
-        .animation(.snappy(duration: 0.2), value: pendingForgetID)
+        .alert(
+            "Forget \(forgetCandidate?.deviceName ?? "this Apple TV")?",
+            isPresented: Binding(
+                get: { forgetCandidate != nil },
+                set: { if !$0 { forgetCandidate = nil } }
+            ),
+            presenting: forgetCandidate
+        ) { item in
+            Button("Forget", role: .destructive) {
+                let device = controller.devices.first { $0.id == item.deviceID } ?? AppleTVDevice(offline: item)
+                controller.forgetPairing(for: device)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Clicker will need to pair with it again.")
+        }
     }
 
     // MARK: - Sections
@@ -93,18 +109,9 @@ struct SettingsScreen: View {
             SettingsSection("Paired Apple TVs") {
                 ForEach(Array(credentials.enumerated()), id: \.element.deviceID) { index, item in
                     if index > 0 { SettingsDivider() }
-                    PairedDeviceRow(
-                        name: item.deviceName,
-                        isConfirming: pendingForgetID == item.deviceID,
-                        onRequestForget: { pendingForgetID = item.deviceID },
-                        onCancel: { pendingForgetID = nil },
-                        onForget: {
-                            pendingForgetID = nil
-                            let device = controller.devices.first { $0.id == item.deviceID }
-                                ?? AppleTVDevice(offline: item)
-                            controller.forgetPairing(for: device)
-                        }
-                    )
+                    PairedDeviceRow(name: item.deviceName) {
+                        forgetCandidate = item
+                    }
                 }
             }
         }
@@ -207,58 +214,37 @@ struct SettingsSection<Content: View>: View {
 }
 
 /// One paired Apple TV. The remove control appears on hover (and via the
-/// context menu); confirming takes over the row so nothing truncates.
+/// context menu) and asks for confirmation in a sheet.
 private struct PairedDeviceRow: View {
     let name: String
-    let isConfirming: Bool
-    let onRequestForget: () -> Void
-    let onCancel: () -> Void
     let onForget: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
-        Group {
-            if isConfirming {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Forget \(name)?")
-                        .font(.body)
-                    HStack(spacing: 8) {
-                        Spacer(minLength: 0)
-                        Button("Cancel", action: onCancel)
-                            .buttonStyle(.bordered)
-                        Button("Forget", action: onForget)
-                            .buttonStyle(.borderedProminent)
-                            .tint(.red)
-                    }
-                    .controlSize(.small)
-                }
-            } else {
-                HStack(spacing: 10) {
-                    Image(systemName: "appletv.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 22)
-                    Text(name)
-                        .font(.body)
-                        .lineLimit(1)
-                    Spacer(minLength: 8)
-                    Button(action: onRequestForget) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 15))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 24, height: 24)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(PressFeedbackStyle())
-                    .opacity(isHovered ? 1 : 0)
-                    .help("Forget this pairing")
-                    .accessibilityLabel("Forget \(name)")
-                }
-                .contextMenu {
-                    Button("Forget \(name)…", role: .destructive, action: onRequestForget)
-                }
+        HStack(spacing: 10) {
+            Image(systemName: "appletv.fill")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 22)
+            Text(name)
+                .font(.body)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Button(action: onForget) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Circle())
             }
+            .buttonStyle(PressFeedbackStyle())
+            .opacity(isHovered ? 1 : 0)
+            .help("Forget this pairing")
+            .accessibilityLabel("Forget \(name)")
+        }
+        .contextMenu {
+            Button("Forget \(name)…", role: .destructive, action: onForget)
         }
         .settingsRowPadding()
         .frame(minHeight: SettingsMetrics.rowHeight)
