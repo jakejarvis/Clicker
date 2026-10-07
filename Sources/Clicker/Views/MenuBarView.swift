@@ -7,7 +7,32 @@ struct MenuBarView: View {
 
     static let panelWidth: CGFloat = 264
 
+    /// Height of the remote screen, measured so Settings can match it: the
+    /// menu bar window keeps one size while screens slide, and Settings
+    /// scrolls inside that height instead of resizing the panel.
+    @State private var remoteHeight: CGFloat = 470
+
     var body: some View {
+        ZStack(alignment: .top) {
+            switch controller.screen {
+            case .remote:
+                remoteScreen
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        if height > 0 { remoteHeight = height }
+                    }
+                    .transition(.move(edge: .leading))
+            case .settings:
+                SettingsScreen(controller: controller, height: remoteHeight)
+                    .transition(.move(edge: .trailing))
+            }
+        }
+        .clipped()
+        .frame(width: Self.panelWidth)
+        .onAppear { controller.panelDidAppear() }
+        .onDisappear { controller.panelDidDisappear() }
+    }
+
+    private var remoteScreen: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 DevicePickerMenu(controller: controller)
@@ -33,8 +58,6 @@ struct MenuBarView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
         }
-        .frame(width: Self.panelWidth)
-        .onAppear { controller.panelDidAppear() }
     }
 
     @ViewBuilder
@@ -122,7 +145,13 @@ struct MenuBarView: View {
             AppsMenu(controller: controller)
             PowerMenu(controller: controller)
             Spacer()
-            SettingsButton()
+            Button {
+                withAnimation(.snappy(duration: 0.3)) { controller.screen = .settings }
+            } label: {
+                Image(systemName: "gearshape")
+                    .frame(width: 28, height: 24)
+            }
+            .help("Settings")
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
@@ -134,21 +163,6 @@ struct MenuBarView: View {
         .buttonStyle(.borderless)
         .menuStyle(.borderlessButton)
         .foregroundStyle(.secondary)
-    }
-}
-
-private struct SettingsButton: View {
-    @Environment(\.openSettings) private var openSettings
-
-    var body: some View {
-        Button {
-            NSApp.activate(ignoringOtherApps: true)
-            openSettings()
-        } label: {
-            Image(systemName: "gearshape")
-                .frame(width: 28, height: 24)
-        }
-        .help("Settings")
     }
 }
 

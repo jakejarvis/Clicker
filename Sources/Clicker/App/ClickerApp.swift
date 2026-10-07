@@ -28,9 +28,5 @@ struct ClickerApp: App {
                 .onAppear { controller.start() }
         }
         .menuBarExtraStyle(.window)
-
-        Settings {
-            SettingsView(controller: controller)
-        }
     }
 }

@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// The remote itself: a clickpad ring with a large Select in the middle and
-/// two columns of buttons below. Every button sends HID "down" on press and
-/// "up" on release so holds work (Siri in particular).
+/// two columns of buttons below, laid out like the Siri Remote. Every button
+/// sends HID "down" on press and "up" on release so holds work (Siri in
+/// particular).
 struct RemotePadView: View {
     let controller: RemoteController
 
@@ -11,17 +12,21 @@ struct RemotePadView: View {
             VStack(spacing: 16) {
                 ClickpadView(controller: controller)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    RemoteButton(command: .menu, controller: controller)
-                    RemoteButton(command: .home, controller: controller)
-                    RemoteButton(command: .playPause, controller: controller)
-                    RemoteButton(command: .siri, controller: controller, tint: .purple)
-                    RemoteButton(command: .volumeDown, controller: controller)
-                    RemoteButton(command: .volumeUp, controller: controller)
+                    HoldRemoteButton(command: .menu, controller: controller)
+                    HoldRemoteButton(command: .home, controller: controller)
+                    HoldRemoteButton(command: .playPause, controller: controller)
+                    MuteButton(controller: controller)
+                    HoldRemoteButton(command: .siri, controller: controller, tint: .purple)
+                    VolumeRocker(controller: controller)
                 }
             }
         }
         .remoteKeyboardShortcuts(controller: controller)
     }
+}
+
+enum RemoteMetrics {
+    static let buttonHeight: CGFloat = 44
 }
 
 private struct ClickpadView: View {
@@ -68,22 +73,87 @@ private struct ClickpadView: View {
     }
 }
 
-private struct RemoteButton: View {
+/// Capsule button that sends press and release separately.
+private struct HoldRemoteButton: View {
     let command: HIDCommand
     let controller: RemoteController
     var tint: Color?
 
     var body: some View {
         HoldButton(controller: controller, command: command) {
-            Image(systemName: command.systemImage)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(tint ?? .primary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
+            RemoteGlyph(systemImage: command.systemImage, tint: tint)
                 .contentShape(Capsule())
         }
         .surface(Capsule())
         .help(command == .siri ? "Hold for Siri" : command.title)
+    }
+}
+
+/// Toggles software mute (volume to zero and back).
+private struct MuteButton: View {
+    let controller: RemoteController
+
+    var body: some View {
+        Button {
+            controller.toggleMute()
+        } label: {
+            RemoteGlyph(
+                systemImage: controller.isMuted ? "speaker.slash.fill" : "speaker.slash",
+                tint: controller.isMuted ? .orange : nil
+            )
+            .contentShape(Capsule())
+        }
+        .buttonStyle(RemotePressStyle())
+        .surface(Capsule(), tint: controller.isMuted ? .orange : nil)
+        .help(controller.isMuted ? "Unmute (M)" : "Mute (M)")
+        .accessibilityLabel(controller.isMuted ? "Unmute" : "Mute")
+    }
+}
+
+/// One capsule, two halves: volume down on the left, volume up on the right.
+private struct VolumeRocker: View {
+    let controller: RemoteController
+
+    var body: some View {
+        HStack(spacing: 0) {
+            HoldButton(controller: controller, command: .volumeDown) {
+                Image(systemName: "minus")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: RemoteMetrics.buttonHeight)
+                    .contentShape(Rectangle())
+            }
+            .help("Volume Down (−)")
+
+            Rectangle()
+                .fill(.separator)
+                .frame(width: 1, height: RemoteMetrics.buttonHeight * 0.5)
+
+            HoldButton(controller: controller, command: .volumeUp) {
+                Image(systemName: "plus")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: RemoteMetrics.buttonHeight)
+                    .contentShape(Rectangle())
+            }
+            .help("Volume Up (+)")
+        }
+        .surface(Capsule())
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Volume")
+    }
+}
+
+private struct RemoteGlyph: View {
+    let systemImage: String
+    var tint: Color?
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 16, weight: .medium))
+            .foregroundStyle(tint ?? .primary)
+            .frame(maxWidth: .infinity)
+            .frame(height: RemoteMetrics.buttonHeight)
     }
 }
 
@@ -97,7 +167,7 @@ private struct HoldButton<Label: View>: View {
         Button(action: {}) {
             label()
         }
-        .buttonStyle(PressReportingButtonStyle { pressed in
+        .buttonStyle(RemotePressStyle { pressed in
             if pressed {
                 controller.buttonDown(command)
             } else {
@@ -108,8 +178,8 @@ private struct HoldButton<Label: View>: View {
     }
 }
 
-private struct PressReportingButtonStyle: ButtonStyle {
-    let onPressChanged: (Bool) -> Void
+private struct RemotePressStyle: ButtonStyle {
+    var onPressChanged: ((Bool) -> Void)?
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -117,7 +187,7 @@ private struct PressReportingButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.75 : 1)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
-                onPressChanged(pressed)
+                onPressChanged?(pressed)
             }
     }
 }
@@ -164,7 +234,9 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             case "p": command = .playPause
             case "+", "=": command = .volumeUp
             case "-", "_": command = .volumeDown
-            case "m": command = .menu
+            case "m":
+                controller.toggleMute()
+                return .handled
             default: command = nil
             }
         }

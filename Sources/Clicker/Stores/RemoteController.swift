@@ -18,6 +18,13 @@ enum PairingState: Equatable, Sendable {
     case failed(String)
 }
 
+/// Which page the menu bar panel is showing. Settings replaces the remote in
+/// place; there is no separate window.
+enum PanelScreen: Hashable, Sendable {
+    case remote
+    case settings
+}
+
 /// App-wide remote control state: which Apple TV is selected, whether we are
 /// connected to it, and the actions the UI can trigger.
 @MainActor
@@ -37,6 +44,9 @@ final class RemoteController {
     private(set) var keyboardSession: TextInputArchive.Session?
     /// Our mirror of the text in the TV's focused field.
     private(set) var tvText = ""
+    /// Software mute: the volume is set to zero and restored on unmute.
+    private(set) var isMuted = false
+    var screen: PanelScreen = .remote
 
     @ObservationIgnored private var client: CompanionClient?
     @ObservationIgnored private var clientDeviceID: String?
@@ -45,6 +55,7 @@ final class RemoteController {
     @ObservationIgnored private var pairingSession: CompanionPairingSession?
     @ObservationIgnored private var pairingDeviceID: String?
     @ObservationIgnored private var commandQueue: Task<Void, Never>?
+    @ObservationIgnored private var volumeBeforeMute: Double = 0.5
 
     private static let selectedDeviceKey = "selectedDeviceID"
 
@@ -247,6 +258,12 @@ final class RemoteController {
         powerState = .unknown
         keyboardSession = nil
         tvText = ""
+        isMuted = false
+    }
+
+    /// Called when the menu bar panel closes.
+    func panelDidDisappear() {
+        screen = .remote
     }
 
     private func listenForEvents(from client: CompanionClient) {
@@ -286,10 +303,29 @@ final class RemoteController {
     // MARK: - Actions
 
     func press(_ command: HIDCommand) {
+        if command == .volumeUp || command == .volumeDown { isMuted = false }
         perform { try await $0.press(command) }
     }
 
+    /// Mutes by remembering the current volume and setting it to zero, since
+    /// the Companion button set has no mute. Unmute restores the saved level.
+    func toggleMute() {
+        if isMuted {
+            isMuted = false
+            let restore = volumeBeforeMute
+            perform { try await $0.setVolume(restore) }
+        } else {
+            isMuted = true
+            perform { [weak self] client in
+                let current = try await client.fetchVolume()
+                if current > 0 { self?.volumeBeforeMute = current }
+                try await client.setVolume(0)
+            }
+        }
+    }
+
     func buttonDown(_ command: HIDCommand) {
+        if command == .volumeUp || command == .volumeDown { isMuted = false }
         perform { try await $0.buttonDown(command) }
     }
 
@@ -357,6 +393,7 @@ final class RemoteController {
             } catch {
                 Log.remote.error("Command failed: \(String(describing: error), privacy: .public)")
                 self.lastActionError = Self.describe(error)
+                self.isMuted = false
                 switch error {
                 case CompanionError.disconnected, CompanionError.notConnected:
                     self.disconnect()

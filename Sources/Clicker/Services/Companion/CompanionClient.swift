@@ -60,6 +60,31 @@ actor CompanionClient {
         _ = try await request("_hidC", ["_hBtS": 2, "_hidC": .int(command.rawValue)])
     }
 
+    // MARK: - Volume (media control)
+
+    /// Media-control commands sent as `_mcc`; only a few are useful here.
+    enum MediaControlCommand: Int64 {
+        case getVolume = 5
+        case setVolume = 6
+    }
+
+    /// Current output volume in 0...1. Fails when the TV's audio output does
+    /// not expose volume (plain HDMI without CEC volume, for example).
+    func fetchVolume() async throws -> Double {
+        let response = try await request("_mcc", ["_mcc": .int(MediaControlCommand.getVolume.rawValue)])
+        guard let volume = response["_c"]?["_vol"]?.doubleValue else {
+            throw CompanionError.unexpectedResponse("volume missing")
+        }
+        return volume
+    }
+
+    func setVolume(_ volume: Double) async throws {
+        _ = try await request("_mcc", [
+            "_mcc": .int(MediaControlCommand.setVolume.rawValue),
+            "_vol": .double(min(max(volume, 0), 1)),
+        ])
+    }
+
     // MARK: - Apps
 
     func fetchApps() async throws -> [AppleTVApp] {

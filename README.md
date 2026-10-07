@@ -9,12 +9,13 @@ no third-party service involved.
   them and shows each one's state.
 - Pairs once with the four-digit PIN the TV shows; credentials are kept so later
   connections are instant.
-- Clickpad with a large Select, Back, TV/Home, Play/Pause, volume, and
-  press-and-hold Siri. Buttons send real press/release events, so holds work.
+- Clickpad with a large Select, Back, TV/Home, Play/Pause, Mute, a volume
+  rocker, and press-and-hold Siri. Buttons send real press/release events, so
+  holds work. Mute remembers the level and sets the TV's volume to zero.
 - When the Apple TV shows its on-screen keyboard, a text field slides into the
   panel and types straight into the TV.
 - Keyboard control while the panel is open: arrows, Return, Esc/Delete, Space,
-  H, + and −.
+  H, M, + and −.
 - Launch any installed app from the Apps menu; Wake, Sleep, Screen Saver and
   Control Center from the Power menu; model and power state under the title.
 - Liquid Glass surfaces on macOS 26, system materials on macOS 15.
@@ -47,7 +48,8 @@ needs in order to see the process.
 
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
 Click the Apple TV icon in the menu bar to open the remote. Settings (name shown
-on the TV, launch at login, forgetting pairings) are behind the gear button.
+on the TV, launch at login, forgetting pairings, shortcuts) slide in over the
+remote behind the gear button; Esc or the back button returns.
 
 ## Pairing
 
@@ -65,7 +67,7 @@ permissions in `~/Library/Application Support/Clicker/pairings.json`. Use
 ```
 Sources/Clicker
 ├── App/            @main app, menu bar extra and settings scenes
-├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, PairingView, SettingsView
+├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, PairingView, SettingsScreen
 ├── Stores/         RemoteController (app state), CredentialStore, IdentityStore
 ├── Services/
 │   ├── DeviceBrowser.swift            NWBrowser for _companion-link._tcp
@@ -77,7 +79,7 @@ Sources/Clicker
 │       ├── CompanionConnection.swift  framed TCP connection, encryption, request matching
 │       ├── CompanionPairing.swift     pair-setup and pair-verify procedures
 │       ├── TextInputArchive.swift     keyed-archive payloads for the TV's text fields
-│       └── CompanionClient.swift      session setup, HID buttons, apps, power, text
+│       └── CompanionClient.swift      session setup, HID buttons, volume, apps, power, text
 └── Support/        logging, glass/material surfaces, small helpers
 ```
 
