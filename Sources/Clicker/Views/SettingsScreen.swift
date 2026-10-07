@@ -38,7 +38,7 @@ struct SettingsScreen: View {
                     aboutSection
                     // Full-width actions live below the cards; more will join
                     // Quit here (Check for Updates, for one).
-                    VStack(spacing: 8) {
+                    VStack(spacing: 6) {
                         PanelActionButton(title: "Quit Clicker", systemImage: "power") {
                             NSApplication.shared.terminate(nil)
                         }
@@ -249,8 +249,8 @@ struct SettingsSection<Content: View>: View {
     }
 }
 
-/// Full-width action for the bottom of the settings screen. Uses the same
-/// surface as the remote's buttons so it reads as a control, not a row.
+/// Compact full-width action for the bottom of the settings screen, sized
+/// like a footer control rather than a remote button.
 struct PanelActionButton: View {
     let title: String
     var systemImage: String?
@@ -258,20 +258,21 @@ struct PanelActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                 }
                 Text(title)
-                    .font(.body.weight(.medium))
+                    .font(.callout)
             }
+            .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity)
-            .frame(height: SettingsMetrics.rowHeight)
-            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous))
+            .frame(height: 30)
+            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
         }
         .buttonStyle(PressFeedbackStyle())
-        .surface(RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous))
+        .surface(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
     }
 }
 
