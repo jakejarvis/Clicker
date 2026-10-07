@@ -1,37 +1,35 @@
 import SwiftUI
 
-/// The remote itself: a directional pad plus two rows of buttons. Every button
-/// sends a HID "down" when pressed and "up" when released so holds work (Siri
-/// in particular), and arrow/return/escape keys drive it from the keyboard.
+/// The remote itself: a clickpad ring with a large Select in the middle and
+/// two columns of buttons below. Every button sends HID "down" on press and
+/// "up" on release so holds work (Siri in particular).
 struct RemotePadView: View {
     let controller: RemoteController
 
     var body: some View {
-        VStack(spacing: 14) {
-            DirectionalPad(controller: controller)
-            HStack(spacing: 12) {
-                RemoteButton(command: .menu, controller: controller)
-                RemoteButton(command: .home, controller: controller)
-                RemoteButton(command: .playPause, controller: controller)
+        SurfaceContainer(spacing: 10) {
+            VStack(spacing: 16) {
+                ClickpadView(controller: controller)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    RemoteButton(command: .menu, controller: controller)
+                    RemoteButton(command: .home, controller: controller)
+                    RemoteButton(command: .playPause, controller: controller)
+                    RemoteButton(command: .siri, controller: controller, tint: .purple)
+                    RemoteButton(command: .volumeDown, controller: controller)
+                    RemoteButton(command: .volumeUp, controller: controller)
+                }
             }
-            HStack(spacing: 12) {
-                RemoteButton(command: .volumeDown, controller: controller)
-                RemoteButton(command: .volumeUp, controller: controller)
-                RemoteButton(command: .siri, controller: controller, tint: .purple)
-            }
-            Text("Arrow keys, Return, Esc, Space, H, +/−")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
         }
         .remoteKeyboardShortcuts(controller: controller)
     }
 }
 
-private struct DirectionalPad: View {
+private struct ClickpadView: View {
     let controller: RemoteController
 
-    private let diameter: CGFloat = 176
-    private let offset: CGFloat = 62
+    private let diameter: CGFloat = 192
+    private let centerDiameter: CGFloat = 84
+    private let markOffset: CGFloat = 74
 
     var body: some View {
         ZStack {
@@ -39,31 +37,31 @@ private struct DirectionalPad: View {
                 .fill(.quaternary)
                 .frame(width: diameter, height: diameter)
 
-            arrow(.up).offset(y: -offset)
-            arrow(.down).offset(y: offset)
-            arrow(.left).offset(x: -offset)
-            arrow(.right).offset(x: offset)
+            directionButton(.up).offset(y: -markOffset)
+            directionButton(.down).offset(y: markOffset)
+            directionButton(.left).offset(x: -markOffset)
+            directionButton(.right).offset(x: markOffset)
 
             HoldButton(controller: controller, command: .select) {
                 Circle()
-                    .fill(.background)
-                    .overlay(Circle().strokeBorder(.separator, lineWidth: 1))
-                    .frame(width: 64, height: 64)
-                    .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+                    .fill(.clear)
+                    .frame(width: centerDiameter, height: centerDiameter)
+                    .contentShape(Circle())
             }
+            .surface(Circle())
             .help("Select (Return)")
         }
         .frame(width: diameter, height: diameter)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Directional pad")
+        .accessibilityLabel("Clickpad")
     }
 
-    private func arrow(_ command: HIDCommand) -> some View {
+    private func directionButton(_ command: HIDCommand) -> some View {
         HoldButton(controller: controller, command: command) {
             Image(systemName: command.systemImage)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 44, height: 44)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 48, height: 48)
                 .contentShape(Circle())
         }
         .help(command.title)
@@ -80,9 +78,11 @@ private struct RemoteButton: View {
             Image(systemName: command.systemImage)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(tint ?? .primary)
-                .frame(width: 56, height: 40)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .contentShape(Capsule())
         }
+        .surface(Capsule())
         .help(command == .siri ? "Hold for Siri" : command.title)
     }
 }
@@ -105,7 +105,6 @@ private struct HoldButton<Label: View>: View {
             }
         })
         .accessibilityLabel(command.title)
-        .accessibilityAddTraits(.isButton)
     }
 }
 
@@ -114,8 +113,8 @@ private struct PressReportingButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1)
-            .opacity(configuration.isPressed ? 0.7 : 1)
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .opacity(configuration.isPressed ? 0.75 : 1)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 onPressChanged(pressed)
@@ -135,7 +134,12 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             .focusEffectDisabled()
             .focused($isFocused)
             .onAppear {
-                DispatchQueue.main.async { isFocused = true }
+                if controller.keyboardSession == nil {
+                    DispatchQueue.main.async { isFocused = true }
+                }
+            }
+            .onChange(of: controller.keyboardSession == nil) { _, keyboardHidden in
+                if keyboardHidden { isFocused = true }
             }
             .onKeyPress(phases: .down) { press in
                 handle(press)

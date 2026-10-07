@@ -38,6 +38,17 @@ final class CredentialStore {
         persist()
     }
 
+    /// Re-keys stored credentials, used when a device's identifier changes.
+    func rekey(from oldID: String, to newID: String) {
+        guard oldID != newID, let index = credentials.firstIndex(where: { $0.deviceID == oldID }) else { return }
+        var updated = credentials[index]
+        updated.deviceID = newID
+        credentials.removeAll { $0.deviceID == oldID || $0.deviceID == newID }
+        credentials.append(updated)
+        persist()
+        Log.storage.info("Re-keyed credentials for \(updated.deviceName, privacy: .public)")
+    }
+
     func remove(deviceID: String) {
         credentials.removeAll { $0.deviceID == deviceID }
         persist()

@@ -6,7 +6,11 @@ import SwiftUI
 /// below make that explicit and intentional.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        // `--regular` shows a Dock icon, which makes the process visible to
+        // tooling that only lists regular apps (useful during development).
+        let policy: NSApplication.ActivationPolicy =
+            CommandLine.arguments.contains("--regular") ? .regular : .accessory
+        NSApp.setActivationPolicy(policy)
     }
 }
 
@@ -19,7 +23,7 @@ struct ClickerApp: App {
         MenuBarExtra {
             MenuBarView(controller: controller)
         } label: {
-            Image(systemName: "appletv.fill")
+            Image(systemName: controller.menuBarSymbolName)
                 .accessibilityLabel("Clicker")
                 .onAppear { controller.start() }
         }

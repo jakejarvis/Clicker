@@ -1,33 +1,64 @@
 import SwiftUI
 
-/// Root of the menu bar panel: device picker on top, the remote or pairing
-/// flow in the middle, apps/power/settings along the bottom.
+/// Root of the menu bar panel, laid out in remote proportions: device cards
+/// on top, the clickpad and buttons in the middle, apps/power/settings below.
 struct MenuBarView: View {
     let controller: RemoteController
 
+    static let panelWidth: CGFloat = 264
+
     var body: some View {
         VStack(spacing: 0) {
-            header
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+            VStack(alignment: .leading, spacing: 2) {
+                DevicePickerMenu(controller: controller)
+                header
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
+
             Divider()
+                .padding(.horizontal, 14)
+
             content
                 .frame(maxWidth: .infinity)
-                .padding(16)
+                .padding(14)
+                .animation(.snappy(duration: 0.25), value: controller.keyboardSession == nil)
+
             Divider()
+                .padding(.horizontal, 14)
+
             footer
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 8)
         }
-        .frame(width: 320)
+        .frame(width: Self.panelWidth)
         .onAppear { controller.panelDidAppear() }
     }
 
+    @ViewBuilder
     private var header: some View {
-        HStack(spacing: 8) {
-            DevicePickerView(controller: controller)
-            Spacer(minLength: 0)
-            ConnectionStatusView(controller: controller)
+        if let device = controller.selectedDevice {
+            HStack(spacing: 4) {
+                Text(device.modelDisplayName)
+                    .truncationMode(.tail)
+                Text("·")
+                Text(controller.selectedStateDescription)
+                    .layoutPriority(1)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .padding(.leading, 30)
+        } else if controller.devices.isEmpty {
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.mini)
+                Text("Looking for Apple TVs…")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -43,7 +74,11 @@ struct MenuBarView: View {
                     message: "It is not advertising on this network right now."
                 )
             } else {
-                VStack(spacing: 12) {
+                VStack(spacing: 14) {
+                    if controller.keyboardSession != nil {
+                        TVTextFieldView(controller: controller)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                     RemotePadView(controller: controller)
                     connectionBanner
                 }
@@ -51,16 +86,15 @@ struct MenuBarView: View {
         } else if controller.devices.isEmpty {
             StatusMessageView(
                 systemImage: "antenna.radiowaves.left.and.right",
-                title: "Looking for Apple TVs",
+                title: "No Apple TVs yet",
                 message: controller.browser.errorMessage
-                    ?? "Make sure this Mac and the Apple TV are on the same network.",
-                showsProgress: true
+                    ?? "Make sure this Mac and the Apple TV are on the same network."
             )
         } else {
             StatusMessageView(
                 systemImage: "appletv",
                 title: "Choose an Apple TV",
-                message: "Pick a device from the menu above."
+                message: "Select one of the devices above."
             )
         }
     }
@@ -84,7 +118,7 @@ struct MenuBarView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             AppsMenu(controller: controller)
             PowerMenu(controller: controller)
             Spacer()
@@ -93,61 +127,13 @@ struct MenuBarView: View {
                 NSApplication.shared.terminate(nil)
             } label: {
                 Image(systemName: "power.circle")
+                    .frame(width: 28, height: 24)
             }
             .help("Quit Clicker")
         }
         .buttonStyle(.borderless)
         .menuStyle(.borderlessButton)
-        .disabled(false)
-    }
-}
-
-private struct ConnectionStatusView: View {
-    let controller: RemoteController
-
-    var body: some View {
-        HStack(spacing: 6) {
-            if controller.connectionState.isBusy {
-                ProgressView()
-                    .controlSize(.mini)
-            } else {
-                Circle()
-                    .fill(color)
-                    .frame(width: 8, height: 8)
-            }
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .help(help)
-    }
-
-    private var color: Color {
-        switch controller.connectionState {
-        case .connected: return .green
-        case .connecting: return .yellow
-        case .failed: return .red
-        case .disconnected: return .gray
-        }
-    }
-
-    private var title: String {
-        switch controller.connectionState {
-        case .connected:
-            switch controller.powerState.isOn {
-            case .some(true): return "On"
-            case .some(false): return "Asleep"
-            case .none: return "Connected"
-            }
-        case .connecting: return "Connecting"
-        case .failed: return "Error"
-        case .disconnected: return "Offline"
-        }
-    }
-
-    private var help: String {
-        if case .failed(let message) = controller.connectionState { return message }
-        return "Apple TV is \(controller.powerState.title.lowercased())"
+        .foregroundStyle(.secondary)
     }
 }
 
@@ -160,6 +146,7 @@ private struct SettingsButton: View {
             openSettings()
         } label: {
             Image(systemName: "gearshape")
+                .frame(width: 28, height: 24)
         }
         .help("Settings")
     }
@@ -169,7 +156,6 @@ struct StatusMessageView: View {
     let systemImage: String
     let title: String
     let message: String
-    var showsProgress = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -182,14 +168,9 @@ struct StatusMessageView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            if showsProgress {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.top, 4)
-            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, 28)
     }
 }
 
@@ -213,6 +194,6 @@ struct InlineNoticeView: View {
             }
         }
         .padding(8)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Clicker",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "https://github.com/attaswift/BigInt.git", from: "5.3.0"),
     ],

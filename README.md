@@ -5,18 +5,22 @@ Apple TVs on your network. It speaks Apple's Companion protocol directly (the
 same one the iPhone Remote uses), so there is no Python, no bridge process and
 no third-party service involved.
 
-- Finds Apple TVs over Bonjour and lets you switch between them.
+- Finds Apple TVs over Bonjour; a dropdown under the TV's name switches between
+  them and shows each one's state.
 - Pairs once with the four-digit PIN the TV shows; credentials are kept so later
   connections are instant.
-- Directional pad, Select, Back, TV/Home, Play/Pause, volume, and press-and-hold
-  Siri. Buttons send real press/release events, so holds work.
+- Clickpad with a large Select, Back, TV/Home, Play/Pause, volume, and
+  press-and-hold Siri. Buttons send real press/release events, so holds work.
+- When the Apple TV shows its on-screen keyboard, a text field slides into the
+  panel and types straight into the TV.
 - Keyboard control while the panel is open: arrows, Return, Esc/Delete, Space,
   H, + and −.
 - Launch any installed app from the Apps menu; Wake, Sleep, Screen Saver and
-  Control Center from the Power menu; live power state in the header.
+  Control Center from the Power menu; model and power state under the title.
+- Liquid Glass surfaces on macOS 26, system materials on macOS 15.
 - Optional launch at login.
 
-Requires macOS 14 or later.
+Requires macOS 15 or later.
 
 ## Build and run
 
@@ -33,8 +37,13 @@ ad-hoc signs it and launches it. Other modes:
 ./script/build_and_run.sh --telemetry   # launch and stream com.jakejarvis.Clicker logs
 ./script/build_and_run.sh --verify      # launch and confirm the process exists
 ./script/build_and_run.sh --release     # optimized build (pairing math is much faster)
-swift test                              # codec, crypto and SRP tests
+./script/build_and_run.sh --install     # copy to /Applications and launch from there
+./script/make_icon.sh                   # regenerate Resources/AppIcon.icns
+swift test                              # codec, crypto, SRP and text-input tests
 ```
+
+Launching the binary with `--regular` shows a Dock icon, which some tooling
+needs in order to see the process.
 
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
 Click the Apple TV icon in the menu bar to open the remote. Settings (name shown
@@ -56,7 +65,7 @@ permissions in `~/Library/Application Support/Clicker/pairings.json`. Use
 ```
 Sources/Clicker
 ├── App/            @main app, menu bar extra and settings scenes
-├── Views/          MenuBarView, RemotePadView, PairingView, DevicePickerView, SettingsView
+├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, PairingView, SettingsView
 ├── Stores/         RemoteController (app state), CredentialStore, IdentityStore
 ├── Services/
 │   ├── DeviceBrowser.swift            NWBrowser for _companion-link._tcp
@@ -67,13 +76,19 @@ Sources/Clicker
 │       ├── HAPCrypto.swift            HKDF + ChaCha20-Poly1305, session cipher
 │       ├── CompanionConnection.swift  framed TCP connection, encryption, request matching
 │       ├── CompanionPairing.swift     pair-setup and pair-verify procedures
-│       └── CompanionClient.swift      session setup, HID buttons, apps, power
-└── Support/        logging and small helpers
+│       ├── TextInputArchive.swift     keyed-archive payloads for the TV's text fields
+│       └── CompanionClient.swift      session setup, HID buttons, apps, power, text
+└── Support/        logging, glass/material surfaces, small helpers
 ```
 
 Discovery filters `_companion-link._tcp` results by the `rpMd` TXT record so only
 Apple TVs appear (Macs, iPhones and HomePods advertise the same service). The
-`rpFl` flags tell us whether PIN pairing is allowed.
+`rpFl` flags tell us whether PIN pairing is allowed, and `rpMRtID` is the stable
+identifier pairings are keyed by (the `rpBA` address rotates).
+
+Text entry uses the TV's remote text input service: `_tiStart` reports whether a
+field is focused, `_tiStarted` / `_tiStopped` events track focus changes, and
+`_tiC` events carry `RTITextOperations` keyed archives that insert or clear text.
 
 Pairing follows the HomeKit pattern over Companion frames: pair-setup (SRP with
 the PIN, then an Ed25519 key exchange encrypted with ChaCha20-Poly1305) produces

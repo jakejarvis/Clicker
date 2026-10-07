@@ -34,6 +34,7 @@ actor CompanionClient {
     }
 
     func disconnect() async {
+        _ = try? await request("_tiStop", [:], timeout: 1)
         if sessionID != 0 {
             _ = try? await request(
                 "_sessionStop",
@@ -75,6 +76,35 @@ actor CompanionClient {
 
     func launchApp(bundleIdentifier: String) async throws {
         _ = try await request("_launchApp", ["_bundleID": .string(bundleIdentifier)])
+    }
+
+    // MARK: - Text input
+
+    /// Opens a text-input session. Returns the TV's current field when a
+    /// keyboard is on screen, `nil` otherwise; the TV then pushes
+    /// `_tiStarted` / `_tiStopped` events as focus changes.
+    func startTextInput() async throws -> TextInputArchive.Session? {
+        let response = try await request("_tiStart", [:])
+        guard let payload = response["_c"]?["_tiD"]?.dataValue else { return nil }
+        return TextInputArchive.session(from: payload)
+    }
+
+    func stopTextInput() async throws {
+        _ = try await request("_tiStop", [:])
+    }
+
+    func insertText(_ text: String, session: TextInputArchive.Session) async throws {
+        try await sendEvent("_tiC", [
+            "_tiV": 1,
+            "_tiD": .data(TextInputArchive.insertTextPayload(sessionUUID: session.sessionUUID, text: text)),
+        ])
+    }
+
+    func clearText(session: TextInputArchive.Session) async throws {
+        try await sendEvent("_tiC", [
+            "_tiV": 1,
+            "_tiD": .data(TextInputArchive.clearTextPayload(sessionUUID: session.sessionUUID)),
+        ])
     }
 
     // MARK: - Power

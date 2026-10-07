@@ -17,6 +17,8 @@ struct AppsMenu: View {
                 .disabled(controller.isLoadingApps)
         } label: {
             Label("Apps", systemImage: "square.grid.2x2")
+                .padding(.horizontal, 4)
+                .frame(height: 24)
         }
         .disabled(controller.connectionState != .connected)
         .help("Open an app on the Apple TV")
@@ -36,6 +38,8 @@ struct PowerMenu: View {
             Button("Guide", systemImage: "list.bullet.rectangle") { controller.press(.guide) }
         } label: {
             Label("Power", systemImage: "power")
+                .padding(.horizontal, 4)
+                .frame(height: 24)
         }
         .disabled(controller.connectionState != .connected)
         .help("Apple TV is \(controller.powerState.title.lowercased())")

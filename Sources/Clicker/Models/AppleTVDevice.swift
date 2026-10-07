@@ -4,15 +4,14 @@ import Network
 /// An Apple TV discovered on the local network, or one we have credentials for
 /// that is not currently advertising.
 struct AppleTVDevice: Identifiable, Hashable, Sendable {
-    /// Prefer the stable `rpBA` address from the TXT record; fall back to the
-    /// Bonjour name.
+    /// The `rpMRtID` UUID from the TXT record, which tvOS keeps stable. The
+    /// `rpBA` address rotates, so it is only a fallback, then the Bonjour name.
     let id: String
     var name: String
     var model: String?
     var endpoint: NWEndpoint?
     var pairingDisabled: Bool
-
-    var isOnline: Bool { endpoint != nil }
+    var isOnline: Bool
 
     var modelDisplayName: String {
         guard let model else { return "Apple TV" }
@@ -36,6 +35,7 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
         self.model = model
         self.endpoint = endpoint
         self.pairingDisabled = pairingDisabled
+        self.isOnline = endpoint != nil
     }
 
     /// Builds a device from a `_companion-link._tcp` browse result, or `nil`
@@ -57,7 +57,7 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
         }
 
         self.init(
-            id: txt["rpba"] ?? name,
+            id: txt["rpmrtid"]?.uppercased() ?? txt["rpba"] ?? name,
             name: name,
             model: model,
             endpoint: result.endpoint,

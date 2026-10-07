@@ -16,9 +16,6 @@ struct PairingView: View {
                 .foregroundStyle(.secondary)
             Text("Pair with \(device.name)")
                 .font(.headline)
-            Text(device.modelDisplayName)
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
             switch controller.pairingState {
             case .idle:
@@ -27,7 +24,7 @@ struct PairingView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                 Button("Pair…") { controller.beginPairing() }
-                    .buttonStyle(.borderedProminent)
+                    .prominentActionStyle()
                     .disabled(device.pairingDisabled)
                 if device.pairingDisabled {
                     Text(CompanionError.pairingDisabled.localizedDescription)
@@ -70,7 +67,7 @@ struct PairingView: View {
                         pin = ""
                     }
                     Button("Pair") { controller.submitPIN(pin) }
-                        .buttonStyle(.borderedProminent)
+                        .prominentActionStyle()
                         .disabled(pin.count != 4 || controller.pairingState == .finishing)
                 }
                 if controller.pairingState == .finishing {
@@ -87,7 +84,7 @@ struct PairingView: View {
                     pin = ""
                     controller.beginPairing()
                 }
-                .buttonStyle(.borderedProminent)
+                .prominentActionStyle()
             }
         }
         .frame(maxWidth: .infinity)

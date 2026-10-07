@@ -33,6 +33,10 @@ final class RemoteController {
     private(set) var apps: [AppleTVApp] = []
     private(set) var isLoadingApps = false
     private(set) var lastActionError: String?
+    /// Non-nil while the Apple TV has a text field focused.
+    private(set) var keyboardSession: TextInputArchive.Session?
+    /// Our mirror of the text in the TV's focused field.
+    private(set) var tvText = ""
 
     @ObservationIgnored private var client: CompanionClient?
     @ObservationIgnored private var clientDeviceID: String?
@@ -74,7 +78,29 @@ final class RemoteController {
     }
 
     func isPaired(_ device: AppleTVDevice) -> Bool {
-        credentialStore.credentials(for: device.id) != nil
+        return credentialStore.credentials(for: device.id) != nil
+    }
+
+    /// Menu bar glyph: filled while connected, outlined otherwise.
+    var menuBarSymbolName: String {
+        connectionState == .connected ? "appletv.fill" : "appletv"
+    }
+
+    /// Short state for the selected device's card and header.
+    var selectedStateDescription: String {
+        guard let device = selectedDevice else { return "" }
+        if !isPaired(device) { return device.isOnline ? "Not paired" : "Offline" }
+        if !device.isOnline { return "Offline" }
+        switch connectionState {
+        case .connecting: return "Connecting…"
+        case .failed: return "Connection failed"
+        case .disconnected: return "Not connected"
+        case .connected:
+            switch powerState {
+            case .unknown: return "Connected"
+            default: return powerState.title
+            }
+        }
     }
 
     func start() {
@@ -109,6 +135,7 @@ final class RemoteController {
     }
 
     private func devicesDidChange(_ devices: [AppleTVDevice]) {
+        adoptCredentialsForRenamedIdentifiers(devices)
         for device in devices {
             credentialStore.updateName(device.name, model: device.model, for: device.id)
         }
@@ -122,6 +149,26 @@ final class RemoteController {
         connectIfNeeded()
     }
 
+    /// Earlier builds keyed credentials by the rotating `rpBA` address. When an
+    /// unpaired device shows up whose name and model match a paired device
+    /// that is not on the network, treat them as the same Apple TV.
+    private func adoptCredentialsForRenamedIdentifiers(_ devices: [AppleTVDevice]) {
+        let onlineIDs = Set(devices.map(\.id))
+        for device in devices where credentialStore.credentials(for: device.id) == nil {
+            let orphan = credentialStore.credentials.first {
+                !onlineIDs.contains($0.deviceID)
+                    && $0.deviceName == device.name
+                    && ($0.deviceModel == nil || device.model == nil || $0.deviceModel == device.model)
+            }
+            guard let orphan else { continue }
+            credentialStore.rekey(from: orphan.deviceID, to: device.id)
+            if selectedDeviceID == orphan.deviceID {
+                selectedDeviceID = device.id
+                UserDefaults.standard.set(device.id, forKey: Self.selectedDeviceKey)
+            }
+        }
+    }
+
     // MARK: - Connection
 
     /// Called when the menu bar panel opens.
@@ -131,7 +178,7 @@ final class RemoteController {
         connectIfNeeded()
     }
 
-    func connectIfNeeded() {
+    func connectIfNeeded(isRetry: Bool = false) {
         guard connectTask == nil else { return }
         guard let device = selectedDevice, let endpoint = device.endpoint,
               let credentials = credentialStore.credentials(for: device.id)
@@ -157,13 +204,25 @@ final class RemoteController {
                 if let state = try? await client.fetchPowerState() {
                     self.powerState = state
                 }
+                if let session = try? await client.startTextInput() {
+                    self.keyboardSession = session
+                    self.tvText = session.currentText
+                }
                 self.refreshApps()
             } catch {
                 guard let self, self.client === client else { return }
                 Log.remote.error("Connect failed: \(String(describing: error), privacy: .public)")
-                self.connectionState = .failed(Self.describe(error))
                 self.client = nil
                 self.clientDeviceID = nil
+                self.connectTask = nil
+                // A TV that just dropped another session often ignores the
+                // very next connection; one quiet retry covers that.
+                if !isRetry, case CompanionError.timeout = error {
+                    try? await Task.sleep(for: .seconds(1))
+                    self.connectIfNeeded(isRetry: true)
+                    return
+                }
+                self.connectionState = .failed(Self.describe(error))
             }
             self?.connectTask = nil
         }
@@ -186,6 +245,8 @@ final class RemoteController {
         clientDeviceID = nil
         connectionState = .disconnected
         powerState = .unknown
+        keyboardSession = nil
+        tvText = ""
     }
 
     private func listenForEvents(from client: CompanionClient) {
@@ -198,6 +259,16 @@ final class RemoteController {
                     if let raw = event.content["state"]?.intValue, let state = PowerState(rawValue: raw) {
                         self.powerState = state
                     }
+                case "_tiStarted":
+                    if let payload = event.content["_tiD"]?.dataValue,
+                       let session = TextInputArchive.session(from: payload)
+                    {
+                        self.keyboardSession = session
+                        self.tvText = session.currentText
+                    }
+                case "_tiStopped":
+                    self.keyboardSession = nil
+                    self.tvText = ""
                 default:
                     break
                 }
@@ -224,6 +295,32 @@ final class RemoteController {
 
     func buttonUp(_ command: HIDCommand) {
         perform { try await $0.buttonUp(command) }
+    }
+
+    /// Mirrors an edit in the panel's text field to the TV. Appending sends
+    /// only the new characters; anything else replaces the field.
+    func updateTVText(_ newText: String) {
+        guard let session = keyboardSession else { return }
+        let previous = tvText
+        tvText = newText
+        guard newText != previous else { return }
+
+        if newText.hasPrefix(previous) {
+            let delta = String(newText.dropFirst(previous.count))
+            guard !delta.isEmpty else { return }
+            perform { try await $0.insertText(delta, session: session) }
+        } else {
+            perform { client in
+                try await client.clearText(session: session)
+                if !newText.isEmpty {
+                    try await client.insertText(newText, session: session)
+                }
+            }
+        }
+    }
+
+    func clearTVText() {
+        updateTVText("")
     }
 
     func launch(_ app: AppleTVApp) {
