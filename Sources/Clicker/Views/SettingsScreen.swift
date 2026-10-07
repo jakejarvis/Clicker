@@ -36,6 +36,14 @@ struct SettingsScreen: View {
                     thisMacSection
                     pairedSection
                     aboutSection
+                    // Full-width actions live below the cards; more will join
+                    // Quit here (Check for Updates, for one).
+                    VStack(spacing: 8) {
+                        PanelActionButton(title: "Quit Clicker", systemImage: "power") {
+                            NSApplication.shared.terminate(nil)
+                        }
+                        .help("⌘Q")
+                    }
                 }
                 .padding(.horizontal, PanelMetrics.horizontalPadding)
                 .padding(.top, 14)
@@ -152,12 +160,6 @@ struct SettingsScreen: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
-            SettingsDivider()
-            SettingsRow("Quit Clicker", subtitle: "⌘Q") {
-                Button("Quit") { NSApplication.shared.terminate(nil) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-            }
         }
     }
 
@@ -244,6 +246,32 @@ struct SettingsSection<Content: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+}
+
+/// Full-width action for the bottom of the settings screen. Uses the same
+/// surface as the remote's buttons so it reads as a control, not a row.
+struct PanelActionButton: View {
+    let title: String
+    var systemImage: String?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 13, weight: .medium))
+                }
+                Text(title)
+                    .font(.body.weight(.medium))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: SettingsMetrics.rowHeight)
+            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous))
+        }
+        .buttonStyle(PressFeedbackStyle())
+        .surface(RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous))
     }
 }
 
