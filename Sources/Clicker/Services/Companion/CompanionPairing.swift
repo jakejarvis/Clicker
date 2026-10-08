@@ -52,7 +52,7 @@ enum CompanionPairing {
             throw CompanionError.unexpectedResponse("pair-verify M2 missing identity")
         }
         guard identifier == credentials.accessoryIdentifier else {
-            throw CompanionError.authenticationFailed("the Apple TV's identity changed; pair again")
+            throw CompanionError.identityChanged
         }
 
         let accessoryKey = try Curve25519.Signing.PublicKey(rawRepresentation: credentials.accessoryPublicKey)

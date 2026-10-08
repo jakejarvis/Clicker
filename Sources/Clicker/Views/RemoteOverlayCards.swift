@@ -59,6 +59,8 @@ struct PairingCard: View {
             CardTitle("Pair with \(device.name)")
             if device.pairingDisabled {
                 CardCaption(CompanionError.pairingDisabled.localizedDescription, tint: .orange)
+            } else if let notice = controller.pairingNotice {
+                CardCaption(notice, tint: .orange)
             } else {
                 CardCaption("A code will appear on your TV.")
             }

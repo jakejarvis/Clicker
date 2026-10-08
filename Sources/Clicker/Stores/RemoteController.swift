@@ -75,6 +75,10 @@ final class RemoteController {
     /// Where the live session landed, for the picker's details view.
     private(set) var connectionInfo: ConnectionInfo?
     private(set) var pairingState: PairingState = .idle
+    /// Why the selected TV is back to needing a pairing, shown on the pair
+    /// card in place of the usual caption. Set when pair-verify finds the TV's
+    /// identity changed and the stale credentials were dropped.
+    private(set) var pairingNotice: String?
     private(set) var apps: [AppleTVApp] = []
     private(set) var isLoadingApps = false
     /// Bundle identifiers of the last few launched apps per TV, newest
@@ -212,6 +216,7 @@ final class RemoteController {
         apps = []
         powerState = .unknown
         lastActionError = nil
+        pairingNotice = nil
         connectIfNeeded()
     }
 
@@ -221,10 +226,22 @@ final class RemoteController {
         }
         credentialStore.remove(deviceID: device.id)
         if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
+        pairingNotice = nil
         if selectedDeviceID == device.id, !device.isOnline {
             selectedDeviceID = nil
             rememberSelection(nil)
         }
+    }
+
+    /// Pair-verify found a TV that no longer knows our pairing (a factory
+    /// reset, typically). Retrying would fail the same way, so the stale
+    /// credentials go and the pair card comes back with an explanation.
+    private func handleIdentityChange(for device: AppleTVDevice) {
+        Log.pairing.info("Identity of \(device.name, privacy: .public) changed; dropping its pairing")
+        credentialStore.remove(deviceID: device.id)
+        if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
+        pairingNotice = CompanionError.identityChanged.localizedDescription
+        connectionState = .disconnected
     }
 
     private func devicesDidChange(_ devices: [AppleTVDevice]) {
@@ -328,6 +345,10 @@ final class RemoteController {
                 if !isRetry, case CompanionError.timeout = error {
                     try? await Task.sleep(for: .seconds(1))
                     self.connectIfNeeded(isRetry: true)
+                    return
+                }
+                if case CompanionError.identityChanged = error {
+                    self.handleIdentityChange(for: device)
                     return
                 }
                 self.connectionState = .failed(Self.describe(error))
@@ -612,6 +633,7 @@ final class RemoteController {
         }
         cancelPairing()
         disconnect()
+        pairingNotice = nil
         pairingState = .starting
         pairingDeviceID = device.id
         let session = CompanionPairingSession(endpoint: endpoint)

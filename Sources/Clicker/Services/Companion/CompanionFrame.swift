@@ -60,6 +60,9 @@ enum CompanionError: Error, LocalizedError, Sendable {
     case remoteError(String)
     case pairingError(String)
     case authenticationFailed(String)
+    /// Pair-verify reached a TV whose pairing identifier is not the one we
+    /// paired with: it was reset or re-paired, so our credentials are dead.
+    case identityChanged
     case encryptionFailed
     case pairingDisabled
 
@@ -73,6 +76,7 @@ enum CompanionError: Error, LocalizedError, Sendable {
         case .remoteError(let message): return "The Apple TV rejected the command: \(message)"
         case .pairingError(let message): return message
         case .authenticationFailed(let detail): return "Authentication failed: \(detail)"
+        case .identityChanged: return "This Apple TV was reset or re-paired, so it needs pairing again."
         case .encryptionFailed: return "Could not decrypt a message from the Apple TV."
         case .pairingDisabled:
             return

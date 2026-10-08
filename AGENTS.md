@@ -126,7 +126,7 @@ ImageRenderer and offscreen `cacheDisplay` snapshots are useless here (they drop
 ## Protocol gotchas already hit
 
 - `Data` slices: CryptoKit ciphertext has a non-zero `startIndex`. Index by the value's own indices or copy (`Data(slice)`). This crashed pairing once.
-- Device identity: key pairings by the TXT `rpMRtID` UUID, not `rpBA` (the Bluetooth address rotates). `RemoteController` migrates old keys by name + model when a TV reappears unpaired.
+- Device identity: key pairings by the TXT `rpMRtID` UUID, not `rpBA` (the Bluetooth address rotates). `RemoteController` migrates old keys by name + model when a TV reappears unpaired. When pair-verify then finds a different accessory identifier (`CompanionError.identityChanged`, a factory reset), the controller drops the stale credentials itself and the pair card comes back with `pairingNotice` explaining why, since Retry would fail the same way and Forget is buried in Settings.
 - Session nonce: 12-byte little-endian counter for encrypted frames; pairing nonces are 8-byte labels ("PS-Msg05") left-padded with zeros.
 - SRP: RFC 5054 3072-bit group, SHA-512, `k = H(N | PAD(g))`, `u = H(PAD(A) | PAD(B))`, full-width `H(N) xor H(g)` in M1.
 - Mute: the HID set has no mute. Mute uses `_mcc` GetVolume/SetVolume (set to 0, restore on unmute). Verified working on a real Apple TV.
