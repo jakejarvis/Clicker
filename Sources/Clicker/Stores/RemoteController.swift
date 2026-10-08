@@ -119,6 +119,7 @@ final class RemoteController {
 
     private static let selectedDeviceKey = "selectedDeviceID"
     private static let recentAppsKey = "recentAppIDsByDevice"
+    private static let lastAddressesKey = "lastAddressByDevice"
     private static let recentAppLimit = 5
 
     init(demo: DemoScenario? = DemoScenario.current) {
@@ -201,10 +202,27 @@ final class RemoteController {
         connectIfNeeded()
     }
 
-    /// Re-issues the Bonjour query (the picker's ⌥-click Rescan).
+    /// Re-issues the Bonjour query (the picker's ⌥-click Rescan). Also knocks
+    /// on the selected TV's last known address, in case it is asleep behind a
+    /// Bonjour sleep proxy that wakes it when one of its ports is touched.
     func rescan() {
         guard demo == nil else { return }
+        if let selectedDeviceID, let host = lastAddressByDevice[selectedDeviceID] {
+            PortKnocker.knock(host: host)
+        }
         browser.restart()
+    }
+
+    /// The host each TV was last connected at, keyed by device id, so Rescan
+    /// can knock on a TV that has dropped out of Bonjour.
+    private var lastAddressByDevice: [String: String] {
+        get { UserDefaults.standard.dictionary(forKey: Self.lastAddressesKey) as? [String: String] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: Self.lastAddressesKey) }
+    }
+
+    private func rememberAddress(of endpoint: NWEndpoint?, for deviceID: String) {
+        guard demo == nil, case .hostPort(let host, _)? = endpoint else { return }
+        lastAddressByDevice[deviceID] = String(describing: host)
     }
 
     func select(_ device: AppleTVDevice) {
@@ -229,6 +247,7 @@ final class RemoteController {
         }
         credentialStore.remove(deviceID: device.id)
         if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
+        lastAddressByDevice[device.id] = nil
         pairingNotice = nil
         if selectedDeviceID == device.id, !device.isOnline {
             selectedDeviceID = nil
@@ -327,9 +346,10 @@ final class RemoteController {
                     return
                 }
                 self.connectionState = .connected
+                let endpoint = await client.remoteEndpoint
                 self.connectionInfo = ConnectionInfo(
-                    endpoint: await client.remoteEndpoint, sessionID: await client.sessionID,
-                    osVersion: await client.osVersion)
+                    endpoint: endpoint, sessionID: await client.sessionID, osVersion: await client.osVersion)
+                self.rememberAddress(of: endpoint, for: device.id)
                 self.listenForEvents(from: client)
                 if let state = try? await client.fetchPowerState() {
                     self.powerState = state
