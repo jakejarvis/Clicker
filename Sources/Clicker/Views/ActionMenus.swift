@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Apps button at the top left of the clickpad. Opens `AppPickerView` in a
 /// popover: a searchable list with recents, which a system `Menu` cannot do.
-/// The popover is anchored to a rect spanning the pad's width so it hangs
-/// centered under the panel instead of off its left edge.
+/// The popover is centered on the button, so its arrow points at it and the
+/// list hangs past the panel's left edge, like any popover from a corner.
 struct AppsMenu: View {
     @Bindable var controller: RemoteController
 
@@ -19,20 +19,9 @@ struct AppsMenu: View {
         .help("Open an app on the Apple TV")
         .accessibilityLabel("Apps")
         .accessibilityHint("Opens the list of apps")
-        .popover(
-            isPresented: $controller.isAppPickerPresented,
-            attachmentAnchor: .rect(.rect(Self.anchor)),
-            arrowEdge: .bottom
-        ) {
+        .popover(isPresented: $controller.isAppPickerPresented, arrowEdge: .bottom) {
             AppPickerView(controller: controller)
         }
-    }
-
-    private static var anchor: CGRect {
-        CGRect(
-            x: 0, y: 0, width: PanelMetrics.width - 2 * PanelMetrics.horizontalPadding,
-            height: RemoteMetrics.cornerButtonDiameter
-        )
     }
 }
 

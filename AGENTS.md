@@ -235,8 +235,10 @@ robinebers/openusage:
   group, list capped at 300pt. Typing filters (prefix matches first) and
   highlights the top match so Return launches it; hover and arrows move the
   highlight, only arrows scroll. Rows use the `.selection` fill like device
-  rows. The popover is anchored to a rect spanning the pad's width so it
-  hangs centered under the panel. A system `Menu` was the first version:
+  rows. The popover is centered on the button so its arrow points at it,
+  which puts the list past the panel's left edge; anchoring it to a rect
+  spanning the pad (centered under the panel, arrow floating mid-pad) was
+  tried and rejected. A system `Menu` was the first version:
   forty text rows with scroll arrows and no search, which is why it went.
 - The remote is always drawn. When it cannot be used (unpaired, offline, no
   TVs found, none chosen) `MenuBarView` dims it to 35%, blurs it 2pt, makes
