@@ -73,3 +73,16 @@ NOTARY_PROFILE=clicker-notary NOTES_FILE=notes.md \
 ```
 
 Sparkle's tools (`generate_keys`, `sign_update`, `generate_appcast`) are in `.build/artifacts/sparkle/Sparkle/bin` after `swift package resolve`. To test an update end to end, build two versions with `DOWNLOAD_URL_PREFIX=http://localhost:8000/`, serve the newer one's `dist/release` with `python3 -m http.server 8000`, install the older one and launch it with `--args -SUFeedURL http://localhost:8000/appcast.xml`.
+
+### Mac App Store build
+
+`script/package_app.sh --app-store` builds the App Store flavor: SwiftPM's default `Sparkle` trait is turned off (`--disable-default-traits`), so the updater, its UI, Sparkle.framework and the `SU*` Info.plist keys are all left out, and the app is signed with `Resources/Clicker-AppStore.entitlements` (App Sandbox, outgoing network, keychain group). Without `--sign` it is ad-hoc signed with the sandbox keys only, which is enough to try the sandbox locally; pairings then live in `~/Library/Containers/com.jakejarvis.Clicker/`.
+
+For a submission, put a Mac App Store distribution profile at `Resources/Clicker-AppStore.provisionprofile` and run:
+
+```bash
+script/package_app.sh --release --universal --app-store --version 1.2.3 \
+  --sign "Apple Distribution: …" --installer "3rd Party Mac Developer Installer: …"
+```
+
+That writes `dist/Clicker.pkg`, which is uploaded with Transporter. An App Store-signed app does not launch outside the store.

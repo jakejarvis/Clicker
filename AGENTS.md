@@ -152,6 +152,16 @@ ImageRenderer and offscreen `cacheDisplay` snapshots are useless here (they drop
 - Updates are alert-only: `SUAllowsAutomaticUpdates` is false in Info.plist, which hides Sparkle's "automatically download and install" checkbox and overrides any stored preference. Settings only offers Check Automatically.
 - `CFBundleVersion` is derived from the version (1.2.3 → 10203) because Sparkle compares it; the release tag is the only version source.
 - Swift 6.4's default build system (Swift Build) records `sdk 15.0` in the binary's `LC_BUILD_VERSION`, while the native build system and CI's Swift 6.3 record the real SDK. Linked-SDK checks in AppKit may differ between local and released builds; compare against a CI artifact if a control looks off.
+- Mac App Store flavor: `script/package_app.sh --app-store` builds with
+  `--disable-default-traits`, which drops the `Sparkle` package trait (so
+  `#if Sparkle` code, Sparkle.framework and the `SU*` keys are all gone; rule
+  2.4.5(vii) allows no other updater) and signs with
+  `Resources/Clicker-AppStore.entitlements` (sandbox + network.client +
+  keychain group). `UpdateController.isIncluded` hides the update UI. Ad-hoc
+  App Store builds keep only the sandbox keys; sandboxed discovery was checked
+  against real TVs, sandboxed pairing and connecting were not. CI packages this
+  flavor so it keeps compiling. `Resources/PrivacyInfo.xcprivacy` (UserDefaults,
+  CA92.1) ships in both flavors.
 - Moving from ad-hoc to Developer ID signing changes the code identity, so the Local Network prompt appears once more and Launch at Login may need turning on again.
 
 ## Conventions
