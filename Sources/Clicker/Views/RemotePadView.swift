@@ -352,10 +352,13 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
         case .leftArrow: command = .left
         case .rightArrow: command = .right
         case .return: command = .select
-        case .delete: command = .menu
+        // The Mac's Delete key arrives as U+007F, which SwiftUI calls
+        // `.deleteForward`; `.delete` (U+0008) alone never matched it.
+        case .delete, .deleteForward: command = .menu
         case .space: command = .playPause
         default:
             switch press.characters.lowercased() {
+            case "\u{7F}", "\u{8}": command = .menu
             case "h", "t": command = .home
             case "p": command = .playPause
             case "+", "=": command = .volumeUp
