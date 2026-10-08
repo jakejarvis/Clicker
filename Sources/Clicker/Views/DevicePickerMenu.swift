@@ -115,39 +115,60 @@ private struct DeviceListView: View {
     /// Details mode is wider so a UUID fits on one caption line.
     static let detailsWidth: CGFloat = PanelMetrics.width + 56
 
+    /// Past this the rows scroll and Rescan stays pinned below them; a few
+    /// TVs in details mode reach it, a plain list needs about ten.
+    static let maxListHeight: CGFloat = 480
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(controller.devices) { device in
-                let isSelected = device.id == controller.selectedDeviceID
-                let isConnected = isSelected && controller.connectionState == .connected
-                DeviceRow(
-                    device: device,
-                    subtitle: subtitle(for: device),
-                    isSelected: isSelected,
-                    isConnected: isConnected,
-                    isPaired: controller.isPaired(device)
-                ) {
-                    onSelect(device)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(controller.devices) { device in
+                        row(for: device)
+                    }
                 }
-                if showsDetails {
-                    DeviceDetailsView(
-                        device: device,
-                        connectionInfo: isConnected ? controller.connectionInfo : nil,
-                        powerState: isConnected ? controller.powerState : nil,
-                        mediaControlFlags: isConnected ? controller.mediaControlFlags : nil
-                    )
-                }
+                .padding([.horizontal, .top], 6)
+                .padding(.bottom, showsRescan ? 0 : 6)
             }
-            if showsDetails, controller.demo == nil {
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: Self.maxListHeight)
+            .fixedSize(horizontal: false, vertical: true)
+            if showsRescan {
                 Divider()
                     .padding(.vertical, 2)
+                    .padding(.horizontal, 6)
                 RescanRow(isRescanning: controller.browser.isRescanning) {
                     controller.rescan()
                 }
+                .padding([.horizontal, .bottom], 6)
             }
         }
-        .padding(6)
         .frame(width: showsDetails ? Self.detailsWidth : MenuBarView.panelWidth - 28)
+    }
+
+    private var showsRescan: Bool { showsDetails && controller.demo == nil }
+
+    @ViewBuilder
+    private func row(for device: AppleTVDevice) -> some View {
+        let isSelected = device.id == controller.selectedDeviceID
+        let isConnected = isSelected && controller.connectionState == .connected
+        DeviceRow(
+            device: device,
+            subtitle: subtitle(for: device),
+            isSelected: isSelected,
+            isConnected: isConnected,
+            isPaired: controller.isPaired(device)
+        ) {
+            onSelect(device)
+        }
+        if showsDetails {
+            DeviceDetailsView(
+                device: device,
+                connectionInfo: isConnected ? controller.connectionInfo : nil,
+                powerState: isConnected ? controller.powerState : nil,
+                mediaControlFlags: isConnected ? controller.mediaControlFlags : nil
+            )
+        }
     }
 
     private func subtitle(for device: AppleTVDevice) -> String {
@@ -165,15 +186,16 @@ private struct DeviceListView: View {
 private struct PickerRowStyle: ViewModifier {
     let isHovered: Bool
     var verticalPadding: CGFloat = 7
+    var cornerRadius: CGFloat = PanelMetrics.innerCornerRadius
 
     func body(content: Content) -> some View {
         content
             .padding(.horizontal, 8)
             .padding(.vertical, verticalPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .background(
-                RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(isHovered ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
             )
             .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
@@ -284,14 +306,19 @@ private struct DeviceDetailsView: View {
 }
 
 /// Restarts Bonjour browsing; only shown in details mode. Sized like a
-/// plain menu item rather than a device row.
+/// plain menu item rather than a device row, with a menu item's tighter
+/// corners: the rows' 10pt radius on a 22pt row reads as a capsule.
 private struct RescanRow: View {
+    static let cornerRadius: CGFloat = 5
+
     let isRescanning: Bool
     let action: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
+        let style = PickerRowStyle(
+            isHovered: isHovered && !isRescanning, verticalPadding: 3, cornerRadius: Self.cornerRadius)
         Button(action: action) {
             HStack(spacing: 6) {
                 Group {
@@ -307,7 +334,7 @@ private struct RescanRow: View {
                 Text(isRescanning ? "Rescanning…" : "Rescan Network")
                     .font(.callout)
             }
-            .modifier(PickerRowStyle(isHovered: isHovered && !isRescanning, verticalPadding: 3))
+            .modifier(style)
         }
         .buttonStyle(.plain)
         .focusEffectDisabled()
