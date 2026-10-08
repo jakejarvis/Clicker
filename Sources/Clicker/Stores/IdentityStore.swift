@@ -11,7 +11,9 @@ enum IdentityStore {
 
     static func identity() -> ClientIdentity {
         let defaults = UserDefaults.standard
-        let name = defaults.string(forKey: clientNameKey).flatMap { $0.isEmpty ? nil : $0 } ?? defaultClientName
+        // A name of only spaces would show as nothing on the TV.
+        let stored = defaults.string(forKey: clientNameKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = stored.flatMap { $0.isEmpty ? nil : $0 } ?? defaultClientName
 
         let deviceID: String
         if let stored = defaults.string(forKey: deviceIDKey) {

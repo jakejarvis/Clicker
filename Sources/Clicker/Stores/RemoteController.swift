@@ -388,6 +388,10 @@ final class RemoteController {
                 if let session = try? await client.startTextInput() {
                     self.adoptKeyboardSession(session)
                 }
+                // The session may have been torn down during the requests
+                // above; a newer connect task would then own `connectTask`.
+                guard self.client === client else { return }
+                self.connectTask = nil
                 self.refreshApps()
             } catch {
                 guard let self, self.client === client else { return }
@@ -408,7 +412,6 @@ final class RemoteController {
                 }
                 self.connectionState = .failed(Self.describe(error))
             }
-            self?.connectTask = nil
         }
     }
 
@@ -459,11 +462,14 @@ final class RemoteController {
     /// Called when the menu bar panel closes.
     func panelDidDisappear() {
         screen = .remote
+        // The popover goes with the panel; the flag must follow it or the
+        // clickpad stays unfocused the next time the panel opens.
+        isAppPickerPresented = false
     }
 
-    /// Esc backs out of Settings first; returns false when the panel should close.
-    /// Esc backs out one level: Settings, then an in-progress pairing. Returns
-    /// false when there is nothing to back out of, so the panel closes.
+    /// Esc backs out one level: the Apps picker, then Settings, then an
+    /// in-progress pairing. Returns false when there is nothing to back out
+    /// of, so the panel closes.
     func handleEscape() -> Bool {
         if isAppPickerPresented {
             isAppPickerPresented = false
@@ -514,12 +520,10 @@ final class RemoteController {
                 }
             }
             guard let self, self.client === client else { return }
-            // The stream ends when the connection closes.
-            self.client = nil
-            self.clientDeviceID = nil
-            if self.connectionState == .connected {
-                self.connectionState = .disconnected
-            }
+            // The stream ends when the connection closes: drop everything
+            // that belonged to the session (text field, mute, media flags),
+            // not just the client, so the panel does not keep showing them.
+            self.disconnect()
         }
     }
 
@@ -749,6 +753,10 @@ final class RemoteController {
                 guard let self, self.pairingSession === session else { return }
                 self.pairingState = .awaitingPIN
             } catch {
+                // Close the connection even if nobody is waiting on it any
+                // more; a pair-setup that failed after the TCP connect would
+                // otherwise stay open until the TV drops it.
+                await session.cancel()
                 guard let self, self.pairingSession === session else { return }
                 self.pairingState = .failed(Self.describe(error))
                 self.pairingSession = nil

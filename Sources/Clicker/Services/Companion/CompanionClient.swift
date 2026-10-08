@@ -32,16 +32,24 @@ actor CompanionClient {
     }
 
     func connect() async throws {
-        try await connection.connect()
-        try await CompanionPairing.verify(on: connection, credentials: credentials)
-        try await sendSystemInfo()
-        try await startSession()
-        // Newer tvOS wants a TV Remote Client session before answering some
-        // requests; older versions do not implement it, so failure is fine.
-        _ = try? await request("TVRCSessionStart", ["ProtocolVersionKey": "1.2"])
-        // `_iMC` carries the media-control flags (`_mcF`); the TV sends one
-        // on subscription and again whenever its audio output changes.
-        try await subscribe(to: ["TVSystemStatus", "SystemStatus", "_iMC"])
+        do {
+            try await connection.connect()
+            try await CompanionPairing.verify(on: connection, credentials: credentials)
+            try await sendSystemInfo()
+            try await startSession()
+            // Newer tvOS wants a TV Remote Client session before answering some
+            // requests; older versions do not implement it, so failure is fine.
+            _ = try? await request("TVRCSessionStart", ["ProtocolVersionKey": "1.2"])
+            // `_iMC` carries the media-control flags (`_mcF`); the TV sends one
+            // on subscription and again whenever its audio output changes.
+            try await subscribe(to: ["TVSystemStatus", "SystemStatus", "_iMC"])
+        } catch {
+            // A failed pair-verify or session setup would otherwise leave the
+            // TCP connection open (its receive loop keeps it alive) until the
+            // TV drops it.
+            await connection.close()
+            throw error
+        }
     }
 
     func disconnect() async {
