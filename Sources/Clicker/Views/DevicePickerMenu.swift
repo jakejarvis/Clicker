@@ -241,7 +241,8 @@ private struct DeviceDetailsView: View {
         if let model = device.model { lines.append(("Model", model)) }
         if let id = device.txt("rpMRtID") { lines.append(("ID", id)) }
         if let address = device.bluetoothAddress { lines.append(("Bluetooth", address)) }
-        if let version = device.companionVersion { lines.append(("Version", version)) }
+        if let version = connectionInfo?.osVersion { lines.append(("tvOS", version)) }
+        if let version = device.companionVersion { lines.append(("Protocol", version)) }
         if device.txt("rpFl") != nil {
             let names = device.flagDescriptions
             lines.append(

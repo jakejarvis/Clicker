@@ -29,20 +29,23 @@ struct ConnectionInfo: Hashable, Sendable {
     var address: String
     var port: UInt16
     var sessionID: UInt64
+    /// The tvOS version from the TV's `_systemInfo` reply, when it sent one.
+    var osVersion: String?
 
-    init(address: String, port: UInt16, sessionID: UInt64) {
+    init(address: String, port: UInt16, sessionID: UInt64, osVersion: String? = nil) {
         self.address = address
         self.port = port
         self.sessionID = sessionID
+        self.osVersion = osVersion
     }
 
     /// `nil` when the connection has no resolved host/port endpoint.
-    init?(endpoint: NWEndpoint?, sessionID: UInt64) {
+    init?(endpoint: NWEndpoint?, sessionID: UInt64, osVersion: String? = nil) {
         guard case .hostPort(let host, let port)? = endpoint else { return nil }
         // IPv6 link-local addresses carry a `%en0` scope; the interface is
         // listed separately.
         let address = String(describing: host).split(separator: "%", maxSplits: 1).first.map(String.init) ?? ""
-        self.init(address: address, port: port.rawValue, sessionID: sessionID)
+        self.init(address: address, port: port.rawValue, sessionID: sessionID, osVersion: osVersion)
     }
 
     var addressDescription: String {
@@ -325,7 +328,8 @@ final class RemoteController {
                 }
                 self.connectionState = .connected
                 self.connectionInfo = ConnectionInfo(
-                    endpoint: await client.remoteEndpoint, sessionID: await client.sessionID)
+                    endpoint: await client.remoteEndpoint, sessionID: await client.sessionID,
+                    osVersion: await client.osVersion)
                 self.listenForEvents(from: client)
                 if let state = try? await client.fetchPowerState() {
                     self.powerState = state
@@ -365,7 +369,8 @@ final class RemoteController {
         }
         connectionState = .connected
         powerState = demo.powerState
-        connectionInfo = ConnectionInfo(address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B)
+        connectionInfo = ConnectionInfo(
+            address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B, osVersion: "26.0.1")
         apps = DemoScenario.apps
         if let session = demo.keyboardSession {
             adoptKeyboardSession(session)

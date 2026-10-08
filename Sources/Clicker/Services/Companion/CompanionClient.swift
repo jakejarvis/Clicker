@@ -9,6 +9,11 @@ actor CompanionClient {
     let identity: ClientIdentity
     private let connection: CompanionConnection
     private(set) var sessionID: UInt64 = 0
+    /// The TV's half of the `_systemInfo` exchange, kept for the details view.
+    private(set) var deviceSystemInfo: [String: OPACKValue] = [:]
+
+    /// The tvOS version the TV reported in its `_systemInfo` reply (`_osV`).
+    var osVersion: String? { deviceSystemInfo["_osV"]?.stringValue }
 
     nonisolated var events: AsyncStream<CompanionEvent> { connection.events }
 
@@ -165,8 +170,10 @@ actor CompanionClient {
 
     // MARK: - Session setup
 
+    /// Introduces this client; the TV answers with its own description, which
+    /// includes its OS version under `_osV`.
     private func sendSystemInfo() async throws {
-        _ = try await request(
+        let response = try await request(
             "_systemInfo",
             [
                 "_bf": 0,
@@ -180,6 +187,10 @@ actor CompanionClient {
                 "model": "iPhone14,3",
                 "name": .string(identity.name),
             ])
+        deviceSystemInfo = response["_c"]?.stringKeyedDictionary ?? [:]
+        let keys = deviceSystemInfo.keys.sorted().joined(separator: " ")
+        let version = osVersion ?? "?"
+        Log.connection.info("System info reply: \(keys, privacy: .public); tvOS \(version, privacy: .public)")
     }
 
     private func startSession() async throws {
