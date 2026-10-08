@@ -21,7 +21,6 @@ struct SettingsScreen: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
     @State private var checksForUpdates = false
-    @State private var downloadsUpdates = false
     /// The pairing awaiting confirmation in the alert sheet.
     @State private var forgetCandidate: PairingCredentials?
 
@@ -71,7 +70,6 @@ struct SettingsScreen: View {
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
             checksForUpdates = updates.automaticallyChecksForUpdates
-            downloadsUpdates = updates.automaticallyDownloadsUpdates
         }
         .alert(
             "Forget \(forgetCandidate?.deviceName ?? "this Apple TV")?",
@@ -152,22 +150,9 @@ struct SettingsScreen: View {
                     .toggleStyle(.switch)
                     .controlSize(.small)
                     .onChange(of: checksForUpdates) { _, enabled in
-                        // Sparkle persists these; only write when the user changes them.
+                        // Sparkle persists this; only write when the user changes it.
                         if enabled != updates.automaticallyChecksForUpdates {
                             updates.automaticallyChecksForUpdates = enabled
-                        }
-                    }
-            }
-            SettingsDivider()
-            SettingsRow("Download Automatically") {
-                Toggle("Download Automatically", isOn: $downloadsUpdates)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .disabled(!checksForUpdates)
-                    .onChange(of: downloadsUpdates) { _, enabled in
-                        if enabled != updates.automaticallyDownloadsUpdates {
-                            updates.automaticallyDownloadsUpdates = enabled
                         }
                     }
             }

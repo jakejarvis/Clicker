@@ -241,6 +241,9 @@ robinebers/openusage:
   can show the alert in immediate focus. While a Sparkle window is up the app
   switches to `.regular` and hides the panel (it floats at pop-up menu level),
   then restores the launch activation policy, so `--regular` keeps working.
+- Updates are alert-only: `SUAllowsAutomaticUpdates` is false in Info.plist,
+  which hides Sparkle's "automatically download and install" checkbox and
+  overrides any stored preference. Settings only offers Check Automatically.
 - `CFBundleVersion` is derived from the version (1.2.3 → 10203) because Sparkle
   compares it; the release tag is the only version source.
 - Swift 6.4's default build system (Swift Build) records `sdk 15.0` in the

@@ -42,5 +42,7 @@
 	<string>MiUClZRxr4BJ4AcF0gfZ042z9kGthRx7G+D2L94w0Hw=</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
 </dict>
 </plist>

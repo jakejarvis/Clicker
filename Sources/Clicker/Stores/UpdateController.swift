@@ -55,16 +55,11 @@ final class UpdateController: NSObject {
         updaterController.checkForUpdates(nil)
     }
 
-    // Sparkle persists these itself; only set them in response to the user.
+    // Sparkle persists this itself; only set it in response to the user.
 
     var automaticallyChecksForUpdates: Bool {
         get { isEnabled && updaterController.updater.automaticallyChecksForUpdates }
         set { updaterController.updater.automaticallyChecksForUpdates = newValue }
-    }
-
-    var automaticallyDownloadsUpdates: Bool {
-        get { isEnabled && updaterController.updater.automaticallyDownloadsUpdates }
-        set { updaterController.updater.automaticallyDownloadsUpdates = newValue }
     }
 
     private func presentForUpdate() {
