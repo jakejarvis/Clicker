@@ -26,6 +26,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemController = StatusItemController(controller: controller, updates: updates)
         controller.start()
         updates.start()
+
+        if controller.demo != nil {
+            // Demo runs open the panel themselves so a screenshot needs no click.
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(500))
+                self?.statusItemController?.togglePanel()
+            }
+        }
     }
 }
 

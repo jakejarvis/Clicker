@@ -33,7 +33,7 @@ Sources/Clicker
 │               CompanionClient, TextInputArchive)
 ├── Support/    Log, Surface (glass/material helpers), key wrappers
 └── Models/     AppleTVDevice, PairingCredentials, RemoteCommand (HID enum,
-                PowerState, ClientIdentity)
+                PowerState, ClientIdentity), DemoScenario (--demo)
 Tests/ClickerTests   codec, crypto, SRP, text-input archive, panel and clickpad geometry
 script/              build_and_run.sh, package_app.sh (bundle assembly + signing),
                      release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift,
@@ -96,6 +96,14 @@ works:
    remote log category instead.
 3. Hover works with synthetic pointer moves; `.onHover` is fine in the panel.
 4. Relaunch without `--regular` when done (`--install` again).
+
+`--demo [scenario]` (see `DemoScenario`) shows any state without a TV: fake
+Living Room / Bedroom / Office devices, in-memory pairings, an instant
+"connection", commands that go nowhere, and pairing that accepts any code. It
+opens the panel half a second after launch and overrides the Settings name
+through the volatile argument domain, so nothing is persisted. The `pin`
+scenario's code field needs a click before it takes typing. Combine with
+`--regular` for the computer-use workflow above.
 
 ImageRenderer and offscreen `cacheDisplay` snapshots are useless here (they
 drop AppKit-backed controls and Liquid Glass); `screencapture -l` needs Screen

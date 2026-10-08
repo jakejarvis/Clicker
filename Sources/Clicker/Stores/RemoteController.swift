@@ -35,7 +35,9 @@ enum PanelScreen: Hashable, Sendable {
 @Observable
 final class RemoteController {
     let browser = DeviceBrowser()
-    let credentialStore = CredentialStore()
+    let credentialStore: CredentialStore
+    /// Canned state for screenshots (`--demo`); see `DemoScenario`.
+    let demo: DemoScenario?
 
     private(set) var selectedDeviceID: String?
     private(set) var connectionState: ConnectionState = .disconnected
@@ -66,8 +68,21 @@ final class RemoteController {
 
     private static let selectedDeviceKey = "selectedDeviceID"
 
-    init() {
-        selectedDeviceID = UserDefaults.standard.string(forKey: Self.selectedDeviceKey)
+    init(demo: DemoScenario? = DemoScenario.current) {
+        self.demo = demo
+        if let demo {
+            Log.remote.info("Demo mode: \(demo.rawValue, privacy: .public)")
+            DemoScenario.overrideDefaults()
+            let paired = demo.pairedDevices.map(DemoScenario.credentials(for:))
+            credentialStore = CredentialStore(backend: DemoCredentialBackend(initial: paired))
+            selectedDeviceID = demo.selectedDeviceID
+            pairingState = demo.pairingState
+            if demo.pairingState == .awaitingPIN { pairingDeviceID = demo.selectedDeviceID }
+            screen = demo.screen
+        } else {
+            credentialStore = CredentialStore()
+            selectedDeviceID = UserDefaults.standard.string(forKey: Self.selectedDeviceKey)
+        }
         browser.onUpdate = { [weak self] devices in
             self?.devicesDidChange(devices)
         }
@@ -77,7 +92,7 @@ final class RemoteController {
 
     /// Online devices merged with paired devices that are not currently visible.
     var devices: [AppleTVDevice] {
-        var result = browser.devices
+        var result = demo?.onlineDevices ?? browser.devices
         let onlineIDs = Set(result.map(\.id))
         for credentials in credentialStore.credentials where !onlineIDs.contains(credentials.deviceID) {
             result.append(AppleTVDevice(offline: credentials))
@@ -124,7 +139,7 @@ final class RemoteController {
     }
 
     func start() {
-        browser.start()
+        if demo == nil { browser.start() }
         connectIfNeeded()
     }
 
@@ -136,7 +151,7 @@ final class RemoteController {
         cancelPairing()
         disconnect()
         selectedDeviceID = device.id
-        UserDefaults.standard.set(device.id, forKey: Self.selectedDeviceKey)
+        rememberSelection(device.id)
         apps = []
         powerState = .unknown
         lastActionError = nil
@@ -150,7 +165,7 @@ final class RemoteController {
         credentialStore.remove(deviceID: device.id)
         if selectedDeviceID == device.id, !device.isOnline {
             selectedDeviceID = nil
-            UserDefaults.standard.removeObject(forKey: Self.selectedDeviceKey)
+            rememberSelection(nil)
         }
     }
 
@@ -163,7 +178,7 @@ final class RemoteController {
             let preferred = devices.first { isPaired($0) } ?? devices.first
             if let preferred {
                 selectedDeviceID = preferred.id
-                UserDefaults.standard.set(preferred.id, forKey: Self.selectedDeviceKey)
+                rememberSelection(preferred.id)
             }
         }
         connectIfNeeded()
@@ -184,21 +199,31 @@ final class RemoteController {
             credentialStore.rekey(from: orphan.deviceID, to: device.id)
             if selectedDeviceID == orphan.deviceID {
                 selectedDeviceID = device.id
-                UserDefaults.standard.set(device.id, forKey: Self.selectedDeviceKey)
+                rememberSelection(device.id)
             }
         }
+    }
+
+    /// Keeps the selection for the next launch; demo runs leave it alone.
+    private func rememberSelection(_ deviceID: String?) {
+        guard demo == nil else { return }
+        UserDefaults.standard.set(deviceID, forKey: Self.selectedDeviceKey)
     }
 
     // MARK: - Connection
 
     /// Called when the menu bar panel opens.
     func panelDidAppear() {
-        browser.start()
+        if demo == nil { browser.start() }
         lastActionError = nil
         connectIfNeeded()
     }
 
     func connectIfNeeded(isRetry: Bool = false) {
+        if let demo {
+            connectDemo(demo)
+            return
+        }
         guard connectTask == nil else { return }
         guard let device = selectedDevice, let endpoint = device.endpoint,
             let credentials = credentialStore.credentials(for: device.id)
@@ -245,6 +270,21 @@ final class RemoteController {
                 self.connectionState = .failed(Self.describe(error))
             }
             self?.connectTask = nil
+        }
+    }
+
+    /// Stands in for a connection in demo mode: a paired, online TV is ready
+    /// at once, with the scenario's power state, apps and text field.
+    private func connectDemo(_ demo: DemoScenario) {
+        guard connectionState != .connected, let device = selectedDevice, device.isOnline, isPaired(device) else {
+            return
+        }
+        connectionState = .connected
+        powerState = demo.powerState
+        apps = DemoScenario.apps
+        if let session = demo.keyboardSession {
+            keyboardSession = session
+            tvText = session.currentText
         }
     }
 
@@ -444,6 +484,10 @@ final class RemoteController {
     // MARK: - Pairing
 
     func beginPairing() {
+        if demo != nil {
+            beginDemoPairing()
+            return
+        }
         guard let device = selectedDevice, let endpoint = device.endpoint else { return }
         guard !device.pairingDisabled else {
             pairingState = .failed(CompanionError.pairingDisabled.localizedDescription)
@@ -469,6 +513,10 @@ final class RemoteController {
     }
 
     func submitPIN(_ pin: String) {
+        if demo != nil {
+            submitDemoPIN()
+            return
+        }
         guard let session = pairingSession, let device = selectedDevice, device.id == pairingDeviceID else {
             Log.pairing.info("Ignoring PIN: no pairing in progress for the selected device")
             return
@@ -509,6 +557,34 @@ final class RemoteController {
         pairingSession = nil
         pairingDeviceID = nil
         pairingState = .idle
+    }
+
+    /// Demo pairing: the TV "shows a code" after a second.
+    private func beginDemoPairing() {
+        guard let device = selectedDevice else { return }
+        pairingDeviceID = device.id
+        pairingState = .starting
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard let self, self.pairingState == .starting, self.pairingDeviceID == device.id else { return }
+            self.pairingState = .awaitingPIN
+        }
+    }
+
+    /// Demo pairing: any code is accepted, then the usual check and connect.
+    private func submitDemoPIN() {
+        guard let device = selectedDevice, pairingState == .awaitingPIN else { return }
+        pairingState = .finishing
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard let self, self.pairingState == .finishing else { return }
+            self.credentialStore.save(DemoScenario.credentials(for: device))
+            self.pairingDeviceID = nil
+            self.pairingState = .succeeded
+            self.connectIfNeeded()
+            try? await Task.sleep(for: .seconds(1.2))
+            if self.pairingState == .succeeded { self.pairingState = .idle }
+        }
     }
 
     private static func describe(_ error: Error) -> String {

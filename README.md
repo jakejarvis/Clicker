@@ -58,6 +58,15 @@ swift test                              # codec, crypto, SRP and text-input test
 Launching the binary with `--regular` shows a Dock icon, which some tooling
 needs in order to see the process.
 
+For screenshots, `--demo [scenario]` launches with made-up Apple TVs and opens
+the panel by itself. Nothing touches the network, and saved pairings and
+settings are left alone. Scenarios: `ready` (the default), `asleep`, `typing`,
+`settings`, `pair`, `pin`, `paired`, `offline`, `searching` and `choose`.
+
+```bash
+open -n dist/Clicker.app --args --demo pin
+```
+
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
 Click the Apple TV icon in the menu bar to open the remote. The gear menu in
 the footer (and a right-click on the menu bar icon) offers Settings, Check for
