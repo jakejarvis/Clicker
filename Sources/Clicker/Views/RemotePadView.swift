@@ -53,18 +53,6 @@ enum RemoteMetrics {
     /// One font for every glyph on the remote, with outline symbols
     /// throughout, so strokes read the same width from button to button.
     static let glyphFont: Font = .system(size: 16, weight: .medium)
-
-    /// Siri's orb colors. SF Symbols has no colored Siri glyph, so the
-    /// gradient is painted through the symbol instead.
-    static let siriTint = AnyShapeStyle(
-        LinearGradient(
-            colors: [
-                Color(red: 0.98, green: 0.36, blue: 0.62),
-                Color(red: 0.62, green: 0.36, blue: 0.98),
-                Color(red: 0.25, green: 0.65, blue: 1.0),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing))
 }
 
 private struct ClickpadView: View {
@@ -135,7 +123,7 @@ private struct HoldRemoteButton: View {
 
     var body: some View {
         HoldButton(controller: controller, command: command, shape: Capsule()) {
-            RemoteGlyph(systemImage: command.systemImage, tint: command == .siri ? RemoteMetrics.siriTint : nil)
+            RemoteGlyph(systemImage: command.systemImage)
         }
         .help(command == .siri ? "Hold for Siri" : command.title)
     }
