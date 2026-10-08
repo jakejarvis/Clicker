@@ -34,3 +34,7 @@ jobs:
 
       - name: Package a universal app
         run: script/package_app.sh --release --universal
+
+      # Keeps the build without the Sparkle trait compiling.
+      - name: Package the App Store flavor
+        run: script/package_app.sh --release --app-store
