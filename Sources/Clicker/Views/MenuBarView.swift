@@ -99,6 +99,7 @@ struct MenuBarView: View {
                         overlayCard(overlay)
                             .id(overlay)
                             .frame(height: ClickpadGeometry.diameter)
+                            .padding(.top, RemoteMetrics.clickpadTopInset)
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }

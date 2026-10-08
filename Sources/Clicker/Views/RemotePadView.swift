@@ -22,9 +22,11 @@ struct RemotePadView: View {
     private var pad: some View {
         SurfaceContainer(spacing: 10) {
             VStack(spacing: 16) {
-                // Apps and Power float at the clickpad's top corners (Power is
-                // there on the Siri Remote). Sized so they clear the ring.
+                // Apps and Power sit above the clickpad's top corners (Power
+                // is there on the Siri Remote), with the ring's top edge
+                // level with their centers.
                 ClickpadView(controller: controller)
+                    .padding(.top, RemoteMetrics.clickpadTopInset)
                     .frame(maxWidth: .infinity)
                     .overlay(alignment: .topLeading) { AppsMenu(controller: controller) }
                     .overlay(alignment: .topTrailing) { PowerMenu(controller: controller) }
@@ -44,6 +46,9 @@ struct RemotePadView: View {
 enum RemoteMetrics {
     static let buttonHeight: CGFloat = 44
     static let cornerButtonDiameter: CGFloat = 32
+    /// The clickpad starts this far below the corner buttons' top edge, so
+    /// the ring's top is level with their centers.
+    static let clickpadTopInset: CGFloat = cornerButtonDiameter / 2
 
     /// One font for every glyph on the remote, with outline symbols
     /// throughout, so strokes read the same width from button to button.

@@ -196,7 +196,10 @@ robinebers/openusage:
   attempts (flat ring with secondary arrows, a hover disc behind each arrow)
   looked disabled or ugly; do not go back to them.
 - Apps (top left) and Power (top right) are 32pt round glass `Menu`s
-  overlaid on the clickpad (`cornerMenuStyle`). They need `.menuStyle(.button)`
+  overlaid above the clickpad's corners (`cornerMenuStyle`); the pad is
+  inset 16pt below them (`RemoteMetrics.clickpadTopInset`) so the ring's
+  top edge is level with their centers, and the overlay cards share the
+  inset so they stay centered on the pad. They need `.menuStyle(.button)`
   plus a plain button style and `.fixedSize()`; `.borderlessButton` ignores
   the label frame.
 - Device picker is a full-width control with a popover list; system `Menu`
