@@ -76,8 +76,7 @@ struct PairingCard: View {
             Button("Cancel") { controller.cancelPairing() }
 
         case .awaitingPIN, .finishing:
-            CardTitle("Enter the code")
-            CardCaption("Shown on your TV.")
+            CardTitle("Enter the code shown on \(device.name)")
             PINCodeField(code: $pin, isEnabled: controller.pairingState == .awaitingPIN) { code in
                 controller.submitPIN(code)
             }
