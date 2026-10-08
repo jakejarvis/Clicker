@@ -64,7 +64,13 @@ final class StatusItemController: NSObject {
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
+        // The window server derives the shadow from the window's alpha; without
+        // this clip the glass leaves the corners opaque and the shadow square.
         let container = NSView()
+        container.wantsLayer = true
+        container.layer?.cornerRadius = PanelMetrics.cornerRadius
+        container.layer?.cornerCurve = .continuous
+        container.layer?.masksToBounds = true
         let backdrop = PanelBackdropView(cornerRadius: PanelMetrics.cornerRadius)
         let host = hosting.view
         host.translatesAutoresizingMaskIntoConstraints = false
