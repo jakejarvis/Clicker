@@ -54,6 +54,9 @@ actor CompanionClient {
 
     func disconnect() async {
         _ = try? await request("_tiStop", [:], timeout: 1)
+        if touchStartedAt != nil {
+            _ = try? await request("_touchStop", ["_i": 1], timeout: 1)
+        }
         if sessionID != 0 {
             _ = try? await request(
                 "_sessionStop",
@@ -79,12 +82,43 @@ actor CompanionClient {
         _ = try await request("_hidC", ["_hBtS": 2, "_hidC": .int(command.rawValue)])
     }
 
-    // MARK: - Volume (media control)
+    // MARK: - Media control
 
-    /// Media-control commands sent as `_mcc`; only a few are useful here.
-    enum MediaControlCommand: Int64 {
+    /// Media-control commands sent as `_mcc`, numbered as in pyatv. They act on
+    /// the TV's current player; `MediaControlFlags` says which it accepts.
+    /// Caption settings (12, 13) are listed for completeness only: pyatv never
+    /// sends them, so their payload is unknown.
+    enum MediaControlCommand: Int64, Sendable {
+        case play = 1
+        case pause = 2
+        case nextTrack = 3
+        case previousTrack = 4
         case getVolume = 5
         case setVolume = 6
+        case skipBy = 7
+        case fastForwardBegin = 8
+        case fastForwardEnd = 9
+        case rewindBegin = 10
+        case rewindEnd = 11
+        case getCaptionSettings = 12
+        case setCaptionSettings = 13
+    }
+
+    /// Sends a media-control command that takes no arguments (play, pause,
+    /// next/previous track, and the begin/end halves of fast forward and rewind).
+    func mediaControl(_ command: MediaControlCommand) async throws {
+        _ = try await request("_mcc", ["_mcc": .int(command.rawValue)])
+    }
+
+    /// Skips the current item by `seconds`, backward when negative. Sent as a
+    /// double: pyatv notes that negative OPACK integers are rejected.
+    func skip(by seconds: Double) async throws {
+        _ = try await request(
+            "_mcc",
+            [
+                "_mcc": .int(MediaControlCommand.skipBy.rawValue),
+                "_skpS": .double(seconds),
+            ])
     }
 
     /// Current output volume in 0...1. Only meaningful while the TV's media
@@ -125,6 +159,81 @@ actor CompanionClient {
 
     func launchApp(bundleIdentifier: String) async throws {
         _ = try await request("_launchApp", ["_bundleID": .string(bundleIdentifier)])
+    }
+
+    // MARK: - User accounts
+
+    /// The tvOS user profiles that can be switched to, by name.
+    func fetchUserAccounts() async throws -> [UserAccount] {
+        let response = try await request("FetchUserAccountsEvent", [:])
+        guard let content = response["_c"]?.stringKeyedDictionary else {
+            throw CompanionError.unexpectedResponse("account list missing content")
+        }
+        return content.compactMap { identifier, value in
+            guard let name = value.stringValue else { return nil }
+            return UserAccount(id: identifier, name: name)
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    func switchUserAccount(id: String) async throws {
+        _ = try await request("SwitchUserAccountEvent", ["SwitchAccountID": .string(id)])
+    }
+
+    // MARK: - Touch
+
+    /// Side of the virtual touchpad in the TV's units; coordinates run 0...1000.
+    static let touchpadSize = 1000.0
+    /// pyatv's spacing between the hold events of a swipe.
+    static let touchInterval: Duration = .milliseconds(16)
+
+    /// Set by `_touchStart`; touch events carry nanoseconds since then.
+    private var touchStartedAt: ContinuousClock.Instant?
+
+    /// Sends one touch event at `x`, `y` (0...1000), opening the touch
+    /// session on first use. pyatv opens it on every connect; doing it lazily
+    /// keeps sessions that never touch the same as before.
+    func touch(x: Double, y: Double, phase: TouchPhase) async throws {
+        let startedAt = try await startTouchIfNeeded()
+        let elapsed = ContinuousClock.now - startedAt
+        let nanoseconds = elapsed.components.seconds * 1_000_000_000 + elapsed.components.attoseconds / 1_000_000_000
+        let size = Self.touchpadSize
+        try await sendEvent(
+            "_hidT",
+            [
+                "_ns": .int(nanoseconds),
+                "_tFg": 1,
+                "_cx": .int(Int64(min(max(x, 0), size))),
+                "_cy": .int(Int64(min(max(y, 0), size))),
+                "_tPh": .int(phase.rawValue),
+            ])
+    }
+
+    /// Drags a finger from `start` to `end` (touchpad units) over `duration`,
+    /// as pyatv's `swipe` does: a press, hold events every 16 ms, a release.
+    func swipe(from start: CGPoint, to end: CGPoint, duration: Duration) async throws {
+        let clock = ContinuousClock()
+        let startedAt = clock.now
+        try await touch(x: start.x, y: start.y, phase: .press)
+        while true {
+            let progress = (clock.now - startedAt) / duration
+            guard progress < 1 else { break }
+            let x = start.x + (end.x - start.x) * progress
+            let y = start.y + (end.y - start.y) * progress
+            try await touch(x: x, y: y, phase: .hold)
+            try await Task.sleep(for: Self.touchInterval)
+        }
+        try await touch(x: end.x, y: end.y, phase: .release)
+    }
+
+    private func startTouchIfNeeded() async throws -> ContinuousClock.Instant {
+        if let touchStartedAt { return touchStartedAt }
+        _ = try await request(
+            "_touchStart",
+            ["_height": .double(Self.touchpadSize), "_tFl": 0, "_width": .double(Self.touchpadSize)])
+        let now = ContinuousClock.now
+        touchStartedAt = now
+        return now
     }
 
     // MARK: - Text input

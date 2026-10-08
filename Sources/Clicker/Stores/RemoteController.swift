@@ -84,6 +84,8 @@ final class RemoteController {
     private(set) var pairingNotice: String?
     private(set) var apps: [AppleTVApp] = []
     private(set) var isLoadingApps = false
+    /// The selected TV's user profiles, from `refreshUserAccounts`.
+    private(set) var userAccounts: [UserAccount] = []
     /// Bundle identifiers of the last few launched apps per TV, newest
     /// first, keyed by device id. Follows the pairing when a TV's id changes
     /// and goes with it when the pairing is forgotten.
@@ -274,6 +276,7 @@ final class RemoteController {
         selectedDeviceID = device.id
         rememberSelection(device.id)
         apps = []
+        userAccounts = []
         powerState = .unknown
         lastActionError = nil
         pairingNotice = nil
@@ -544,6 +547,36 @@ final class RemoteController {
         perform { try await $0.press(command) }
     }
 
+    /// Sends a media-control command to the TV's current player. Volume and
+    /// caption commands are not accepted here: volume goes through Mute and
+    /// the HID buttons, and the caption payload is unknown.
+    func mediaControl(_ command: CompanionClient.MediaControlCommand) {
+        switch command {
+        case .getVolume, .setVolume, .getCaptionSettings, .setCaptionSettings, .skipBy:
+            assertionFailure("\(command) is not a plain media command")
+            return
+        default:
+            break
+        }
+        Log.remote.info("Media control \(String(describing: command), privacy: .public)")
+        perform { try await $0.mediaControl(command) }
+    }
+
+    /// Skips the current item by `seconds`, backward when negative.
+    func skip(by seconds: Double) {
+        Log.remote.info("Skip by \(seconds, privacy: .public)s")
+        perform { try await $0.skip(by: seconds) }
+    }
+
+    /// Swipes across the TV's touch surface; points are in touchpad units
+    /// (0...1000 on each axis, origin top left).
+    func swipe(from start: CGPoint, to end: CGPoint, duration: Duration = .milliseconds(200)) {
+        Log.remote.info(
+            "Swipe \(start.x, privacy: .public),\(start.y, privacy: .public) to \(end.x, privacy: .public),\(end.y, privacy: .public)"
+        )
+        perform { try await $0.swipe(from: start, to: end, duration: duration) }
+    }
+
     /// Mutes by remembering the current volume and setting it to zero, since
     /// the Companion button set has no mute. Unmute restores the saved level.
     func toggleMute() {
@@ -701,6 +734,18 @@ final class RemoteController {
             },
             completion: { [weak self] in self?.isLoadingApps = false }
         )
+    }
+
+    func refreshUserAccounts() {
+        perform { [weak self] client in
+            let accounts = try await client.fetchUserAccounts()
+            self?.userAccounts = accounts
+        }
+    }
+
+    func switchUserAccount(_ account: UserAccount) {
+        Log.remote.info("Switch user to \(account.name, privacy: .public)")
+        perform { try await $0.switchUserAccount(id: account.id) }
     }
 
     /// Runs an action against the connected client. Actions are serialized so a

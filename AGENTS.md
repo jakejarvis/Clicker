@@ -139,6 +139,7 @@ ImageRenderer and offscreen `cacheDisplay` snapshots are useless here (they drop
 
 ## Unverified / open
 
+- The other `_mcc` media commands (play, pause, next/previous, `SkipBy` with `_skpS`, fast forward and rewind begin/end), user accounts (`FetchUserAccountsEvent`, `SwitchUserAccountEvent`) and touch (`_touchStart` opened lazily on first use, `_hidT` events, `_touchStop` on disconnect) are implemented in `CompanionClient` and `RemoteController` from pyatv's formats but have no UI yet and have not been tried against a TV. Caption settings (`_mcc` 12/13) are only named: pyatv never sends them, so their payload is unknown.
 - Text entry against a real TV keyboard, including the single-event replace (`textToAssert` plus `insertionText` in one `RTITextOperations`).
 - The identity-change path (stale credentials dropped, pair card with notice) against a reset TV, and whether port knocking on Rescan ever wakes an Apple TV.
 - The macOS 15 vibrancy fallback (dev machine runs macOS 27).

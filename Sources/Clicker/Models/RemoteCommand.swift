@@ -81,6 +81,20 @@ struct AppleTVApp: Identifiable, Hashable, Sendable {
     var id: String { bundleIdentifier }
 }
 
+/// A tvOS user profile, from `FetchUserAccountsEvent`.
+struct UserAccount: Identifiable, Hashable, Sendable {
+    let id: String
+    let name: String
+}
+
+/// The `_tPh` phase of a `_hidT` touch event, numbered as pyatv's `TouchAction`.
+enum TouchPhase: Int64, Sendable {
+    case press = 1
+    case hold = 3
+    case release = 4
+    case click = 5
+}
+
 /// Mirrors the `state` field of `TVSystemStatus` events.
 enum PowerState: Int64, Sendable {
     case unknown = 0
