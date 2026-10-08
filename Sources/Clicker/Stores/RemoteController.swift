@@ -834,7 +834,7 @@ final class RemoteController {
         }
         let digits = pin.filter(\.isNumber)
         guard digits.count == 4 else {
-            pairingState = .failed("Enter the four-digit PIN shown on the Apple TV.")
+            pairingState = .failed("Enter the four-digit code shown on the Apple TV.")
             return
         }
         Log.pairing.info("Submitting PIN to \(device.name, privacy: .public)")

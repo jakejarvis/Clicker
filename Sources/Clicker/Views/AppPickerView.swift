@@ -29,9 +29,9 @@ struct AppPickerView: View {
         VStack(spacing: 6) {
             searchField
             if controller.apps.isEmpty {
-                placeholder(controller.isLoadingApps ? "Loading apps…" : "No apps loaded")
+                placeholder(controller.isLoadingApps ? "Loading apps…" : "No apps found")
             } else if rows.isEmpty {
-                placeholder("No matches")
+                placeholder("No Results")
             } else {
                 list(rows)
             }
@@ -89,7 +89,7 @@ struct AppPickerView: View {
         return HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("Search Apps", text: $query)
+            TextField("Search", text: $query)
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
                 .onSubmit(launchHighlighted)
@@ -104,7 +104,7 @@ struct AppPickerView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Reload the app list")
+                .help("Refresh the app list")
                 .accessibilityLabel("Refresh apps")
             }
         }

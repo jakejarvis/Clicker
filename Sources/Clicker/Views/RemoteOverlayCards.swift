@@ -62,7 +62,7 @@ struct PairingCard: View {
             } else if let notice = controller.pairingNotice {
                 CardCaption(notice, tint: .orange)
             } else {
-                CardCaption("A code will appear on your TV.")
+                CardCaption("A code will appear on \(device.name).")
             }
             Button("Pair…") { controller.beginPairing() }
                 .prominentActionStyle()
@@ -73,7 +73,7 @@ struct PairingCard: View {
             HStack(spacing: 6) {
                 ProgressView()
                     .controlSize(.small)
-                CardCaption("Waiting for your TV…")
+                CardCaption("Waiting for \(device.name)…")
             }
             Button("Cancel") { controller.cancelPairing() }
 
@@ -139,7 +139,7 @@ struct SearchingCard: View {
             ProgressView()
                 .controlSize(.small)
             CardTitle("Looking for Apple TVs…")
-            CardCaption(message ?? "Make sure this Mac and the Apple TV share a network.")
+            CardCaption(message ?? "Make sure the Apple TV is on the same network as this Mac.")
         }
     }
 }
@@ -151,7 +151,7 @@ struct ChooseDeviceCard: View {
                 .font(.system(size: 22))
                 .foregroundStyle(.secondary)
             CardTitle("Choose an Apple TV")
-            CardCaption("Pick one from the list above.")
+            CardCaption("Choose one at the top of the panel.")
         }
     }
 }

@@ -70,17 +70,17 @@ enum CompanionError: Error, LocalizedError, Sendable {
         switch self {
         case .notConnected: return "Not connected to the Apple TV."
         case .disconnected: return "The connection to the Apple TV was closed."
-        case .timeout: return "The Apple TV did not respond in time."
-        case .connectionFailed(let reason): return "Could not connect: \(reason)"
-        case .unexpectedResponse(let detail): return "Unexpected response from the Apple TV (\(detail))."
-        case .remoteError(let message): return "The Apple TV rejected the command: \(message)"
+        case .timeout: return "The Apple TV didn't respond in time."
+        case .connectionFailed: return "Couldn't connect to the Apple TV."
+        case .unexpectedResponse: return "The Apple TV sent an unexpected reply."
+        case .remoteError: return "The Apple TV refused that command."
         case .pairingError(let message): return message
-        case .authenticationFailed(let detail): return "Authentication failed: \(detail)"
-        case .identityChanged: return "This Apple TV was reset or re-paired, so it needs pairing again."
-        case .encryptionFailed: return "Could not decrypt a message from the Apple TV."
+        case .authenticationFailed(let message): return message
+        case .identityChanged: return "This Apple TV was reset, so it needs to be paired again."
+        case .encryptionFailed: return "Couldn't decrypt a message from the Apple TV."
         case .pairingDisabled:
             return
-                "This Apple TV does not allow pairing with a PIN. Enable it in Settings › Remotes and Devices › Remote App and Devices."
+                "Pairing is turned off on this Apple TV. Allow it in Settings › Remotes and Devices › Remote App and Devices."
         }
     }
 }

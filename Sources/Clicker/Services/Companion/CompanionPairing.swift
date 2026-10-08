@@ -45,7 +45,7 @@ enum CompanionPairing {
         do {
             decrypted = try HAPCrypto.open(encrypted, key: sessionKey, nonce: HAPCrypto.nonce(label: "PV-Msg02"))
         } catch {
-            throw CompanionError.authenticationFailed("could not decrypt the Apple TV's reply")
+            throw CompanionError.authenticationFailed("Couldn't verify the Apple TV. Try pairing again.")
         }
         let inner = try TLV8.decode(decrypted)
         guard let identifier = inner[.identifier], let signature = inner[.signature] else {
@@ -57,7 +57,7 @@ enum CompanionPairing {
 
         let accessoryKey = try Curve25519.Signing.PublicKey(rawRepresentation: credentials.accessoryPublicKey)
         guard accessoryKey.isValidSignature(signature, for: serverPublic + identifier + ourPublic) else {
-            throw CompanionError.authenticationFailed("the Apple TV's signature did not verify")
+            throw CompanionError.authenticationFailed("Couldn't verify the Apple TV. Try pairing again.")
         }
 
         let signingKey = try Curve25519.Signing.PrivateKey(rawRepresentation: credentials.clientPrivateKey)
@@ -135,7 +135,7 @@ actor CompanionPairingSession {
             throw CompanionError.unexpectedResponse("pair-setup M4 missing proof")
         }
         guard serverProof == session.expectedServerProof else {
-            throw CompanionError.authenticationFailed("the Apple TV's proof did not match")
+            throw CompanionError.authenticationFailed("The code didn't match. Check the TV and try again.")
         }
 
         let controllerSigningSalt = HAPCrypto.deriveKey(

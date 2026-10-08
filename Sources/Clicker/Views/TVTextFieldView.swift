@@ -20,7 +20,7 @@ struct TVTextFieldView: View {
                 .foregroundStyle(.secondary)
             CommittedTextField(
                 text: text,
-                placeholder: "Type on Apple TV",
+                placeholder: "Type on the Apple TV",
                 focusToken: controller.panelAppearances,
                 onSubmit: { controller.submitTVText() },
                 onCancel: { controller.focusPad() }

@@ -34,7 +34,7 @@ enum TLV8 {
         var message: String {
             switch self {
             case .unknown: return "The Apple TV reported an unknown error."
-            case .authentication: return "The PIN was not accepted."
+            case .authentication: return "That code wasn't accepted."
             case .backoff: return "The Apple TV asked to wait before trying again."
             case .maxPeers: return "The Apple TV has reached its pairing limit."
             case .maxTries: return "Too many failed attempts. Try again later."

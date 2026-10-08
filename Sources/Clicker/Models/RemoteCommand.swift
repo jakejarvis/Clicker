@@ -113,6 +113,17 @@ enum PowerState: Int64, Sendable {
         }
     }
 
+    /// Tooltip for the Power control: the title plus a readable state.
+    var powerTooltip: String {
+        switch self {
+        case .unknown: return "Power"
+        case .asleep: return "Power · Asleep"
+        case .screensaver: return "Power · Screen saver on"
+        case .awake: return "Power · Awake"
+        case .idle: return "Power · Idle"
+        }
+    }
+
     var isOn: Bool? {
         switch self {
         case .unknown: return nil

@@ -57,7 +57,7 @@ struct DevicePickerMenu: View {
         }
         .buttonStyle(SurfaceButtonStyle(shape: shape, pressScale: 0.98))
         .disabled(controller.devices.isEmpty)
-        .help("Choose an Apple TV. ⌥-click for details.")
+        .help("Choose an Apple TV. Option-click for details.")
         .accessibilityLabel("Apple TV: \(controller.selectedDevice?.name ?? "none selected")")
         .accessibilityHint("Opens the list of Apple TVs")
         .popover(item: $presentation, arrowEdge: .bottom) { presentation in
@@ -340,6 +340,6 @@ private struct RescanRow: View {
         .focusEffectDisabled()
         .disabled(isRescanning)
         .onHover { isHovered = $0 }
-        .help("Ask the network again for Apple TVs")
+        .help("Search the network again")
     }
 }

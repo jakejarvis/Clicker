@@ -95,7 +95,7 @@ struct SettingsScreen: View {
         SettingsSection(
             "This Mac",
             footer: launchAtLoginError
-                ?? "The name appears under Remotes and Devices on the Apple TV the next time you pair."
+                ?? "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair."
         ) {
             SettingsRow("Name") {
                 TextField("Name", text: $clientName)

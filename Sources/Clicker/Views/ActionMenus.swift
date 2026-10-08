@@ -44,7 +44,7 @@ struct PowerMenu: View {
         }
         .cornerMenuStyle()
         .disabled(controller.connectionState != .connected)
-        .help("Power · Apple TV is \(controller.powerState.title.lowercased())")
+        .help(controller.powerState.powerTooltip)
         .accessibilityLabel("Power")
     }
 }

@@ -164,7 +164,18 @@ private struct HoldRemoteButton: View {
         HoldButton(controller: controller, command: command, shape: Capsule()) {
             RemoteGlyph(systemImage: command.systemImage)
         }
-        .help(command == .siri ? "Hold for Siri" : command.title)
+        .help(tooltip)
+    }
+
+    /// Title plus the key that triggers it, like the Select and volume tooltips.
+    private var tooltip: String {
+        switch command {
+        case .siri: return "Hold for Siri"
+        case .menu: return "Back (Delete)"
+        case .home: return "TV (H)"
+        case .playPause: return "Play/Pause (Space)"
+        default: return command.title
+        }
     }
 }
 
