@@ -121,10 +121,14 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
         .animation(.easeOut(duration: 0.1), value: isPressed)
         .animation(.easeOut(duration: 0.15), value: isHovered)
         .onHover { isHovered = $0 }
-        // A menu opened from the button (gear, Apps, Power) opens on mouse
-        // down and takes the release and the pointer with it, so the
-        // button never sees its press end or the pointer leave. Clear both
-        // when the menu closes.
+        // A menu opened from the button (Power) opens on mouse down and takes
+        // the press and the pointer with it, so the button never sees a press
+        // at all, let alone its end. The menu that starts tracking while the
+        // pointer is on the button is the button's own: show it pressed for
+        // as long as the menu is up, then clear both states when it closes.
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
+            if isHovered, isEnabled { isPressed = true }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
             isHovered = false
             isPressed = false
