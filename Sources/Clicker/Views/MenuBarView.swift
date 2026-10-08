@@ -66,40 +66,64 @@ struct MenuBarView: View {
         }
     }
 
-    @ViewBuilder
-    private var content: some View {
+    /// What stands between the user and the remote, if anything.
+    private var overlay: RemoteOverlay? {
         if let device = controller.selectedDevice {
-            if !controller.isPaired(device) {
-                PairingView(controller: controller, device: device)
-            } else if !device.isOnline {
-                StatusMessageView(
-                    systemImage: "wifi.slash",
-                    title: "\(device.name) is offline",
-                    message: "It is not advertising on this network right now."
-                )
-            } else {
-                VStack(spacing: 14) {
-                    if controller.keyboardSession != nil {
-                        TVTextFieldView(controller: controller)
-                            .transition(.move(edge: .top).combined(with: .opacity))
+            if !controller.isPaired(device) || controller.pairingState == .succeeded {
+                return .pairing(deviceID: device.id)
+            }
+            if !device.isOnline { return .offline(deviceID: device.id) }
+            return nil
+        }
+        return controller.devices.isEmpty ? .searching : .choose
+    }
+
+    /// The remote is always drawn. When an overlay applies it is dimmed,
+    /// blurred and inert under the card, so the panel keeps its shape and
+    /// pairing reveals the remote in place.
+    private var content: some View {
+        let overlay = overlay
+        let isLive = overlay == nil
+        return VStack(spacing: 14) {
+            if isLive, controller.keyboardSession != nil {
+                TVTextFieldView(controller: controller)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            RemotePadView(controller: controller, isInteractive: isLive)
+                .opacity(isLive ? 1 : 0.35)
+                .blur(radius: isLive ? 0 : 2)
+                .allowsHitTesting(isLive)
+                .accessibilityHidden(!isLive)
+                .overlay(alignment: .top) {
+                    if let overlay {
+                        overlayCard(overlay)
+                            .id(overlay)
+                            .frame(height: ClickpadGeometry.diameter)
+                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
-                    RemotePadView(controller: controller)
-                    connectionBanner
+                }
+            if isLive {
+                connectionBanner
+            }
+        }
+        .animation(.snappy(duration: 0.3), value: overlay)
+    }
+
+    @ViewBuilder
+    private func overlayCard(_ overlay: RemoteOverlay) -> some View {
+        switch overlay {
+        case .pairing, .offline:
+            if let device = controller.selectedDevice {
+                if case .offline = overlay {
+                    OfflineCard(device: device)
+                } else {
+                    PairingCard(controller: controller, device: device)
                 }
             }
-        } else if controller.devices.isEmpty {
-            StatusMessageView(
-                systemImage: "antenna.radiowaves.left.and.right",
-                title: "No Apple TVs yet",
-                message: controller.browser.errorMessage
-                    ?? "Make sure this Mac and the Apple TV are on the same network."
-            )
-        } else {
-            StatusMessageView(
-                systemImage: "appletv",
-                title: "Choose an Apple TV",
-                message: "Select one of the devices above."
-            )
+        case .searching:
+            SearchingCard(message: controller.browser.errorMessage)
+        case .choose:
+            ChooseDeviceCard()
         }
     }
 
@@ -140,28 +164,6 @@ struct MenuBarView: View {
         .buttonStyle(.borderless)
         .menuStyle(.borderlessButton)
         .foregroundStyle(.secondary)
-    }
-}
-
-struct StatusMessageView: View {
-    let systemImage: String
-    let title: String
-    let message: String
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.system(size: 28))
-                .foregroundStyle(.secondary)
-            Text(title)
-                .font(.headline)
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
     }
 }
 

@@ -6,8 +6,20 @@ import SwiftUI
 /// particular).
 struct RemotePadView: View {
     let controller: RemoteController
+    /// False while the remote is ghosted behind an overlay card: no keyboard
+    /// focus, so the card's own fields can take it.
+    var isInteractive = true
 
+    @ViewBuilder
     var body: some View {
+        if isInteractive {
+            pad.remoteKeyboardShortcuts(controller: controller)
+        } else {
+            pad
+        }
+    }
+
+    private var pad: some View {
         SurfaceContainer(spacing: 10) {
             VStack(spacing: 16) {
                 // Apps and Power float at the clickpad's top corners (Power is
@@ -26,7 +38,6 @@ struct RemotePadView: View {
                 }
             }
         }
-        .remoteKeyboardShortcuts(controller: controller)
     }
 }
 
@@ -131,6 +142,8 @@ private struct MuteButton: View {
             .contentShape(Capsule())
         }
         .buttonStyle(RemotePressStyle())
+        .focusable(false)
+        .focusEffectDisabled()
         .surface(Capsule(), tint: controller.isMuted ? .orange : nil)
         .help(controller.isMuted ? "Unmute (M)" : "Mute (M)")
         .accessibilityLabel(controller.isMuted ? "Unmute" : "Mute")
@@ -204,6 +217,10 @@ private struct HoldButton<Label: View>: View {
                 }
             }
         )
+        // Keyboard input goes through the pad's shortcuts, not focus, and a
+        // focus ring traced around a sector looks broken.
+        .focusable(false)
+        .focusEffectDisabled()
         .accessibilityLabel(command.title)
     }
 }

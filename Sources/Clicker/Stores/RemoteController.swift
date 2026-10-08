@@ -16,6 +16,9 @@ enum PairingState: Equatable, Sendable {
     case starting
     case awaitingPIN
     case finishing
+    /// Credentials are saved; the card shows a check for a moment before the
+    /// remote takes over.
+    case succeeded
     case failed(String)
 }
 
@@ -273,10 +276,18 @@ final class RemoteController {
     }
 
     /// Esc backs out of Settings first; returns false when the panel should close.
+    /// Esc backs out one level: Settings, then an in-progress pairing. Returns
+    /// false when there is nothing to back out of, so the panel closes.
     func handleEscape() -> Bool {
-        guard screen != .remote else { return false }
-        withAnimation(.snappy(duration: 0.3)) { screen = .remote }
-        return true
+        if screen != .remote {
+            withAnimation(.snappy(duration: 0.3)) { screen = .remote }
+            return true
+        }
+        if pairingState != .idle {
+            cancelPairing()
+            return true
+        }
+        return false
     }
 
     private func listenForEvents(from client: CompanionClient) {
@@ -458,12 +469,16 @@ final class RemoteController {
     }
 
     func submitPIN(_ pin: String) {
-        guard let session = pairingSession, let device = selectedDevice, device.id == pairingDeviceID else { return }
+        guard let session = pairingSession, let device = selectedDevice, device.id == pairingDeviceID else {
+            Log.pairing.info("Ignoring PIN: no pairing in progress for the selected device")
+            return
+        }
         let digits = pin.filter(\.isNumber)
         guard digits.count == 4 else {
             pairingState = .failed("Enter the four-digit PIN shown on the Apple TV.")
             return
         }
+        Log.pairing.info("Submitting PIN to \(device.name, privacy: .public)")
         pairingState = .finishing
         let clientName = IdentityStore.identity().name
         Task { [weak self] in
@@ -473,10 +488,13 @@ final class RemoteController {
                 self.credentialStore.save(credentials)
                 self.pairingSession = nil
                 self.pairingDeviceID = nil
-                self.pairingState = .idle
+                self.pairingState = .succeeded
                 self.connectIfNeeded()
+                try? await Task.sleep(for: .seconds(1.2))
+                if self.pairingState == .succeeded { self.pairingState = .idle }
             } catch {
                 guard let self, self.pairingSession === session else { return }
+                Log.pairing.error("Pair-setup failed: \(String(describing: error), privacy: .public)")
                 await session.cancel()
                 self.pairingSession = nil
                 self.pairingState = .failed(Self.describe(error))

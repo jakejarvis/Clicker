@@ -83,7 +83,7 @@ use the keychain and keep an owner-only file in
 ```
 Sources/Clicker
 ├── App/            @main app, status item, the custom glass NSPanel and its geometry
-├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, PairingView, SettingsScreen
+├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, RemoteOverlayCards, PINCodeField, SettingsScreen
 ├── Stores/         RemoteController (app state), CredentialStore, IdentityStore
 ├── Services/
 │   ├── DeviceBrowser.swift            NWBrowser for _companion-link._tcp

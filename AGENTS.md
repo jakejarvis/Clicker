@@ -24,7 +24,8 @@ Sources/Clicker
 │               MenuBarPanel + PanelMetrics/PanelGeometry/PanelBackdropView,
 │               PanelOutsideClickMonitor, AboutPanel
 ├── Views/      MenuBarView (screen switch), DevicePickerMenu, RemotePadView,
-│               TVTextFieldView, PairingView, SettingsScreen, ActionMenus
+│               TVTextFieldView, RemoteOverlayCards (pairing, offline,
+│               searching cards), PINCodeField, SettingsScreen, ActionMenus
 ├── Stores/     RemoteController (all UI-facing state), CredentialStore,
 │               IdentityStore, UpdateController (Sparkle)
 ├── Services/   DeviceBrowser (NWBrowser) and Companion/* (OPACK, TLV8,
@@ -115,8 +116,8 @@ robinebers/openusage:
   animates its frame, anchored top-left, clamped to the screen.
   `MenuBarView` pins its container to the natural height of the screen being
   shown (remote or settings) so a screen switch resizes once.
-- Keys: a local `keyDown` monitor handles Esc (back out of Settings first,
-  then close), ⌘, (Settings) and ⌘Q. Only when the event's window is the
+- Keys: a local `keyDown` monitor handles Esc (back out of Settings, then
+  an in-progress pairing, then close), ⌘, (Settings) and ⌘Q. Only when the event's window is the
   panel and no `NSText` is first responder. SwiftUI `.keyboardShortcut` is
   unreliable in this panel; don't rely on it.
 - Dismissal: local + global mouse-down monitors close the panel on outside
@@ -163,6 +164,18 @@ robinebers/openusage:
   the label frame.
 - Device picker is a full-width control with a popover list; system `Menu`
   cannot show subtitles, which is why it is custom.
+- The remote is always drawn. When it cannot be used (unpaired, offline, no
+  TVs found, none chosen) `MenuBarView` dims it to 35%, blurs it 2pt, makes
+  it inert (`RemotePadView(isInteractive: false)`, no hit testing, no
+  keyboard focus) and centers an `OverlayCard` over the clickpad
+  (`RemoteOverlayCards.swift`). Cards are `.regularMaterial` with a hairline
+  and a shadow, 212pt wide, headline + one caption + at most one row of
+  buttons. Pairing morphs in place: Pair → spinner → `PINCodeField` → green
+  check (`PairingState.succeeded`, 1.2s) → the remote un-ghosts. Esc backs
+  out of pairing via `RemoteController.handleEscape`.
+- `PINCodeField` is a focusable view collecting digits with `onKeyPress`,
+  not a hidden `TextField`: a hidden field never became first responder in
+  the non-activating panel, so typing went nowhere.
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".
 - Keyboard: arrows, Return=Select, Delete=Back, Space=Play/Pause, H=TV,
   M=Mute, +/−=Volume, Esc=close. These are in tooltips, not listed in Settings.
