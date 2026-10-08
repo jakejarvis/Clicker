@@ -119,4 +119,27 @@ fi
 codesign "${SIGN_FLAGS[@]}" "$APP_BUNDLE"
 codesign --verify --deep --strict "$APP_BUNDLE"
 
+# The profile vouches for particular certificates. A Developer ID certificate
+# it does not list (the keychain can hold several for one team) signs without
+# complaint and leaves an app launchd refuses to spawn ("Launch failed", POSIX
+# error 163) with nothing in the AMFI log, so compare them here.
+if [[ "$IDENTITY" != "-" ]]; then
+  CHECK_DIR="$(mktemp -d)"
+  codesign -d --extract-certificates="$CHECK_DIR/cert" "$APP_BUNDLE" 2>/dev/null
+  SIGNER="$(shasum "$CHECK_DIR/cert0" | awk '{print toupper($1)}')"
+  security cms -D -i "$PROFILE" > "$CHECK_DIR/profile.plist"
+  CERT_COUNT="$(plutil -extract DeveloperCertificates raw "$CHECK_DIR/profile.plist")"
+  LISTED=0
+  for ((i = 0; i < CERT_COUNT; i++)); do
+    FINGERPRINT="$(plutil -extract "DeveloperCertificates.$i" raw "$CHECK_DIR/profile.plist" | base64 -d | shasum | awk '{print toupper($1)}')"
+    [[ "$FINGERPRINT" == "$SIGNER" ]] && LISTED=1
+  done
+  rm -rf "$CHECK_DIR"
+  if [[ "$LISTED" == 0 ]]; then
+    echo "signing certificate $SIGNER is not in $PROFILE; macOS will refuse to launch the app." >&2
+    echo "Sign with one the profile lists (security find-identity -v -p codesigning) or regenerate the profile." >&2
+    exit 1
+  fi
+fi
+
 echo "Packaged $APP_BUNDLE ($VERSION, build $BUILD_NUMBER)"

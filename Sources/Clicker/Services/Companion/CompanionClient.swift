@@ -211,6 +211,8 @@ actor CompanionClient {
 
     /// Drags a finger from `start` to `end` (touchpad units) over `duration`,
     /// as pyatv's `swipe` does: a press, hold events every 16 ms, a release.
+    /// tvOS reads a 600-unit drag over 200 ms as a flick with momentum: on
+    /// the Home Screen it moved focus two or three tiles, not one.
     func swipe(from start: CGPoint, to end: CGPoint, duration: Duration) async throws {
         let clock = ContinuousClock()
         let startedAt = clock.now

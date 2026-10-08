@@ -83,6 +83,16 @@ import Testing
         #expect(session.currentText == "")
     }
 
+    /// tvOS 27 archives the session UUID as 16 raw bytes rather than an NSUUID.
+    @Test func readsSessionArchivedAsRawBytes() throws {
+        let uuid = UUID()
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.encode(withUnsafeBytes(of: uuid.uuid) { Data($0) } as NSData, forKey: "sessionUUID")
+        archiver.finishEncoding()
+        let session = try #require(TextInputArchive.session(from: archiver.encodedData))
+        #expect(session.sessionUUID == uuid)
+    }
+
     @Test func rejectsGarbage() {
         #expect(TextInputArchive.session(from: Data([1, 2, 3])) == nil)
     }

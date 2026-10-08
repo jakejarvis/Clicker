@@ -688,9 +688,9 @@ final class RemoteController {
     }
 
     /// Sends Return to the TV's field as a newline insertion, the way a
-    /// hardware keyboard's Return reaches a UIKit text field. Whether tvOS
-    /// treats it as Done over Companion is unverified; the panel's text is
-    /// left alone so typing can continue if nothing happens.
+    /// hardware keyboard's Return reaches a UIKit text field. tvOS 27 treats
+    /// it as Done (the Search app ran the search and sent `_tiStopped`); the
+    /// panel's text is left alone so typing can continue if a field ignores it.
     func submitTVText() {
         guard let session = keyboardSession else { return }
         Log.remote.info("Return to TV field")

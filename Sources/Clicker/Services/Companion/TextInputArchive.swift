@@ -29,10 +29,15 @@ enum TextInputArchive {
         else { return nil }
 
         let graph = ArchiveGraph(objects: objects)
-        guard let uuidObject = graph.resolve(top["sessionUUID"]) as? [String: Any],
-            let uuidBytes = uuidObject["NS.uuidbytes"] as? Data,
-            uuidBytes.count == 16
-        else { return nil }
+        // tvOS 26 archives the session as an NSUUID; tvOS 27 (measured on
+        // 27.0, 2026-10) stores the 16 raw bytes as NSData instead.
+        let uuidBytes: Data?
+        switch graph.resolve(top["sessionUUID"]) {
+        case let data as Data: uuidBytes = data
+        case let object as [String: Any]: uuidBytes = object["NS.uuidbytes"] as? Data
+        default: uuidBytes = nil
+        }
+        guard let uuidBytes, uuidBytes.count == 16 else { return nil }
         let uuid = uuidBytes.withUnsafeBytes { UUID(uuid: $0.load(as: uuid_t.self)) }
 
         var text = ""
