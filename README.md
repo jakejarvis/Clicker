@@ -33,7 +33,7 @@ If the Apple TV won't pair, check **Settings › Remotes and Devices › Remote 
 
 - **Clickpad**: click the arrows to move around and the center to select.
 - **Siri**: hold the button down, just like the real remote.
-- **Volume and Mute** control your TV or receiver if the Apple TV does (through HDMI-CEC or an IR remote it learned).
+- **Volume and Mute** (the bar along the bottom) control your TV or receiver if the Apple TV does (through HDMI-CEC or an IR remote it learned).
 - **Apps** (top-left corner of the clickpad): search your Apple TV's apps and open one. The ones you open most recently are at the top.
 - **Power** (top-right corner): Wake, Sleep, Screen Saver and Control Center.
 - **Typing**: when a search box or password field is showing on the TV, a text field appears at the bottom of the panel. Type there and the text shows up on your TV. The keyboard button in the bottom corner hides it or brings it back.

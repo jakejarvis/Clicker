@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The remote itself: a clickpad ring with a large Select in the middle and
-/// two columns of buttons below, laid out like the Siri Remote. Every button
-/// sends HID "down" on press and "up" on release so holds work (Siri in
-/// particular).
+/// The remote itself: a clickpad ring with a large Select in the middle, a
+/// navigation row and a media row below it, and one audio bar (mute, volume
+/// down, volume up) along the bottom. Every button sends HID "down" on press
+/// and "up" on release so holds work (Siri in particular).
 struct RemotePadView: View {
     let controller: RemoteController
     /// False while the remote is ghosted behind an overlay card: no keyboard
@@ -30,13 +30,14 @@ struct RemotePadView: View {
                     .frame(maxWidth: .infinity)
                     .overlay(alignment: .topLeading) { AppsMenu(controller: controller) }
                     .overlay(alignment: .topTrailing) { PowerMenu(controller: controller) }
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    HoldRemoteButton(command: .menu, controller: controller)
-                    HoldRemoteButton(command: .home, controller: controller)
-                    HoldRemoteButton(command: .playPause, controller: controller)
-                    MuteButton(controller: controller)
-                    HoldRemoteButton(command: .siri, controller: controller)
-                    VolumeRocker(controller: controller)
+                VStack(spacing: 10) {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        HoldRemoteButton(command: .menu, controller: controller)
+                        HoldRemoteButton(command: .home, controller: controller)
+                        HoldRemoteButton(command: .playPause, controller: controller)
+                        HoldRemoteButton(command: .siri, controller: controller)
+                    }
+                    AudioBar(controller: controller)
                 }
             }
         }
@@ -167,8 +168,49 @@ private struct HoldRemoteButton: View {
     }
 }
 
-/// Toggles software mute (volume to zero and back).
-private struct MuteButton: View {
+/// One capsule, three segments, in the order of the Mac's own media keys:
+/// mute, volume down, volume up. Each segment highlights on its own and the
+/// bar does not shrink, since pressing one segment should not move the rest.
+private struct AudioBar: View {
+    let controller: RemoteController
+
+    var body: some View {
+        HStack(spacing: 0) {
+            MuteSegment(controller: controller)
+
+            AudioBarDivider()
+
+            HoldButton(controller: controller, command: .volumeDown, shape: Rectangle(), glass: false, pressScale: 1) {
+                RemoteGlyph(systemImage: "speaker.minus")
+            }
+            .help("Volume Down (−)")
+
+            AudioBarDivider()
+
+            HoldButton(controller: controller, command: .volumeUp, shape: Rectangle(), glass: false, pressScale: 1) {
+                RemoteGlyph(systemImage: "speaker.plus")
+            }
+            .help("Volume Up (+)")
+        }
+        .clipShape(Capsule())
+        .surface(Capsule())
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Audio")
+    }
+}
+
+private struct AudioBarDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(width: 1, height: RemoteMetrics.buttonHeight * 0.5)
+    }
+}
+
+/// Toggles software mute (volume to zero and back). While muted the glyph
+/// and its own segment turn orange; the rest of the bar stays untinted so
+/// the tint reads as a state of mute, not of volume.
+private struct MuteSegment: View {
     let controller: RemoteController
 
     var body: some View {
@@ -176,42 +218,13 @@ private struct MuteButton: View {
             controller.toggleMute()
         } label: {
             RemoteGlyph(systemImage: "speaker.slash", tint: controller.isMuted ? AnyShapeStyle(.orange) : nil)
+                .background(Color.orange.opacity(controller.isMuted ? 0.18 : 0))
         }
-        .buttonStyle(SurfaceButtonStyle(shape: Capsule(), tint: controller.isMuted ? .orange : nil))
+        .buttonStyle(SurfaceButtonStyle(shape: Rectangle(), glass: false, pressScale: 1))
         .focusable(false)
         .focusEffectDisabled()
         .help(controller.isMuted ? "Unmute (M)" : "Mute (M)")
         .accessibilityLabel(controller.isMuted ? "Unmute" : "Mute")
-    }
-}
-
-/// One capsule, two halves: volume down on the left, volume up on the right.
-private struct VolumeRocker: View {
-    let controller: RemoteController
-
-    var body: some View {
-        // One capsule of glass; each half highlights on its own and the
-        // rocker does not shrink, since pressing half a capsule should not
-        // move the other half.
-        HStack(spacing: 0) {
-            HoldButton(controller: controller, command: .volumeDown, shape: Rectangle(), glass: false, pressScale: 1) {
-                RemoteGlyph(systemImage: "minus")
-            }
-            .help("Volume Down (−)")
-
-            Rectangle()
-                .fill(.separator)
-                .frame(width: 1, height: RemoteMetrics.buttonHeight * 0.5)
-
-            HoldButton(controller: controller, command: .volumeUp, shape: Rectangle(), glass: false, pressScale: 1) {
-                RemoteGlyph(systemImage: "plus")
-            }
-            .help("Volume Up (+)")
-        }
-        .clipShape(Capsule())
-        .surface(Capsule())
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Volume")
     }
 }
 
