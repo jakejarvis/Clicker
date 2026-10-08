@@ -56,7 +56,10 @@ import Testing
         let ring = ClickpadRing().path(in: rect)
         let mid = CGPoint(x: rect.midX, y: rect.midY)
         #expect(!ring.contains(mid, eoFill: true))
-        #expect(ring.contains(CGPoint(x: mid.x + ClickpadGeometry.arrowRadius, y: mid.y), eoFill: true))
+        // Off the horizontal axis: both circles start their subpaths at y = mid.y, and CoreGraphics on
+        // macOS 26 (the CI runner) miscounts crossings for a point level with those vertices.
+        let offset = ClickpadGeometry.arrowRadius / 2.squareRoot()
+        #expect(ring.contains(CGPoint(x: mid.x + offset, y: mid.y + offset), eoFill: true))
         #expect(!ring.contains(CGPoint(x: rect.maxX - 1, y: rect.maxY - 1), eoFill: true))
     }
 }
