@@ -72,9 +72,11 @@ back button returns, and Esc on the remote closes the panel.
 3. Type the PIN. Clicker connects as soon as the fourth digit is entered.
 
 If the Apple TV refuses to pair, check Settings › Remotes and Devices › Remote
-App and Devices on the TV. Pairing credentials are stored with owner-only
-permissions in `~/Library/Application Support/Clicker/pairings.json`. Use
-**Forget** in Settings to remove one.
+App and Devices on the TV. Pairing credentials are stored in your keychain
+(one "Clicker: <TV name>" item per Apple TV, readable only by Clicker). Use
+**Forget** in Settings to remove one. Ad-hoc signed development builds cannot
+use the keychain and keep an owner-only file in
+`~/Library/Application Support/Clicker/pairings.json` instead.
 
 ## How it works
 

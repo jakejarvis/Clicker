@@ -37,7 +37,8 @@ Tests/ClickerTests   codec, crypto, SRP, text-input archive, panel and clickpad 
 script/              build_and_run.sh, package_app.sh (bundle assembly + signing),
                      release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift,
                      make_status_icons.swift
-Resources/           Info.plist, AppIcon.icns (generated; regenerate with script/make_icon.sh),
+Resources/           Info.plist, Clicker.entitlements + Clicker.provisionprofile (keychain,
+                     real identities only), AppIcon.icns (generated; regenerate with script/make_icon.sh),
                      StatusIcon/ menu bar glyph SVGs + generated PDFs
                      (regenerate with swift script/make_status_icons.swift)
 .github/workflows/   ci.yml (test + package), release.yml (on v* tags)
@@ -69,9 +70,14 @@ swift format lint --strict --recursive --parallel Sources Tests Package.swift  #
   updates. Debug-level messages are not persisted, so use info for anything
   you want to read back with `log show`.
   Sparkle logs under `org.sparkle-project.Sparkle`.
-- Credentials live in `~/Library/Application Support/Clicker/pairings.json`
-  (0600). Not Keychain, deliberately: ad-hoc signed dev builds would prompt on
-  every rebuild.
+- Credentials: `CredentialStore` picks a backend at launch. Signed release
+  builds use the data protection keychain (one generic-password item per TV,
+  service `com.jakejarvis.Clicker.pairing`, account = device UUID, value =
+  JSON `PairingCredentials`). Ad-hoc builds and CI get
+  no validated entitlements and fall back to
+  `~/Library/Application Support/Clicker/pairings.json` (0600). There is no
+  migration between the two; a dev build after a release build looks unpaired.
+  The storage log category says which backend was chosen.
 
 ## Reviewing the UI on screen
 
@@ -161,6 +167,28 @@ robinebers/openusage:
 - Keyboard: arrows, Return=Select, Delete=Back, Space=Play/Pause, H=TV,
   M=Mute, +/−=Volume, Esc=close. These are in tooltips, not listed in Settings.
 
+## Keychain (measured on macOS 27, 2026-10)
+
+- The data protection keychain (`kSecUseDataProtectionKeychain`) never prompts,
+  but macOS only honors `keychain-access-groups` /
+  `com.apple.application-identifier` when a provisioning profile validates
+  them. Without one secd answers -34018 even though the entitlements are in
+  the signature; an ad-hoc binary carrying them is killed by AMFI ("restricted
+  entitlements"), and a Developer ID binary without a profile is killed with
+  "No matching profile found". The app-groups entitlement alone does not help.
+- Probing: a plain `SecItemCopyMatching` returns "not found" even without
+  validated entitlements, so it cannot detect the fallback case. The store reads
+  its own `keychain-access-groups` entitlement via `SecTaskCreateFromSelf` and
+  queries with that `kSecAttrAccessGroup`; -34018 there means "use the file".
+- So `script/package_app.sh` embeds `Resources/Clicker.provisionprofile`
+  (a Developer ID profile for com.jakejarvis.Clicker) and signs the app with
+  `Resources/Clicker.entitlements` only for real identities, and refuses a real
+  identity without the profile. Ad-hoc builds get neither.
+- The legacy login keychain needs no profile but ties item ACLs to the
+  signature, so ad-hoc rebuilds would prompt on every launch. Don't go back.
+- Test the keychain path locally with `script/package_app.sh --sign <Developer
+  ID>`; notarization is not needed to run a local build.
+
 ## Protocol gotchas already hit
 
 - `Data` slices: CryptoKit ciphertext has a non-zero `startIndex`. Index by
@@ -191,6 +219,8 @@ robinebers/openusage:
 - Text entry against a real TV keyboard.
 - The macOS 15 vibrancy fallback (dev machine runs macOS 27).
 - Launch at login via `SMAppService` from `/Applications`.
+- Keychain storage against a real Apple TV pairing in a Developer ID build (the
+  probe and item round trip were verified with a development profile only).
 - The update UI (status-item dot, footer button, Settings › Updates) has not
   been looked at on screen, and no update has been installed end to end yet.
 - The first notarized release. `syspolicy_check notary-submission` rejects the

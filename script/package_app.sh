@@ -5,6 +5,9 @@
 #   --universal  arm64 + x86_64
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
+#                A real identity also embeds Resources/Clicker.provisionprofile and
+#                signs with Resources/Clicker.entitlements so the app can use the
+#                data protection keychain for pairings.
 #   --version    marketing version; defaults to $CLICKER_VERSION or 0.1.0
 set -euo pipefail
 
@@ -42,6 +45,8 @@ APP_BINARY="$CONTENTS/MacOS/$APP_NAME"
 INFO_PLIST="$CONTENTS/Info.plist"
 SPARKLE_SOURCE="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 SPARKLE="$CONTENTS/Frameworks/Sparkle.framework"
+ENTITLEMENTS="$ROOT_DIR/Resources/Clicker.entitlements"
+PROFILE="$ROOT_DIR/Resources/Clicker.provisionprofile"
 
 BUILD_FLAGS=(-c "$CONFIGURATION")
 if [[ "$UNIVERSAL" == 1 ]]; then
@@ -70,6 +75,13 @@ plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$INFO_PLIST"
 plutil -replace NSHumanReadableCopyright -string "Copyright © $(date +%Y) Jake Jarvis" "$INFO_PLIST"
 if [[ "$IDENTITY" == "-" ]]; then
   plutil -remove SUFeedURL "$INFO_PLIST"
+else
+  # The keychain entitlements are restricted: macOS only honors them when a
+  # provisioning profile vouches for them, and kills a Developer ID app that
+  # carries them without one. Ad-hoc builds get neither and store pairings in a
+  # file instead.
+  [[ -f "$PROFILE" ]] || { echo "missing $PROFILE (Developer ID profile for com.jakejarvis.Clicker)" >&2; exit 1; }
+  cp "$PROFILE" "$CONTENTS/embedded.provisionprofile"
 fi
 
 # ditto keeps the framework's symlinks. The XPC services are only for sandboxed
@@ -98,9 +110,13 @@ SIGN_FLAGS=(--force --sign "$IDENTITY")
 if [[ "$IDENTITY" != "-" ]]; then
   SIGN_FLAGS+=(--options runtime --timestamp)
 fi
-for item in "$SPARKLE/Versions/B/Autoupdate" "$SPARKLE/Versions/B/Updater.app" "$SPARKLE" "$APP_BUNDLE"; do
+for item in "$SPARKLE/Versions/B/Autoupdate" "$SPARKLE/Versions/B/Updater.app" "$SPARKLE"; do
   codesign "${SIGN_FLAGS[@]}" "$item"
 done
+if [[ "$IDENTITY" != "-" ]]; then
+  SIGN_FLAGS+=(--entitlements "$ENTITLEMENTS")
+fi
+codesign "${SIGN_FLAGS[@]}" "$APP_BUNDLE"
 codesign --verify --deep --strict "$APP_BUNDLE"
 
 echo "Packaged $APP_BUNDLE ($VERSION, build $BUILD_NUMBER)"
