@@ -95,15 +95,16 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
     let style: SurfaceButtonStyle<S>
 
     @State private var isHovered = false
+    /// Mirrors `configuration.isPressed`, so it can be cleared when a menu
+    /// swallows the release.
+    @State private var isPressed = false
     @Environment(\.isEnabled) private var isEnabled
 
     private var highlight: SurfaceHighlight {
         guard isEnabled else { return .none }
-        if configuration.isPressed { return .pressed }
+        if isPressed { return .pressed }
         return isHovered ? .hovered : .none
     }
-
-    private var isPressed: Bool { isEnabled && configuration.isPressed }
 
     var body: some View {
         let label = configuration.label
@@ -120,13 +121,16 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
         .animation(.easeOut(duration: 0.1), value: isPressed)
         .animation(.easeOut(duration: 0.15), value: isHovered)
         .onHover { isHovered = $0 }
-        // A menu opened from the button (gear, Apps, Power) takes over
-        // pointer tracking, so the hover exit never arrives and the
-        // highlight would stay until the pointer came back and left again.
+        // A menu opened from the button (gear, Apps, Power) opens on mouse
+        // down and takes the release and the pointer with it, so the
+        // button never sees its press end or the pointer leave. Clear both
+        // when the menu closes.
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
             isHovered = false
+            isPressed = false
         }
         .onChange(of: configuration.isPressed) { _, pressed in
+            isPressed = pressed && isEnabled
             style.onPressChanged?(pressed)
         }
     }
