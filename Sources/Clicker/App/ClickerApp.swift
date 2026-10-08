@@ -27,7 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.start()
         updates.start()
 
-        if controller.demo != nil {
+        if let demo = controller.demo {
+            if let version = demo.pendingUpdateVersion { updates.previewPendingUpdate(version) }
             // Demo runs open the panel themselves so a screenshot needs no click.
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(500))

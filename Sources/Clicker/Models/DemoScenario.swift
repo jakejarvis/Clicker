@@ -27,6 +27,20 @@ enum DemoScenario: String, CaseIterable, Sendable {
     case searching
     /// Apple TVs found, none chosen.
     case choose
+    /// Living Room refuses PIN pairing (Remote App and Devices turned off).
+    case pairingdisabled
+    /// Living Room was reset: the stale pairing was dropped with a notice.
+    case reset
+    /// The wrong code was entered.
+    case pairingfailed
+    /// Living Room paired and online but the connection failed.
+    case connectionfailed
+    /// Living Room paired and online, connection closed.
+    case disconnected
+    /// Living Room over HDMI: Mute just failed and is now disabled.
+    case hdmi
+    /// An update found in the background: dot on the status item, footer button.
+    case update
 
     /// The scenario from the launch arguments, if any. `--demo` on its own,
     /// or with a name it does not know, means `ready`.
@@ -44,6 +58,10 @@ enum DemoScenario: String, CaseIterable, Sendable {
     static let livingRoom = device(
         name: "Living Room", model: "AppleTV14,1", address: "A4:83:E7:2C:91:0D",
         uuid: "7B1E4C2A-5D3F-4E8B-9A6C-1F2D3E4A5B6C")
+    /// Living Room with pairing turned off on the TV.
+    static let livingRoomPairingDisabled = device(
+        name: "Living Room", model: "AppleTV14,1", address: "A4:83:E7:2C:91:0D",
+        uuid: "7B1E4C2A-5D3F-4E8B-9A6C-1F2D3E4A5B6C", pairingDisabled: true)
     static let bedroom = device(
         name: "Bedroom", model: "AppleTV11,1", address: "A4:83:E7:58:C3:7E",
         uuid: "C9D8E7F6-A5B4-4C3D-8E2F-1A0B9C8D7E6F")
@@ -56,6 +74,7 @@ enum DemoScenario: String, CaseIterable, Sendable {
         switch self {
         case .searching: return []
         case .offline: return [Self.bedroom, Self.office]
+        case .pairingdisabled: return [Self.livingRoomPairingDisabled, Self.bedroom, Self.office]
         default: return [Self.livingRoom, Self.bedroom, Self.office]
         }
     }
@@ -65,7 +84,7 @@ enum DemoScenario: String, CaseIterable, Sendable {
     var pairedDevices: [AppleTVDevice] {
         switch self {
         case .searching: return []
-        case .pair, .pin: return [Self.bedroom]
+        case .pair, .pin, .pairingdisabled, .reset, .pairingfailed: return [Self.bedroom]
         default: return [Self.livingRoom, Self.bedroom]
         }
     }
@@ -81,8 +100,38 @@ enum DemoScenario: String, CaseIterable, Sendable {
         switch self {
         case .pin: return .awaitingPIN
         case .paired: return .succeeded
+        case .pairingfailed: return .failed(TLV8.ErrorCode.authentication.message)
         default: return .idle
         }
+    }
+
+    /// Orange caption on the pair card, as after an identity change.
+    var pairingNotice: String? {
+        self == .reset ? CompanionError.identityChanged.localizedDescription : nil
+    }
+
+    /// State the stand-in connection lands in.
+    var connectionState: ConnectionState {
+        switch self {
+        case .connectionfailed: return .failed(CompanionError.connectionFailed("demo").localizedDescription)
+        case .disconnected: return .disconnected
+        default: return .connected
+        }
+    }
+
+    /// What the TV reports it can control; HDMI output has no absolute volume.
+    var mediaControlFlags: MediaControlFlags {
+        self == .hdmi ? [.play, .pause] : [.play, .pause, .volume]
+    }
+
+    /// Inline notice under the device picker while connected.
+    var actionError: String? {
+        self == .hdmi ? RemoteController.muteUnavailableMessage : nil
+    }
+
+    /// Version shown as a pending update.
+    var pendingUpdateVersion: String? {
+        self == .update ? "1.1.0" : nil
     }
 
     var screen: PanelScreen { self == .settings ? .settings : .remote }
@@ -146,7 +195,9 @@ enum DemoScenario: String, CaseIterable, Sendable {
     /// Demo devices have no endpoint, so they are marked online by hand. The
     /// TXT record is made up so the picker's ⌥-click details have something
     /// to show.
-    private static func device(name: String, model: String, address: String, uuid: String) -> AppleTVDevice {
+    private static func device(
+        name: String, model: String, address: String, uuid: String, pairingDisabled: Bool = false
+    ) -> AppleTVDevice {
         let txt: [String: String] = [
             "rpMRtID": uuid,
             "rpBA": address,
@@ -159,7 +210,7 @@ enum DemoScenario: String, CaseIterable, Sendable {
             name: name,
             model: model,
             endpoint: nil,
-            pairingDisabled: false,
+            pairingDisabled: pairingDisabled,
             flags: 0x36782,
             txtRecord: txt,
             interfaces: ["en0 (Wi‑Fi)"]

@@ -36,7 +36,7 @@ Signed release builds keep pairing credentials in the data protection keychain (
 
 ## Demo mode and screenshots
 
-`--demo [scenario]` launches with made-up Apple TVs and opens the panel by itself. Nothing touches the network, and saved pairings and settings are left alone. Scenarios: `ready` (the default), `asleep`, `typing`, `settings`, `pair`, `pin`, `paired`, `offline`, `searching` and `choose`.
+`--demo [scenario]` launches with made-up Apple TVs and opens the panel by itself. Nothing touches the network, and saved pairings and settings are left alone. Scenarios: `ready` (the default), `asleep`, `typing`, `settings`, `pair`, `pin`, `paired`, `offline`, `searching` and `choose`, plus the trouble states `pairingdisabled`, `reset` (stale pairing dropped after a factory reset), `pairingfailed` (wrong code), `connectionfailed`, `disconnected`, `hdmi` (Mute just failed and is disabled) and `update` (a pending update: status item dot, footer button, Update to… menu items).
 
 ```bash
 open -n dist/Clicker.app --args --demo pin

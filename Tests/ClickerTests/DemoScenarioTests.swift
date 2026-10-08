@@ -39,6 +39,35 @@ import Testing
         #expect(typing.tvText == "Nature documentaries")
     }
 
+    @Test @MainActor func troubleScenariosShowTheirNotices() {
+        let disabled = RemoteController(demo: .pairingdisabled)
+        disabled.start()
+        #expect(disabled.selectedDevice?.pairingDisabled == true)
+        #expect(disabled.selectedStateDescription == "Not paired")
+
+        let reset = RemoteController(demo: .reset)
+        reset.start()
+        #expect(reset.pairingNotice == CompanionError.identityChanged.localizedDescription)
+
+        let wrongCode = RemoteController(demo: .pairingfailed)
+        wrongCode.start()
+        #expect(wrongCode.pairingState == .failed(TLV8.ErrorCode.authentication.message))
+
+        let failed = RemoteController(demo: .connectionfailed)
+        failed.start()
+        #expect(failed.selectedStateDescription == "Connection failed")
+
+        let disconnected = RemoteController(demo: .disconnected)
+        disconnected.start()
+        #expect(disconnected.connectionState == .disconnected)
+
+        let hdmi = RemoteController(demo: .hdmi)
+        hdmi.start()
+        #expect(hdmi.connectionState == .connected)
+        #expect(hdmi.canMute == false)
+        #expect(hdmi.lastActionError == RemoteController.muteUnavailableMessage)
+    }
+
     @Test @MainActor func emptyScenariosSelectNothing() {
         let searching = RemoteController(demo: .searching)
         searching.start()

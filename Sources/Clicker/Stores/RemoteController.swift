@@ -91,6 +91,8 @@ final class RemoteController {
     /// and goes with it when the pairing is forgotten.
     private(set) var recentAppIDsByDevice: [String: [String]] = [:]
     private(set) var lastActionError: String?
+    /// Shown when a mute never took effect (HDMI output, see `confirmMute`).
+    nonisolated static let muteUnavailableMessage = "This audio output can't be muted."
     /// Non-nil while the Apple TV has a text field focused.
     private(set) var keyboardSession: TextInputArchive.Session?
     /// Our mirror of the text in the TV's focused field.
@@ -155,7 +157,8 @@ final class RemoteController {
             credentialStore = CredentialStore(backend: DemoCredentialBackend(initial: paired))
             selectedDeviceID = demo.selectedDeviceID
             pairingState = demo.pairingState
-            if demo.pairingState == .awaitingPIN { pairingDeviceID = demo.selectedDeviceID }
+            if demo.pairingState != .idle { pairingDeviceID = demo.selectedDeviceID }
+            pairingNotice = demo.pairingNotice
             screen = demo.screen
             if let selected = demo.selectedDeviceID {
                 recentAppIDsByDevice = [selected: DemoScenario.recentAppIDs]
@@ -430,12 +433,14 @@ final class RemoteController {
     /// Stands in for a connection in demo mode: a paired, online TV is ready
     /// at once, with the scenario's power state, apps and text field.
     private func connectDemo(_ demo: DemoScenario) {
-        guard connectionState != .connected, let device = selectedDevice, device.isOnline, isPaired(device) else {
-            return
-        }
-        connectionState = .connected
+        guard let device = selectedDevice, device.isOnline, isPaired(device) else { return }
+        // Re-applied on every panel open, which clears the notice first.
+        lastActionError = demo.actionError
+        guard connectionState != .connected else { return }
+        connectionState = demo.connectionState
+        guard connectionState == .connected else { return }
         powerState = demo.powerState
-        mediaControlFlags = [.play, .pause, .volume]
+        mediaControlFlags = demo.mediaControlFlags
         connectionInfo = ConnectionInfo(
             address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B, osVersion: "26.0.1")
         apps = DemoScenario.apps
@@ -626,7 +631,7 @@ final class RemoteController {
         perform {
             try await $0.setVolume(restore)
         } completion: { [weak self] in
-            self?.lastActionError = "This audio output can't be muted."
+            self?.lastActionError = Self.muteUnavailableMessage
         }
     }
 
