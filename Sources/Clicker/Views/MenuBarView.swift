@@ -123,7 +123,6 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack(spacing: 2) {
-            AppsMenu(controller: controller)
             Spacer()
             if let version = updates.pendingUpdateVersion {
                 Button {

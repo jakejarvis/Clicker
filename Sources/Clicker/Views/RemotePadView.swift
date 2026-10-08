@@ -10,13 +10,12 @@ struct RemotePadView: View {
     var body: some View {
         SurfaceContainer(spacing: 10) {
             VStack(spacing: 16) {
-                // Power floats at the top right of the clickpad, where it sits
-                // on the Siri Remote. Sized so it clears the ring.
-                ZStack(alignment: .topTrailing) {
-                    ClickpadView(controller: controller)
-                        .frame(maxWidth: .infinity)
-                    PowerMenu(controller: controller)
-                }
+                // Apps and Power float at the clickpad's top corners (Power is
+                // there on the Siri Remote). Sized so they clear the ring.
+                ClickpadView(controller: controller)
+                    .frame(maxWidth: .infinity)
+                    .overlay(alignment: .topLeading) { AppsMenu(controller: controller) }
+                    .overlay(alignment: .topTrailing) { PowerMenu(controller: controller) }
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     HoldRemoteButton(command: .menu, controller: controller)
                     HoldRemoteButton(command: .home, controller: controller)
@@ -33,7 +32,7 @@ struct RemotePadView: View {
 
 enum RemoteMetrics {
     static let buttonHeight: CGFloat = 44
-    static let powerButtonDiameter: CGFloat = 32
+    static let cornerButtonDiameter: CGFloat = 32
 }
 
 private struct ClickpadView: View {

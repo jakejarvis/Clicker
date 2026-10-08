@@ -120,8 +120,9 @@ robinebers/openusage:
   Clicker and Quit. The footer gear is a SwiftUI `Menu` (`AppMenu`) with the
   same items; About opens the standard About panel (`AboutPanel`), which
   hides the panel first via `RemoteController.dismissPanel`.
-- Footer holds Apps, the update button, and the gear menu; power sits beside
-  the clickpad. Quit is only in menus, never a button in Settings.
+- Footer holds the update button and the gear menu (its future is open).
+  Apps and Power are round menus at the clickpad's top corners. Quit is only
+  in menus, never a button in Settings.
 - SwiftUI `.popover` and `.alert` both work inside the panel (device picker
   and the Forget confirmation use them).
 
@@ -150,9 +151,10 @@ robinebers/openusage:
   the 6pt channels do not blend; the capsule grid keeps the 10pt one. Earlier
   attempts (flat ring with secondary arrows, a hover disc behind each arrow)
   looked disabled or ugly; do not go back to them.
-- Power is a 32pt round glass `Menu` floating at the top right of the clickpad
-  (Siri Remote placement). It needs `.menuStyle(.button)` plus a plain button
-  style and `.fixedSize()`; `.borderlessButton` ignores the label frame.
+- Apps (top left) and Power (top right) are 32pt round glass `Menu`s
+  overlaid on the clickpad (`cornerMenuStyle`). They need `.menuStyle(.button)`
+  plus a plain button style and `.fixedSize()`; `.borderlessButton` ignores
+  the label frame.
 - Device picker is a full-width control with a popover list; system `Menu`
   cannot show subtitles, which is why it is custom.
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".

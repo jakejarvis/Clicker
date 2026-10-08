@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Footer menu listing the apps installed on the Apple TV.
+/// Apps menu at the top left of the clickpad, listing the apps installed on
+/// the Apple TV.
 struct AppsMenu: View {
     let controller: RemoteController
 
@@ -17,16 +18,16 @@ struct AppsMenu: View {
             Button("Refresh") { controller.refreshApps() }
                 .disabled(controller.isLoadingApps)
         } label: {
-            Label("Apps", systemImage: "square.grid.2x2")
-                .padding(.horizontal, 4)
-                .frame(height: 24)
+            CornerMenuGlyph(systemImage: "square.grid.2x2")
         }
+        .cornerMenuStyle()
         .disabled(controller.connectionState != .connected)
         .help("Open an app on the Apple TV")
+        .accessibilityLabel("Apps")
     }
 }
 
-/// Round power button beside the clickpad, where it sits on the Siri Remote. Opens
+/// Power menu at the top right of the clickpad, where it sits on the Siri Remote. Opens
 /// the wake/sleep menu rather than toggling, since the TV does not report
 /// power reliably enough to make a single tap safe.
 struct PowerMenu: View {
@@ -41,20 +42,37 @@ struct PowerMenu: View {
             Button("Control Center", systemImage: "switch.2") { controller.press(.pageDown) }
             Button("Guide", systemImage: "list.bullet.rectangle") { controller.press(.guide) }
         } label: {
-            Image(systemName: "power")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.primary)
-                .frame(width: RemoteMetrics.powerButtonDiameter, height: RemoteMetrics.powerButtonDiameter)
-                .contentShape(Circle())
+            CornerMenuGlyph(systemImage: "power")
         }
-        .menuStyle(.button)
-        .buttonStyle(PressFeedbackStyle())
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .surface(Circle())
+        .cornerMenuStyle()
         .disabled(controller.connectionState != .connected)
         .help("Power · Apple TV is \(controller.powerState.title.lowercased())")
         .accessibilityLabel("Power")
+    }
+}
+
+/// Glyph for the round menus at the clickpad's top corners.
+private struct CornerMenuGlyph: View {
+    let systemImage: String
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.primary)
+            .frame(width: RemoteMetrics.cornerButtonDiameter, height: RemoteMetrics.cornerButtonDiameter)
+            .contentShape(Circle())
+    }
+}
+
+extension View {
+    /// Round glass menu button. `.menuStyle(.button)` with a plain button
+    /// style is required: `.borderlessButton` ignores the label frame.
+    fileprivate func cornerMenuStyle() -> some View {
+        menuStyle(.button)
+            .buttonStyle(PressFeedbackStyle())
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .surface(Circle())
     }
 }
 
