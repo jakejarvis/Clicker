@@ -39,7 +39,9 @@ actor CompanionClient {
         // Newer tvOS wants a TV Remote Client session before answering some
         // requests; older versions do not implement it, so failure is fine.
         _ = try? await request("TVRCSessionStart", ["ProtocolVersionKey": "1.2"])
-        try await subscribe(to: ["TVSystemStatus", "SystemStatus"])
+        // `_iMC` carries the media-control flags (`_mcF`); the TV sends one
+        // on subscription and again whenever its audio output changes.
+        try await subscribe(to: ["TVSystemStatus", "SystemStatus", "_iMC"])
     }
 
     func disconnect() async {
@@ -77,8 +79,9 @@ actor CompanionClient {
         case setVolume = 6
     }
 
-    /// Current output volume in 0...1. Fails when the TV's audio output does
-    /// not expose volume (plain HDMI without CEC volume, for example).
+    /// Current output volume in 0...1. Only meaningful while the TV's media
+    /// control flags include `.volume`; over plain HDMI the request fails or
+    /// comes back without a level.
     func fetchVolume() async throws -> Double {
         let response = try await request("_mcc", ["_mcc": .int(MediaControlCommand.getVolume.rawValue)])
         guard let volume = response["_c"]?["_vol"]?.doubleValue else {
@@ -88,12 +91,14 @@ actor CompanionClient {
     }
 
     func setVolume(_ volume: Double) async throws {
-        _ = try await request(
+        let response = try await request(
             "_mcc",
             [
                 "_mcc": .int(MediaControlCommand.setVolume.rawValue),
                 "_vol": .double(min(max(volume, 0), 1)),
             ])
+        Log.remote.info(
+            "SetVolume \(volume, privacy: .public) reply: \(String(describing: response), privacy: .public)")
     }
 
     // MARK: - Apps

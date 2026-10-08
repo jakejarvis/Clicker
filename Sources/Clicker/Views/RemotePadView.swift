@@ -213,6 +213,11 @@ private struct AudioBarDivider: View {
 private struct MuteSegment: View {
     let controller: RemoteController
 
+    private var help: String {
+        if !controller.canMute { return "Mute needs a HomePod, AirPlay or Bluetooth audio output" }
+        return controller.isMuted ? "Unmute (M)" : "Mute (M)"
+    }
+
     var body: some View {
         Button {
             controller.toggleMute()
@@ -223,8 +228,12 @@ private struct MuteSegment: View {
         .buttonStyle(SurfaceButtonStyle(shape: Rectangle(), glass: false, pressScale: 1))
         .focusable(false)
         .focusEffectDisabled()
-        .help(controller.isMuted ? "Unmute (M)" : "Mute (M)")
+        .disabled(!controller.canMute)
         .accessibilityLabel(controller.isMuted ? "Unmute" : "Mute")
+        // Outside `.disabled` with its own content shape so the tooltip
+        // survives: a disabled button takes no hover.
+        .contentShape(Rectangle())
+        .help(help)
     }
 }
 
@@ -320,6 +329,7 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             case "+", "=": command = .volumeUp
             case "-", "_": command = .volumeDown
             case "m":
+                guard controller.canMute else { return .ignored }
                 controller.toggleMute()
                 return .handled
             default: command = nil

@@ -99,6 +99,20 @@ final class RemoteController {
     private(set) var isTextFieldShown = false
     /// Software mute: the volume is set to zero and restored on unmute.
     private(set) var isMuted = false
+    /// What the TV's current audio output lets us control, from `_iMC`
+    /// events. Empty until the TV sends one after the session starts.
+    private(set) var mediaControlFlags: MediaControlFlags = []
+    /// Mute sets the volume level, which the Apple TV only owns for a HomePod,
+    /// AirPlay or Bluetooth output. Over HDMI the volume buttons still work as
+    /// CEC or IR presses, so only Mute is withheld.
+    var canMute: Bool { mediaControlFlags.contains(.volume) }
+    /// How many `_iMC` events the session has delivered. A real volume change
+    /// is followed by one; a placeholder level is not (see `confirmMute`).
+    @ObservationIgnored private var mediaControlUpdates = 0
+    @ObservationIgnored private var muteConfirmationTask: Task<Void, Never>?
+    /// How long a SetVolume gets to be echoed by an `_iMC` event; pyatv waits
+    /// the same.
+    static let muteConfirmationTimeout: Duration = .seconds(5)
     var screen: PanelScreen = .remote
     /// Whether the Apps picker popover is open. The panel stays the key
     /// window underneath a popover, so the clickpad's shortcuts stand down
@@ -406,6 +420,7 @@ final class RemoteController {
         }
         connectionState = .connected
         powerState = demo.powerState
+        mediaControlFlags = [.play, .pause, .volume]
         connectionInfo = ConnectionInfo(
             address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B, osVersion: "26.0.1")
         apps = DemoScenario.apps
@@ -436,6 +451,9 @@ final class RemoteController {
         tvText = ""
         isTextFieldShown = false
         isMuted = false
+        mediaControlFlags = []
+        muteConfirmationTask?.cancel()
+        muteConfirmationTask = nil
     }
 
     /// Called when the menu bar panel closes.
@@ -482,6 +500,15 @@ final class RemoteController {
                     self.keyboardSession = nil
                     self.tvText = ""
                     self.isTextFieldShown = false
+                case "_iMC":
+                    if let flags = MediaControlFlags(eventContent: event.content) {
+                        self.mediaControlUpdates += 1
+                        self.mediaControlFlags = flags
+                        let names = flags.descriptions.joined(separator: ", ")
+                        Log.remote.info("Media controls: \(names, privacy: .public)")
+                        // An output change loses the level we would restore.
+                        if !flags.contains(.volume) { self.isMuted = false }
+                    }
                 default:
                     break
                 }
@@ -507,17 +534,53 @@ final class RemoteController {
     /// Mutes by remembering the current volume and setting it to zero, since
     /// the Companion button set has no mute. Unmute restores the saved level.
     func toggleMute() {
+        guard canMute else { return }
         if isMuted {
+            Log.remote.info("Unmute")
             isMuted = false
             let restore = volumeBeforeMute
             perform { try await $0.setVolume(restore) }
         } else {
+            Log.remote.info("Mute")
             isMuted = true
+            let updatesBefore = mediaControlUpdates
             perform { [weak self] client in
                 let current = try await client.fetchVolume()
+                Log.remote.info("Volume before mute: \(current, privacy: .public)")
                 if current > 0 { self?.volumeBeforeMute = current }
                 try await client.setVolume(0)
+            } completion: { [weak self] in
+                self?.confirmMute(updatesSince: updatesBefore)
             }
+        }
+    }
+
+    /// Waits for the `_iMC` event a real volume change produces. tvOS 27 over
+    /// HDMI advertises volume control, answers GetVolume with a constant 0.5
+    /// and echoes SetVolume back, but changes nothing and sends no event, so
+    /// after the timeout the mute is undone and withheld like an output that
+    /// never claimed it. A later `_iMC` with the volume bit re-enables it.
+    private func confirmMute(updatesSince: Int) {
+        guard demo == nil, isMuted, lastActionError == nil else { return }
+        muteConfirmationTask?.cancel()
+        muteConfirmationTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.muteConfirmationTimeout)
+            guard !Task.isCancelled, let self, self.isMuted, self.mediaControlUpdates == updatesSince else { return }
+            self.abandonMute()
+        }
+    }
+
+    /// Undoes a mute the TV only pretended to apply and disables Mute.
+    func abandonMute() {
+        Log.remote.info("No volume update after SetVolume; treating the level as a placeholder")
+        isMuted = false
+        mediaControlFlags.remove(.volume)
+        let restore = volumeBeforeMute
+        // The notice goes up after the restore, which would otherwise clear it.
+        perform {
+            try await $0.setVolume(restore)
+        } completion: { [weak self] in
+            self?.lastActionError = "This audio output can't be muted."
         }
     }
 

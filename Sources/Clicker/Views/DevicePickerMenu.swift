@@ -133,7 +133,8 @@ private struct DeviceListView: View {
                     DeviceDetailsView(
                         device: device,
                         connectionInfo: isConnected ? controller.connectionInfo : nil,
-                        powerState: isConnected ? controller.powerState : nil
+                        powerState: isConnected ? controller.powerState : nil,
+                        mediaControlFlags: isConnected ? controller.mediaControlFlags : nil
                     )
                 }
             }
@@ -232,6 +233,7 @@ private struct DeviceDetailsView: View {
     let device: AppleTVDevice
     let connectionInfo: ConnectionInfo?
     let powerState: PowerState?
+    let mediaControlFlags: MediaControlFlags?
 
     /// Lines up with the row's text: 8pt row padding, 30pt icon, 10pt gap.
     static let leadingInset: CGFloat = 48
@@ -254,6 +256,11 @@ private struct DeviceDetailsView: View {
             lines.append(("Session", connectionInfo.sessionDescription))
         }
         if let powerState { lines.append(("Power", "\(powerState.title) (\(powerState.rawValue))")) }
+        if let mediaControlFlags {
+            let names = mediaControlFlags.descriptions
+            let hex = String(format: "0x%03llX", mediaControlFlags.rawValue)
+            lines.append(("Controls", names.isEmpty ? hex : "\(hex) (\(names.joined(separator: ", ")))"))
+        }
         return lines
     }
 

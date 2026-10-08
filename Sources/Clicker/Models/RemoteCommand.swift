@@ -108,6 +108,45 @@ enum PowerState: Int64, Sendable {
     }
 }
 
+/// The `_mcF` bits of an `_iMC` event: which media controls the TV's current
+/// output accepts. Bit values follow pyatv's `MediaControlFlags`. `volume` is
+/// set only when the Apple TV owns an absolute level (HomePod, AirPlay or
+/// Bluetooth output); over HDMI the volume buttons still work as CEC or IR
+/// presses, but `_mcc` GetVolume/SetVolume have nothing to act on.
+struct MediaControlFlags: OptionSet, Sendable, Hashable {
+    let rawValue: Int64
+
+    static let play = MediaControlFlags(rawValue: 0x0001)
+    static let pause = MediaControlFlags(rawValue: 0x0002)
+    static let nextTrack = MediaControlFlags(rawValue: 0x0004)
+    static let previousTrack = MediaControlFlags(rawValue: 0x0008)
+    static let fastForward = MediaControlFlags(rawValue: 0x0010)
+    static let rewind = MediaControlFlags(rawValue: 0x0020)
+    static let volume = MediaControlFlags(rawValue: 0x0100)
+    static let skipForward = MediaControlFlags(rawValue: 0x0200)
+    static let skipBackward = MediaControlFlags(rawValue: 0x0400)
+
+    /// Flags carried by an `_iMC` event's content, or nil when it has none.
+    init?(eventContent: OPACKValue) {
+        guard let raw = eventContent["_mcF"]?.intValue else { return nil }
+        self.init(rawValue: raw)
+    }
+
+    init(rawValue: Int64) {
+        self.rawValue = rawValue
+    }
+
+    /// Names of the known set bits, for the device details view.
+    var descriptions: [String] {
+        let known: [(MediaControlFlags, String)] = [
+            (.play, "play"), (.pause, "pause"), (.nextTrack, "next"), (.previousTrack, "previous"),
+            (.fastForward, "fast forward"), (.rewind, "rewind"), (.volume, "volume"),
+            (.skipForward, "skip forward"), (.skipBackward, "skip backward"),
+        ]
+        return known.filter { contains($0.0) }.map(\.1)
+    }
+}
+
 /// How this Mac introduces itself to the Apple TV.
 struct ClientIdentity: Sendable {
     /// Shown on the Apple TV under Remotes and Devices.
