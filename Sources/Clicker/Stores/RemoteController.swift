@@ -484,7 +484,8 @@ final class RemoteController {
     }
 
     /// Mirrors an edit in the panel's text field to the TV. Appending sends
-    /// only the new characters; anything else replaces the field.
+    /// only the new characters; anything else replaces the field in one
+    /// event, so the TV never shows an empty field in between.
     func updateTVText(_ newText: String) {
         guard let session = keyboardSession else { return }
         let previous = tvText
@@ -494,14 +495,14 @@ final class RemoteController {
         if newText.hasPrefix(previous) {
             let delta = String(newText.dropFirst(previous.count))
             guard !delta.isEmpty else { return }
+            Log.remote.info("Insert \(delta.count) character(s) into TV field")
             perform { try await $0.insertText(delta, session: session) }
+        } else if newText.isEmpty {
+            Log.remote.info("Clear TV field")
+            perform { try await $0.clearText(session: session) }
         } else {
-            perform { client in
-                try await client.clearText(session: session)
-                if !newText.isEmpty {
-                    try await client.insertText(newText, session: session)
-                }
-            }
+            Log.remote.info("Replace TV field with \(newText.count) character(s)")
+            perform { try await $0.replaceText(newText, session: session) }
         }
     }
 

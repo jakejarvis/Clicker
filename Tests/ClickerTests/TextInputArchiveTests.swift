@@ -36,6 +36,19 @@ import Testing
         #expect(objects.contains { $0 as? String == "" })
     }
 
+    @Test func replacePayloadAssertsEmptyTextAndInserts() throws {
+        let payload = TextInputArchive.replaceTextPayload(sessionUUID: UUID(), text: "hell")
+        let plist = try #require(
+            try PropertyListSerialization.propertyList(from: payload, format: nil) as? [String: Any])
+        let objects = try #require(plist["$objects"] as? [Any])
+        let dictionaries = objects.compactMap { $0 as? [String: Any] }
+        let operations = try #require(dictionaries.first { $0["textToAssert"] != nil })
+        #expect(operations["keyboardOutput"] != nil)
+        #expect(dictionaries.contains { $0["insertionText"] != nil })
+        #expect(objects.contains { $0 as? String == "" })
+        #expect(objects.contains { $0 as? String == "hell" })
+    }
+
     /// Simulates a `_tiD` payload from the TV using the same private class
     /// names tvOS sends, then reads it back.
     @Test func readsSessionFromRemoteArchive() throws {

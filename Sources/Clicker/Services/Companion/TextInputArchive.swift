@@ -84,6 +84,15 @@ enum TextInputArchive {
         return encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: output, textToAssert: ""))
     }
 
+    /// Payload that replaces the field's contents with `text` in one
+    /// operation: the empty assertion clears the field and the keyboard output
+    /// is applied to the result, so a backspace is a single `_tiC` event
+    /// rather than a clear followed by an insert.
+    static func replaceTextPayload(sessionUUID: UUID, text: String) -> Data {
+        let output = KeyboardOutput(insertionText: text)
+        return encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: output, textToAssert: ""))
+    }
+
     private static func encode(_ operations: TextOperations) -> Data {
         let archiver = NSKeyedArchiver(requiringSecureCoding: false)
         archiver.outputFormat = .binary

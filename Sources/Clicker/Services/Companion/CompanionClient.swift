@@ -142,6 +142,16 @@ actor CompanionClient {
             ])
     }
 
+    /// Replaces the field's contents in one event; see `TextInputArchive.replaceTextPayload`.
+    func replaceText(_ text: String, session: TextInputArchive.Session) async throws {
+        try await sendEvent(
+            "_tiC",
+            [
+                "_tiV": 1,
+                "_tiD": .data(TextInputArchive.replaceTextPayload(sessionUUID: session.sessionUUID, text: text)),
+            ])
+    }
+
     // MARK: - Power
 
     /// Not implemented on recent tvOS; callers should fall back to pushed events.

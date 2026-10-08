@@ -35,7 +35,7 @@ Buttons send real press and release events, so holds (Siri) work. The HID set ha
 
 ## Text entry
 
-Text entry uses the TV's remote text input service: `_tiStart` reports whether a field is focused, `_tiStarted` / `_tiStopped` events track focus changes, and `_tiC` events carry `RTITextOperations` keyed archives that insert or clear text.
+Text entry uses the TV's remote text input service: `_tiStart` reports whether a field is focused, `_tiStarted` / `_tiStopped` events track focus changes, and `_tiC` events carry `RTITextOperations` keyed archives that insert, clear or replace text (a replace asserts an empty field and inserts the new text in the same operation).
 
 ## The panel
 
