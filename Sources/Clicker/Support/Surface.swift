@@ -120,6 +120,12 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
         .animation(.easeOut(duration: 0.1), value: isPressed)
         .animation(.easeOut(duration: 0.15), value: isHovered)
         .onHover { isHovered = $0 }
+        // A menu opened from the button (gear, Apps, Power) takes over
+        // pointer tracking, so the hover exit never arrives and the
+        // highlight would stay until the pointer came back and left again.
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
+            isHovered = false
+        }
         .onChange(of: configuration.isPressed) { _, pressed in
             style.onPressChanged?(pressed)
         }
