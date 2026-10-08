@@ -115,7 +115,8 @@ private struct DeviceListView: View {
             return "\(device.shortModelName) · \(controller.selectedStateDescription)"
         }
         if !device.isOnline { return "\(device.shortModelName) · Offline" }
-        return controller.isPaired(device) ? device.modelDisplayName : "\(device.shortModelName) · Not paired"
+        // Unpaired rows carry a Pair badge, which already says it.
+        return controller.isPaired(device) ? device.modelDisplayName : device.shortModelName
     }
 }
 
