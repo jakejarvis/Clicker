@@ -158,6 +158,16 @@ header nav a:hover {
   margin: 0 0 1rem;
 }
 
+.prose ul {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+}
+
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
 footer {
   padding-top: 1.5rem;
   border-top: 1px solid var(--faint);
