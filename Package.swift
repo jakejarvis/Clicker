@@ -5,7 +5,7 @@ let package = Package(
     name: "Clicker",
     platforms: [.macOS(.v15)],
     dependencies: [
-        .package(url: "https://github.com/attaswift/BigInt.git", from: "5.3.0"),
+        .package(url: "https://github.com/attaswift/BigInt.git", from: "6.0.1"),
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.0"),
     ],
     targets: [
