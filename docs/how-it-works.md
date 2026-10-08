@@ -29,7 +29,7 @@ Discovery filters `_companion-link._tcp` results by the `rpMd` TXT record so onl
 
 ## Pairing and sessions
 
-Pairing follows the HomeKit pattern over Companion frames: pair-setup (SRP with the PIN, then an Ed25519 key exchange encrypted with ChaCha20-Poly1305) produces long-term keys; every later connection runs pair-verify (X25519 + Ed25519 signatures) and derives per-direction session keys. After that, frames are encrypted with a counter nonce and the frame header as additional data, and the app registers a `com.apple.tvremoteservices` session before sending `_hidC` button events.
+Pairing follows the HomeKit pattern over Companion frames: pair-setup (SRP with the PIN, then an Ed25519 key exchange encrypted with ChaCha20-Poly1305) produces long-term keys; every later connection runs pair-verify (X25519 + Ed25519 signatures) and derives per-direction session keys. After that, frames are encrypted with a counter nonce and the frame header as additional data, and the app registers a `com.apple.tvremoteservices` session before sending `_hidC` button events. The session stays open while the panel is closed, with an empty NoOp frame every 30 seconds so the link carries some traffic between button presses.
 
 Buttons send real press and release events, so holds (Siri) work. The HID set has no mute, so Mute remembers the volume and sets it to zero.
 

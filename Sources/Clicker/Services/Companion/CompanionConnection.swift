@@ -17,6 +17,7 @@ actor CompanionConnection {
     private var connection: NWConnection?
     private var cipher: SessionCipher?
     private var receiveTask: Task<Void, Never>?
+    private var keepAliveTask: Task<Void, Never>?
     private var pendingAuthentication: [CompanionFrameType: CheckedContinuation<OPACKValue, Error>] = [:]
     private var pendingResponses: [Int64: CheckedContinuation<OPACKValue, Error>] = [:]
     private var nextTransactionID = Int64.random(in: 0...0xFFFF)
@@ -25,6 +26,11 @@ actor CompanionConnection {
 
     /// Unsolicited events pushed by the Apple TV (power state changes, etc).
     nonisolated let events: AsyncStream<CompanionEvent>
+
+    /// How often an empty NoOp frame goes out on an idle session. The session
+    /// stays open after the panel closes, and without this nothing crosses the
+    /// link between the last button press and the next one.
+    static let keepAliveInterval: Duration = .seconds(30)
 
     init(endpoint: NWEndpoint) {
         self.endpoint = endpoint
@@ -94,6 +100,7 @@ actor CompanionConnection {
         }
 
         receiveTask = Task { await self.receiveLoop(on: connection) }
+        keepAliveTask = Task { await self.keepAliveLoop() }
         Log.connection.info("Connected to \(String(describing: self.endpoint), privacy: .public)")
     }
 
@@ -205,6 +212,22 @@ actor CompanionConnection {
             })
     }
 
+    /// Sends a NoOp frame every `keepAliveInterval` until the connection
+    /// closes. The frame is a bare header with no payload, so it is never
+    /// encrypted and the TV has nothing to answer.
+    private func keepAliveLoop() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: Self.keepAliveInterval)
+            guard !Task.isCancelled, !isClosed else { return }
+            do {
+                try sendFrame(.noOp, payload: Data())
+                Log.connection.debug("Sent keep-alive")
+            } catch {
+                return
+            }
+        }
+    }
+
     private func takeTransactionID() -> Int64 {
         defer { nextTransactionID = (nextTransactionID + 1) & 0xFFFF_FFFF }
         return nextTransactionID
@@ -311,6 +334,8 @@ actor CompanionConnection {
 
         receiveTask?.cancel()
         receiveTask = nil
+        keepAliveTask?.cancel()
+        keepAliveTask = nil
         connection?.stateUpdateHandler = nil
         connection?.cancel()
         connection = nil
