@@ -25,7 +25,8 @@ Sources/Clicker
 │               PanelOutsideClickMonitor, AboutPanel
 ├── Views/      MenuBarView (screen switch), DevicePickerMenu, RemotePadView,
 │               TVTextFieldView, RemoteOverlayCards (pairing, offline,
-│               searching cards), PINCodeField, SettingsScreen, ActionMenus
+│               searching cards), PINCodeField, SettingsScreen, ActionMenus,
+│               AppPickerView (searchable Apps popover with recents)
 ├── Stores/     RemoteController (all UI-facing state), CredentialStore,
 │               IdentityStore, UpdateController (Sparkle)
 ├── Services/   DeviceBrowser (NWBrowser) and Companion/* (OPACK, TLV8,
@@ -152,10 +153,17 @@ robinebers/openusage:
   into; its `.help` sits outside `.disabled` with a `contentShape`, since a
   disabled button takes no hover and would lose its tooltip; no footer
   tooltip shows while the text field has focus), the update button and the
-  gear menu on the right. Apps and Power are round menus at the clickpad's top corners. Quit is only
+  gear menu on the right. Apps and Power are round controls at the clickpad's
+  top corners: Power is a system `Menu`, Apps opens a popover. Quit is only
   in menus, never a button in Settings.
-- SwiftUI `.popover` and `.alert` both work inside the panel (device picker
-  and the Forget confirmation use them).
+- SwiftUI `.popover` and `.alert` both work inside the panel (device picker,
+  Apps picker and the Forget confirmation use them). The panel stays the key
+  window under a popover: key events go to the panel's focused SwiftUI view
+  (the clickpad shortcuts) and only keys it ignores fall through to a text
+  field in the popover. `RemoteController.isAppPickerPresented` makes the pad
+  drop focus and ignore keys while the Apps picker is open, `handleEscape`
+  closes the picker first, and arrows/Return ride a local `keyDown` monitor
+  the picker installs on appear (`onKeyPress` on the `TextField` never fired).
 
 ## Design rules (keep these consistent)
 
@@ -209,6 +217,16 @@ robinebers/openusage:
   the label frame.
 - Device picker is a full-width control with a popover list; system `Menu`
   cannot show subtitles, which is why it is custom.
+- Apps picker (`AppPickerView`) is a popover too: a search field over the
+  app list with a Recent group (last five launched bundle IDs per TV,
+  persisted under `recentAppIDsByDevice` keyed by device id, following
+  `rekey` and removed on Forget, resolved against the TV's list) and an All Apps
+  group, list capped at 300pt. Typing filters (prefix matches first) and
+  highlights the top match so Return launches it; hover and arrows move the
+  highlight, only arrows scroll. Rows use the `.selection` fill like device
+  rows. The popover is anchored to a rect spanning the pad's width so it
+  hangs centered under the panel. A system `Menu` was the first version:
+  forty text rows with scroll arrows and no search, which is why it went.
 - The remote is always drawn. When it cannot be used (unpaired, offline, no
   TVs found, none chosen) `MenuBarView` dims it to 35%, blurs it 2pt, makes
   it inert (`RemotePadView(isInteractive: false)`, no hit testing, no

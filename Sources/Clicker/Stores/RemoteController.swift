@@ -45,6 +45,10 @@ final class RemoteController {
     private(set) var pairingState: PairingState = .idle
     private(set) var apps: [AppleTVApp] = []
     private(set) var isLoadingApps = false
+    /// Bundle identifiers of the last few launched apps per TV, newest
+    /// first, keyed by device id. Follows the pairing when a TV's id changes
+    /// and goes with it when the pairing is forgotten.
+    private(set) var recentAppIDsByDevice: [String: [String]] = [:]
     private(set) var lastActionError: String?
     /// Non-nil while the Apple TV has a text field focused.
     private(set) var keyboardSession: TextInputArchive.Session?
@@ -57,6 +61,10 @@ final class RemoteController {
     /// Software mute: the volume is set to zero and restored on unmute.
     private(set) var isMuted = false
     var screen: PanelScreen = .remote
+    /// Whether the Apps picker popover is open. The panel stays the key
+    /// window underneath a popover, so the clickpad's shortcuts stand down
+    /// while this is set and Esc closes the picker before anything else.
+    var isAppPickerPresented = false
 
     @ObservationIgnored private var client: CompanionClient?
     @ObservationIgnored private var clientDeviceID: String?
@@ -71,6 +79,8 @@ final class RemoteController {
     @ObservationIgnored var dismissPanel: () -> Void = {}
 
     private static let selectedDeviceKey = "selectedDeviceID"
+    private static let recentAppsKey = "recentAppIDsByDevice"
+    private static let recentAppLimit = 5
 
     init(demo: DemoScenario? = DemoScenario.current) {
         self.demo = demo
@@ -83,9 +93,14 @@ final class RemoteController {
             pairingState = demo.pairingState
             if demo.pairingState == .awaitingPIN { pairingDeviceID = demo.selectedDeviceID }
             screen = demo.screen
+            if let selected = demo.selectedDeviceID {
+                recentAppIDsByDevice = [selected: DemoScenario.recentAppIDs]
+            }
         } else {
             credentialStore = CredentialStore()
             selectedDeviceID = UserDefaults.standard.string(forKey: Self.selectedDeviceKey)
+            recentAppIDsByDevice =
+                UserDefaults.standard.dictionary(forKey: Self.recentAppsKey) as? [String: [String]] ?? [:]
         }
         browser.onUpdate = { [weak self] devices in
             self?.devicesDidChange(devices)
@@ -167,6 +182,7 @@ final class RemoteController {
             disconnect()
         }
         credentialStore.remove(deviceID: device.id)
+        if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
         if selectedDeviceID == device.id, !device.isOnline {
             selectedDeviceID = nil
             rememberSelection(nil)
@@ -201,6 +217,10 @@ final class RemoteController {
             }
             guard let orphan else { continue }
             credentialStore.rekey(from: orphan.deviceID, to: device.id)
+            if let recents = recentAppIDsByDevice.removeValue(forKey: orphan.deviceID) {
+                recentAppIDsByDevice[device.id] = recents
+                rememberRecents()
+            }
             if selectedDeviceID == orphan.deviceID {
                 selectedDeviceID = device.id
                 rememberSelection(device.id)
@@ -322,6 +342,10 @@ final class RemoteController {
     /// Esc backs out one level: Settings, then an in-progress pairing. Returns
     /// false when there is nothing to back out of, so the panel closes.
     func handleEscape() -> Bool {
+        if isAppPickerPresented {
+            isAppPickerPresented = false
+            return true
+        }
         if screen != .remote {
             withAnimation(.snappy(duration: 0.3)) { screen = .remote }
             return true
@@ -454,7 +478,30 @@ final class RemoteController {
     }
 
     func launch(_ app: AppleTVApp) {
+        noteLaunch(app)
         perform { try await $0.launchApp(bundleIdentifier: app.bundleIdentifier) }
+    }
+
+    /// The current TV's recently launched apps, newest first; an app it no
+    /// longer has is skipped.
+    var recentApps: [AppleTVApp] {
+        guard let selectedDeviceID, let ids = recentAppIDsByDevice[selectedDeviceID] else { return [] }
+        return ids.compactMap { id in apps.first { $0.id == id } }
+    }
+
+    private func noteLaunch(_ app: AppleTVApp) {
+        guard let selectedDeviceID else { return }
+        var ids = recentAppIDsByDevice[selectedDeviceID] ?? []
+        ids.removeAll { $0 == app.id }
+        ids.insert(app.id, at: 0)
+        if ids.count > Self.recentAppLimit { ids.removeLast(ids.count - Self.recentAppLimit) }
+        recentAppIDsByDevice[selectedDeviceID] = ids
+        rememberRecents()
+    }
+
+    private func rememberRecents() {
+        guard demo == nil else { return }
+        UserDefaults.standard.set(recentAppIDsByDevice, forKey: Self.recentAppsKey)
     }
 
     func refreshApps() {

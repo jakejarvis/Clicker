@@ -1,29 +1,38 @@
 import SwiftUI
 
-/// Apps menu at the top left of the clickpad, listing the apps installed on
-/// the Apple TV.
+/// Apps button at the top left of the clickpad. Opens `AppPickerView` in a
+/// popover: a searchable list with recents, which a system `Menu` cannot do.
+/// The popover is anchored to a rect spanning the pad's width so it hangs
+/// centered under the panel instead of off its left edge.
 struct AppsMenu: View {
-    let controller: RemoteController
+    @Bindable var controller: RemoteController
 
     var body: some View {
-        Menu {
-            if controller.apps.isEmpty {
-                Text(controller.isLoadingApps ? "Loading…" : "No apps loaded")
-            } else {
-                ForEach(controller.apps) { app in
-                    Button(app.name) { controller.launch(app) }
-                }
-            }
-            Divider()
-            Button("Refresh") { controller.refreshApps() }
-                .disabled(controller.isLoadingApps)
+        Button {
+            controller.isAppPickerPresented.toggle()
         } label: {
             CornerMenuGlyph(systemImage: "square.grid.2x2")
         }
-        .cornerMenuStyle()
+        .buttonStyle(SurfaceButtonStyle(shape: Circle()))
+        .fixedSize()
         .disabled(controller.connectionState != .connected)
         .help("Open an app on the Apple TV")
         .accessibilityLabel("Apps")
+        .accessibilityHint("Opens the list of apps")
+        .popover(
+            isPresented: $controller.isAppPickerPresented,
+            attachmentAnchor: .rect(.rect(Self.anchor)),
+            arrowEdge: .bottom
+        ) {
+            AppPickerView(controller: controller)
+        }
+    }
+
+    private static var anchor: CGRect {
+        CGRect(
+            x: 0, y: 0, width: PanelMetrics.width - 2 * PanelMetrics.horizontalPadding,
+            height: RemoteMetrics.cornerButtonDiameter
+        )
     }
 }
 

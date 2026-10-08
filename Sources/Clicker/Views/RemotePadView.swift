@@ -251,6 +251,11 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             .onChange(of: controller.keyboardSession == nil) { _, keyboardHidden in
                 if keyboardHidden { isFocused = true }
             }
+            // The panel stays key under the Apps popover, so without this the
+            // pad would swallow the keys meant for its search field.
+            .onChange(of: controller.isAppPickerPresented) { _, pickerOpen in
+                isFocused = !pickerOpen
+            }
             .onKeyPress(phases: .down) { press in
                 handle(press)
             }
@@ -258,6 +263,7 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         guard press.modifiers.isDisjoint(with: [.command, .control, .option]) else { return .ignored }
+        guard !controller.isAppPickerPresented else { return .ignored }
 
         let command: HIDCommand?
         switch press.key {

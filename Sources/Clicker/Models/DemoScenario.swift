@@ -88,15 +88,28 @@ enum DemoScenario: String, CaseIterable, Sendable {
         return TextInputArchive.Session(sessionUUID: UUID(), currentText: "Nature documentaries")
     }
 
+    /// Enough apps that the picker scrolls, in the TV's alphabetical order.
     static let apps: [AppleTVApp] = [
-        AppleTVApp(bundleIdentifier: "com.apple.TVWatchList", name: "TV"),
-        AppleTVApp(bundleIdentifier: "com.apple.TVMusic", name: "Music"),
         AppleTVApp(bundleIdentifier: "com.apple.Arcade", name: "Arcade"),
-        AppleTVApp(bundleIdentifier: "com.apple.TVPhotos", name: "Photos"),
-        AppleTVApp(bundleIdentifier: "com.apple.podcasts", name: "Podcasts"),
+        AppleTVApp(bundleIdentifier: "com.disney.disneyplus", name: "Disney+"),
         AppleTVApp(bundleIdentifier: "com.apple.Fitness", name: "Fitness"),
+        AppleTVApp(bundleIdentifier: "com.wbd.stream", name: "HBO Max"),
+        AppleTVApp(bundleIdentifier: "com.hulu.plus", name: "Hulu"),
+        AppleTVApp(bundleIdentifier: "com.apple.TVMusic", name: "Music"),
+        AppleTVApp(bundleIdentifier: "com.netflix.Netflix", name: "Netflix"),
+        AppleTVApp(bundleIdentifier: "com.cbsvideo.app", name: "Paramount+"),
+        AppleTVApp(bundleIdentifier: "com.peacocktv.peacock", name: "Peacock"),
+        AppleTVApp(bundleIdentifier: "com.apple.TVPhotos", name: "Photos"),
+        AppleTVApp(bundleIdentifier: "com.plexapp.plex", name: "Plex"),
+        AppleTVApp(bundleIdentifier: "com.apple.podcasts", name: "Podcasts"),
+        AppleTVApp(bundleIdentifier: "com.amazon.aiv.AIVApp", name: "Prime Video"),
         AppleTVApp(bundleIdentifier: "com.apple.TVSettings", name: "Settings"),
+        AppleTVApp(bundleIdentifier: "com.apple.TVWatchList", name: "TV"),
+        AppleTVApp(bundleIdentifier: "com.google.ios.youtube", name: "YouTube"),
     ]
+
+    /// Recently launched apps shown at the top of the picker.
+    static let recentAppIDs = ["com.netflix.Netflix", "com.apple.TVWatchList", "com.google.ios.youtube"]
 
     /// Name shown in Settings in place of this Mac's.
     static let clientName = "MacBook Pro"
