@@ -284,7 +284,8 @@ final class StatusItemController: NSObject {
                 context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                 panel.animator().setFrame(frame, display: true)
             } completionHandler: { [weak self] in
-                self?.panel.invalidateShadow()
+                // NSAnimationContext calls back on the main thread.
+                MainActor.assumeIsolated { self?.panel.invalidateShadow() }
             }
         } else {
             panel.setFrame(frame, display: true)

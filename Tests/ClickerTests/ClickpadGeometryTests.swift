@@ -73,10 +73,13 @@ import Testing
     }
 
     @Test func sectorsAreRotationsOfEachOther() {
+        // Sample points at least a few points away from every edge and
+        // rounded corner: `Path.contains` differs between toolchains on the
+        // boundary itself, which made this flaky in CI at r=50, ±0.7 rad.
         let up = sector(.up)
         let right = sector(.right)
-        for radius: CGFloat in [50, 72, 94] {
-            for step in stride(from: -0.8, through: 0.8, by: 0.1) {
+        for radius: CGFloat in [56, 72, 90] {
+            for step in stride(from: -0.6, through: 0.6, by: 0.1) {
                 let angle = CGFloat(step)
                 let inUp = up.contains(point(radius: radius, angle: Direction.up.centerAngle + angle))
                 let inRight = right.contains(point(radius: radius, angle: Direction.right.centerAngle + angle))
