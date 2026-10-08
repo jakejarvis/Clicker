@@ -4,6 +4,7 @@ import SwiftUI
 /// on top, the clickpad and buttons in the middle, apps/power/settings below.
 struct MenuBarView: View {
     let controller: RemoteController
+    let updates: UpdateController
 
     static let panelWidth: CGFloat = PanelMetrics.width
 
@@ -30,7 +31,7 @@ struct MenuBarView: View {
                     }
                     .transition(.move(edge: .leading))
             case .settings:
-                SettingsScreen(controller: controller) { height in
+                SettingsScreen(controller: controller, updates: updates) { height in
                     settingsHeight = height
                 }
                 .transition(.move(edge: .trailing))
@@ -123,6 +124,17 @@ struct MenuBarView: View {
             AppsMenu(controller: controller)
             PowerMenu(controller: controller)
             Spacer()
+            if let version = updates.pendingUpdateVersion {
+                Button {
+                    updates.checkForUpdates()
+                } label: {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundStyle(.tint)
+                        .frame(width: 28, height: 24)
+                }
+                .help("Clicker \(version) is available")
+                .accessibilityLabel("Update Clicker to \(version)")
+            }
             Button {
                 withAnimation(.snappy(duration: 0.3)) { controller.screen = .settings }
             } label: {

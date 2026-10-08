@@ -8,6 +8,7 @@ import SwiftUI
 /// `.accessory` activation policy make the no-Dock behavior explicit.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: RemoteController?
+    private var updates: UpdateController?
     private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -19,8 +20,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let controller = RemoteController()
         self.controller = controller
-        statusItemController = StatusItemController(controller: controller)
+        // Held here for the app's lifetime: Sparkle keeps its delegates weakly.
+        let updates = UpdateController(launchPolicy: policy)
+        self.updates = updates
+        statusItemController = StatusItemController(controller: controller, updates: updates)
         controller.start()
+        updates.start()
     }
 }
 

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>Clicker</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.jakejarvis.Clicker</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Clicker</string>
+	<key>CFBundleDisplayName</key>
+	<string>Clicker</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>0</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Clicker finds and controls Apple TVs on your local network.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_companion-link._tcp</string>
+	</array>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © Jake Jarvis</string>
+	<key>SUFeedURL</key>
+	<string>https://clicker.jarv.is/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>MiUClZRxr4BJ4AcF0gfZ042z9kGthRx7G+D2L94w0Hw=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+</dict>
+</plist>

@@ -26,7 +26,7 @@ Sources/Clicker
 ├── Views/      MenuBarView (screen switch), DevicePickerMenu, RemotePadView,
 │               TVTextFieldView, PairingView, SettingsScreen, FooterMenus
 ├── Stores/     RemoteController (all UI-facing state), CredentialStore,
-│               IdentityStore
+│               IdentityStore, UpdateController (Sparkle)
 ├── Services/   DeviceBrowser (NWBrowser) and Companion/* (OPACK, TLV8,
 │               SRPClient, HAPCrypto, CompanionConnection, CompanionPairing,
 │               CompanionClient, TextInputArchive)
@@ -34,8 +34,12 @@ Sources/Clicker
 └── Models/     AppleTVDevice, PairingCredentials, RemoteCommand (HID enum,
                 PowerState, ClientIdentity)
 Tests/ClickerTests   codec, crypto, SRP, text-input archive, panel geometry
-script/              build_and_run.sh, make_icon.sh/.swift
-Resources/           AppIcon.icns (generated; regenerate with script/make_icon.sh)
+script/              build_and_run.sh, package_app.sh (bundle assembly + signing),
+                     release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift
+Resources/           Info.plist, AppIcon.icns (generated; regenerate with script/make_icon.sh)
+.github/workflows/   ci.yml (test + package), release.yml (on v* tags)
+site/                Vercel project for clicker.jarv.is; vercel.json rewrites
+                     /appcast.xml to the gh-pages branch
 ```
 
 ## Build, run, test
@@ -51,7 +55,8 @@ swift test
 - Sandboxed shells: `swift build` fails on the module cache and on git
   cloning the dependency. Run SwiftPM and the run script outside the sandbox.
 - Logs: `log show --last 5m --info --predicate 'subsystem == "com.jakejarvis.Clicker"'`.
-  Categories: connection, pairing, discovery, remote, storage.
+  Categories: connection, pairing, discovery, remote, storage, updates.
+  Sparkle logs under `org.sparkle-project.Sparkle`.
 - Credentials live in `~/Library/Application Support/Clicker/pairings.json`
   (0600). Not Keychain, deliberately: ad-hoc signed dev builds would prompt on
   every rebuild.
@@ -95,7 +100,7 @@ robinebers/openusage:
 - Dismissal: local + global mouse-down monitors close the panel on outside
   clicks, except clicks on the status button, inside the panel, in menu or
   popover windows, or while `panel.attachedSheet != nil`.
-- Right-click on the status item: Settings… and Quit.
+- Right-click on the status item: Settings…, Check for Updates… and Quit.
 - SwiftUI `.popover` and `.alert` both work inside the panel (device picker
   and the Forget confirmation use them).
 
@@ -150,8 +155,35 @@ robinebers/openusage:
 - Text entry against a real TV keyboard.
 - The macOS 15 vibrancy fallback (dev machine runs macOS 27).
 - Launch at login via `SMAppService` from `/Applications`.
-- Planned: Check for Updates action in Settings; more actions can line up
-  under Quit using `PanelActionButton`.
+- The update UI (status-item dot, footer button, Settings › Updates) has not
+  been looked at on screen, and no update has been installed end to end yet.
+- The first notarized release. `syspolicy_check notary-submission` rejects the
+  signed but un-notarized app with a generic "Gatekeeper rejected this file"
+  on macOS 27, while `spctl` accepts it; trust notarytool's verdict instead.
+
+## Updates and releases
+
+- Sparkle 2 via SwiftPM. `script/package_app.sh` copies Sparkle.framework from
+  `.build/artifacts/sparkle/...` with `ditto`, drops its XPC services (only for
+  sandboxed apps), replaces SwiftPM's `.build`/toolchain rpaths with
+  `@executable_path/../Frameworks`, and signs inside out without `--deep`.
+- Ad-hoc builds remove `SUFeedURL`, so `UpdateController.isEnabled` is false
+  and the updater never starts; Settings says updates are off. Test updates
+  with Developer ID builds from `script/release.sh` (see README › Releasing).
+- Gentle reminders are required for an accessory app: background finds set
+  `pendingUpdateVersion` (dot on the status item, footer button) unless Sparkle
+  can show the alert in immediate focus. While a Sparkle window is up the app
+  switches to `.regular` and hides the panel (it floats at pop-up menu level),
+  then restores the launch activation policy, so `--regular` keeps working.
+- `CFBundleVersion` is derived from the version (1.2.3 → 10203) because Sparkle
+  compares it; the release tag is the only version source.
+- Swift 6.4's default build system (Swift Build) records `sdk 15.0` in the
+  binary's `LC_BUILD_VERSION`, while the native build system and CI's Swift 6.3
+  record the real SDK. Linked-SDK checks in AppKit may differ between local
+  and released builds; compare against a CI artifact if a control looks off.
+- Moving from ad-hoc to Developer ID signing changes the code identity, so the
+  Local Network prompt appears once more and Launch at Login may need turning
+  on again.
 
 ## Conventions
 

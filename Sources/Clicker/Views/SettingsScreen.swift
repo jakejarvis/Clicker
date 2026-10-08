@@ -9,6 +9,7 @@ import SwiftUI
 /// section footers rather than inside rows.
 struct SettingsScreen: View {
     let controller: RemoteController
+    let updates: UpdateController
     /// Reports the screen's natural height (title bar plus content) so the
     /// panel can resize to it instead of inheriting the remote's height.
     var onNaturalHeightChange: (CGFloat) -> Void = { _ in }
@@ -19,6 +20,8 @@ struct SettingsScreen: View {
     @AppStorage(IdentityStore.clientNameKey) private var clientName = IdentityStore.defaultClientName
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
+    @State private var checksForUpdates = false
+    @State private var downloadsUpdates = false
     /// The pairing awaiting confirmation in the alert sheet.
     @State private var forgetCandidate: PairingCredentials?
 
@@ -37,9 +40,16 @@ struct SettingsScreen: View {
                     thisMacSection
                     pairedSection
                     aboutSection
-                    // Full-width actions live below the cards; more will join
-                    // Quit here (Check for Updates, for one).
+                    updatesSection
+                    // Full-width actions live below the cards.
                     VStack(spacing: 6) {
+                        PanelActionButton(
+                            title: updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…",
+                            systemImage: "arrow.down.circle"
+                        ) {
+                            updates.checkForUpdates()
+                        }
+                        .disabled(!updates.canCheckForUpdates)
                         PanelActionButton(title: "Quit Clicker", systemImage: "power") {
                             NSApplication.shared.terminate(nil)
                         }
@@ -56,7 +66,11 @@ struct SettingsScreen: View {
         .onChange(of: barHeight + contentHeight, initial: true) { _, total in
             if total > 0 { onNaturalHeightChange(total) }
         }
-        .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
+        .onAppear {
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+            checksForUpdates = updates.automaticallyChecksForUpdates
+            downloadsUpdates = updates.automaticallyDownloadsUpdates
+        }
         .alert(
             "Forget \(forgetCandidate?.deviceName ?? "this Apple TV")?",
             isPresented: Binding(
@@ -125,6 +139,43 @@ struct SettingsScreen: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var updatesSection: some View {
+        SettingsSection("Updates", footer: updatesFooter) {
+            SettingsRow("Check Automatically") {
+                Toggle("Check Automatically", isOn: $checksForUpdates)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .onChange(of: checksForUpdates) { _, enabled in
+                        // Sparkle persists these; only write when the user changes them.
+                        if enabled != updates.automaticallyChecksForUpdates {
+                            updates.automaticallyChecksForUpdates = enabled
+                        }
+                    }
+            }
+            SettingsDivider()
+            SettingsRow("Download Automatically") {
+                Toggle("Download Automatically", isOn: $downloadsUpdates)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .disabled(!checksForUpdates)
+                    .onChange(of: downloadsUpdates) { _, enabled in
+                        if enabled != updates.automaticallyDownloadsUpdates {
+                            updates.automaticallyDownloadsUpdates = enabled
+                        }
+                    }
+            }
+        }
+        .disabled(!updates.isEnabled)
+    }
+
+    private var updatesFooter: String {
+        guard updates.isEnabled else { return "Updates are off in development builds." }
+        guard let lastCheck = updates.lastUpdateCheckDate else { return "Clicker hasn't checked for updates yet." }
+        return "Last checked \(lastCheck.formatted(.relative(presentation: .named)))."
     }
 
     private func updateLaunchAtLogin(_ enabled: Bool) {
@@ -262,6 +313,8 @@ struct PanelActionButton: View {
     var systemImage: String?
     let action: () -> Void
 
+    @Environment(\.isEnabled) private var isEnabled
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -273,6 +326,7 @@ struct PanelActionButton: View {
                     .font(.callout)
             }
             .foregroundStyle(.primary)
+            .opacity(isEnabled ? 1 : 0.4)
             .frame(maxWidth: .infinity)
             .frame(height: 30)
             .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))

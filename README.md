@@ -20,8 +20,17 @@ no third-party service involved.
   Control Center from the Power menu; model and power state under the title.
 - Liquid Glass surfaces on macOS 26, system materials on macOS 15.
 - Optional launch at login.
+- Updates itself with [Sparkle](https://sparkle-project.org).
 
 Requires macOS 15 or later.
+
+## Install
+
+Download `Clicker-X.Y.Z.dmg` from the
+[latest release](https://github.com/jakejarvis/Clicker/releases/latest), open it
+and drag Clicker to Applications. Builds are signed with a Developer ID and
+notarized by Apple. Clicker checks for updates once a day; Settings › Updates
+turns that off, and right-clicking the menu bar icon has **Check for Updates…**.
 
 ## Build and run
 
@@ -29,9 +38,11 @@ Requires macOS 15 or later.
 ./script/build_and_run.sh
 ```
 
-The script kills a running copy, builds with SwiftPM, stages `dist/Clicker.app`
-with an `Info.plist` (`LSUIElement`, local network and Bonjour usage keys),
-ad-hoc signs it and launches it. Other modes:
+The script kills a running copy and calls `script/package_app.sh`, which builds
+with SwiftPM, stages `dist/Clicker.app` from `Resources/Info.plist` with
+Sparkle.framework embedded, and ad-hoc signs it; then it launches the app.
+Ad-hoc builds leave out the feed URL, so they never update themselves. Other
+modes:
 
 ```bash
 ./script/build_and_run.sh --logs        # launch and stream process logs
@@ -48,7 +59,7 @@ needs in order to see the process.
 
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
 Click the Apple TV icon in the menu bar to open the remote; right-click it for
-Settings and Quit. Settings (name shown on the TV, launch at login, forgetting
+Settings, Check for Updates and Quit. Settings (name shown on the TV, launch at login, forgetting
 pairings) slide in over the remote behind the gear button or ⌘,;
 Esc or the back button returns, and Esc on the remote closes the panel.
 
@@ -108,9 +119,54 @@ reports its preferred height and the panel follows it; one corner radius is
 shared by the panel, the device control and the settings cards.
 
 The protocol details were checked against [pyatv](https://github.com/postlund/pyatv),
-whose Companion implementation is the reference for this format. The only
-dependency is [BigInt](https://github.com/attaswift/BigInt) for the SRP modular
-arithmetic; everything else is CryptoKit, Network and SwiftUI.
+whose Companion implementation is the reference for this format. The
+dependencies are [BigInt](https://github.com/attaswift/BigInt) for the SRP
+modular arithmetic and [Sparkle](https://sparkle-project.org) for updates;
+everything else is CryptoKit, Network and SwiftUI.
+
+## Releasing
+
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner.
+It calls `script/release.sh`, which builds a universal app, signs it with the
+Developer ID certificate and the hardened runtime, notarizes and staples it,
+and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle
+`appcast.xml`. The workflow publishes the DMG and zip as a GitHub release, then
+commits the appcast to the `gh-pages` branch. `https://clicker.jarv.is/appcast.xml`
+(the app's `SUFeedURL`) is a Vercel rewrite to that file (`site/vercel.json`).
+
+```bash
+git tag -a v1.2.3 -m "Release notes in Markdown"
+git push origin v1.2.3
+```
+
+The tag message becomes the release notes on GitHub and in Sparkle's update
+window. `CFBundleVersion` is derived from the version (`1.2.3` → `10203`), so
+minor and patch numbers stay below 100.
+
+The workflow reads these from the `release` environment (restricted to `v*`
+tags):
+
+| Secret | What it is |
+|---|---|
+| `DEVELOPER_ID_P12_BASE64` | Developer ID Application certificate and key, `base64 -i cert.p12` |
+| `DEVELOPER_ID_P12_PASSWORD` | Password of that `.p12` |
+| `ASC_API_KEY_P8` | App Store Connect team API key (Developer role), contents of the `.p8` |
+| `ASC_KEY_ID`, `ASC_ISSUER_ID` | That key's ID and issuer |
+| `SPARKLE_ED_PRIVATE_KEY` | Sparkle EdDSA key, from `generate_keys -x` |
+
+To dry-run a release locally with the keychain's certificate and a notarytool
+profile (`xcrun notarytool store-credentials clicker-notary`):
+
+```bash
+NOTARY_PROFILE=clicker-notary NOTES_FILE=notes.md \
+  script/release.sh --version 1.2.3 --identity <certificate SHA-1>
+```
+
+Sparkle's tools (`generate_keys`, `sign_update`, `generate_appcast`) are in
+`.build/artifacts/sparkle/Sparkle/bin` after `swift package resolve`. To test an
+update end to end, build two versions with `DOWNLOAD_URL_PREFIX=http://localhost:8000/`,
+serve the newer one's `dist/release` with `python3 -m http.server 8000`, install
+the older one and launch it with `--args -SUFeedURL http://localhost:8000/appcast.xml`.
 
 ## License
 

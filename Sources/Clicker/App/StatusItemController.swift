@@ -9,6 +9,7 @@ import SwiftUI
 @MainActor
 final class StatusItemController: NSObject {
     private let controller: RemoteController
+    private let updates: UpdateController
     private let statusItem: NSStatusItem
     private let panel: MenuBarPanel
     private let hosting: NSHostingController<MenuBarView>
@@ -22,10 +23,11 @@ final class StatusItemController: NSObject {
     private var anchorTopLeft: NSPoint?
     private var anchorScreen: NSScreen?
 
-    init(controller: RemoteController) {
+    init(controller: RemoteController, updates: UpdateController) {
         self.controller = controller
+        self.updates = updates
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        hosting = NSHostingController(rootView: MenuBarView(controller: controller))
+        hosting = NSHostingController(rootView: MenuBarView(controller: controller, updates: updates))
         hosting.sizingOptions = [.preferredContentSize]
         panel = MenuBarPanel(
             contentRect: NSRect(x: 0, y: 0, width: PanelMetrics.width, height: 480),
@@ -39,6 +41,10 @@ final class StatusItemController: NSObject {
         configureStatusItem()
         installKeyMonitor()
         updateStatusImage()
+        updates.onWillPresent = { [weak self] in
+            guard let self, self.panel.isVisible else { return }
+            self.hidePanel()
+        }
     }
 
     // MARK: - Configuration
@@ -93,16 +99,37 @@ final class StatusItemController: NSObject {
         button.toolTip = "Clicker"
     }
 
-    /// Filled glyph while connected, outlined otherwise; re-armed on each change.
+    /// Filled glyph while connected, outlined otherwise, with a dot while an
+    /// update is waiting; re-armed on each change.
     private func updateStatusImage() {
-        let symbol = withObservationTracking {
-            controller.menuBarSymbolName
+        let (symbol, hasUpdate) = withObservationTracking {
+            (controller.menuBarSymbolName, updates.pendingUpdateVersion != nil)
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.updateStatusImage() }
         }
-        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Clicker")
-        image?.isTemplate = true
+        guard let glyph = NSImage(systemSymbolName: symbol, accessibilityDescription: "Clicker") else { return }
+        let image = hasUpdate ? Self.badged(glyph) : glyph
+        image.isTemplate = true
         statusItem.button?.image = image
+    }
+
+    /// The glyph with a small dot at its top-right corner, cut out of the glyph
+    /// so it reads on its own. Still a template, so it follows the menu bar.
+    private static func badged(_ glyph: NSImage) -> NSImage {
+        let diameter: CGFloat = 6
+        let size = NSSize(width: glyph.size.width + diameter / 2, height: glyph.size.height)
+        let image = NSImage(size: size, flipped: false) { _ in
+            glyph.draw(in: NSRect(origin: .zero, size: glyph.size))
+            let dot = NSRect(x: size.width - diameter, y: size.height - diameter, width: diameter, height: diameter)
+            NSGraphicsContext.current?.compositingOperation = .clear
+            NSBezierPath(ovalIn: dot.insetBy(dx: -1.5, dy: -1.5)).fill()
+            NSGraphicsContext.current?.compositingOperation = .sourceOver
+            NSColor.black.setFill()
+            NSBezierPath(ovalIn: dot).fill()
+            return true
+        }
+        image.accessibilityDescription = "Clicker, update available"
+        return image
     }
 
     // MARK: - Keyboard
@@ -151,15 +178,27 @@ final class StatusItemController: NSObject {
     private func showContextMenu() {
         if panel.isVisible { hidePanel() }
         let menu = NSMenu()
+        menu.autoenablesItems = false
         let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+        if updates.isEnabled {
+            let title = updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…"
+            let check = NSMenuItem(title: title, action: #selector(checkForUpdates), keyEquivalent: "")
+            check.target = self
+            check.isEnabled = updates.canCheckForUpdates
+            menu.addItem(check)
+        }
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit Clicker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    @objc private func checkForUpdates() {
+        updates.checkForUpdates()
     }
 
     @objc private func openSettings() {
