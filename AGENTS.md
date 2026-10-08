@@ -35,8 +35,11 @@ Sources/Clicker
                 PowerState, ClientIdentity)
 Tests/ClickerTests   codec, crypto, SRP, text-input archive, panel geometry
 script/              build_and_run.sh, package_app.sh (bundle assembly + signing),
-                     release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift
-Resources/           Info.plist, AppIcon.icns (generated; regenerate with script/make_icon.sh)
+                     release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift,
+                     make_status_icons.swift
+Resources/           Info.plist, AppIcon.icns (generated; regenerate with script/make_icon.sh),
+                     StatusIcon/ menu bar glyph SVGs + generated PDFs
+                     (regenerate with swift script/make_status_icons.swift)
 .github/workflows/   ci.yml (test + package), release.yml (on v* tags)
 site/                Vercel project for clicker.jarv.is; vercel.json rewrites
                      /appcast.xml to the gh-pages branch

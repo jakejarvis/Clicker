@@ -51,6 +51,7 @@ modes:
 ./script/build_and_run.sh --release     # optimized build (pairing math is much faster)
 ./script/build_and_run.sh --install     # copy to /Applications and launch from there
 ./script/make_icon.sh                   # regenerate Resources/AppIcon.icns
+swift script/make_status_icons.swift   # regenerate menu bar PDFs from Resources/StatusIcon/*.svg
 swift test                              # codec, crypto, SRP and text-input tests
 ```
 

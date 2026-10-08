@@ -61,6 +61,8 @@ rm -rf "$APP_BUNDLE"
 mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources" "$CONTENTS/Frameworks"
 cp "$BUILD_BINARY" "$APP_BINARY"
 cp "$ROOT_DIR/Resources/AppIcon.icns" "$CONTENTS/Resources/AppIcon.icns"
+mkdir -p "$CONTENTS/Resources/StatusIcon"
+cp "$ROOT_DIR"/Resources/StatusIcon/*.pdf "$CONTENTS/Resources/StatusIcon/"
 
 cp "$ROOT_DIR/Resources/Info.plist" "$INFO_PLIST"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$INFO_PLIST"

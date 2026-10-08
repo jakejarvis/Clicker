@@ -102,25 +102,43 @@ final class StatusItemController: NSObject {
     /// Filled glyph while connected, outlined otherwise, with a dot while an
     /// update is waiting; re-armed on each change.
     private func updateStatusImage() {
-        let (symbol, hasUpdate) = withObservationTracking {
-            (controller.menuBarSymbolName, updates.pendingUpdateVersion != nil)
+        let (iconName, hasUpdate) = withObservationTracking {
+            (controller.menuBarIconName, updates.pendingUpdateVersion != nil)
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.updateStatusImage() }
         }
-        guard let glyph = NSImage(systemSymbolName: symbol, accessibilityDescription: "Clicker") else { return }
-        let image = hasUpdate ? Self.badged(glyph) : glyph
-        image.isTemplate = true
-        statusItem.button?.image = image
+        guard let glyph = Self.statusIcon(named: iconName) else { return }
+        statusItem.button?.image = Self.statusImage(glyph, badged: hasUpdate)
     }
 
-    /// The glyph with a small dot at its top-right corner, cut out of the glyph
-    /// so it reads on its own. Still a template, so it follows the menu bar.
-    private static func badged(_ glyph: NSImage) -> NSImage {
+    /// PDF glyphs from Resources/StatusIcon (see script/make_status_icons.swift).
+    /// Falls back to an SF Symbol when run outside the app bundle.
+    private static func statusIcon(named name: String) -> NSImage? {
+        if let url = Bundle.main.url(forResource: name, withExtension: "pdf", subdirectory: "StatusIcon"),
+            let image = NSImage(contentsOf: url)
+        {
+            image.accessibilityDescription = "Clicker"
+            return image
+        }
+        let symbol = name == "Connected" ? "appletvremote.gen4.fill" : "appletvremote.gen4"
+        return NSImage(systemSymbolName: symbol, accessibilityDescription: "Clicker")
+    }
+
+    /// The glyph centered with side padding (the remote is narrow, so it would
+    /// otherwise sit cramped next to wider items), plus a small dot at its
+    /// top-right corner while an update is waiting, cut out of the glyph so it
+    /// reads on its own. The dot sits inside the padding, so the width holds.
+    private static func statusImage(_ glyph: NSImage, badged: Bool) -> NSImage {
+        let padding: CGFloat = 4
         let diameter: CGFloat = 6
-        let size = NSSize(width: glyph.size.width + diameter / 2, height: glyph.size.height)
+        let size = NSSize(width: glyph.size.width + padding * 2, height: glyph.size.height)
+        let glyphRect = NSRect(origin: NSPoint(x: padding, y: 0), size: glyph.size)
         let image = NSImage(size: size, flipped: false) { _ in
-            glyph.draw(in: NSRect(origin: .zero, size: glyph.size))
-            let dot = NSRect(x: size.width - diameter, y: size.height - diameter, width: diameter, height: diameter)
+            glyph.draw(in: glyphRect)
+            guard badged else { return true }
+            let dot = NSRect(
+                x: glyphRect.maxX - diameter / 2, y: size.height - diameter,
+                width: diameter, height: diameter)
             NSGraphicsContext.current?.compositingOperation = .clear
             NSBezierPath(ovalIn: dot.insetBy(dx: -1.5, dy: -1.5)).fill()
             NSGraphicsContext.current?.compositingOperation = .sourceOver
@@ -128,7 +146,8 @@ final class StatusItemController: NSObject {
             NSBezierPath(ovalIn: dot).fill()
             return true
         }
-        image.accessibilityDescription = "Clicker, update available"
+        image.isTemplate = true
+        image.accessibilityDescription = badged ? "Clicker, update available" : "Clicker"
         return image
     }
 

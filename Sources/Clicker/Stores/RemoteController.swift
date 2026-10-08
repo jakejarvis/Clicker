@@ -93,9 +93,10 @@ final class RemoteController {
         return credentialStore.credentials(for: device.id) != nil
     }
 
-    /// Menu bar glyph: filled while connected, outlined otherwise.
-    var menuBarSymbolName: String {
-        connectionState == .connected ? "appletv.fill" : "appletv"
+    /// Menu bar glyph in Resources/StatusIcon: filled while connected,
+    /// outlined otherwise.
+    var menuBarIconName: String {
+        connectionState == .connected ? "Connected" : "Disconnected"
     }
 
     /// Short state for the selected device's card and header.
