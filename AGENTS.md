@@ -33,7 +33,7 @@ Sources/Clicker
 ├── Support/    Log, Surface (glass/material helpers), key wrappers
 └── Models/     AppleTVDevice, PairingCredentials, RemoteCommand (HID enum,
                 PowerState, ClientIdentity)
-Tests/ClickerTests   codec, crypto, SRP, text-input archive, panel geometry
+Tests/ClickerTests   codec, crypto, SRP, text-input archive, panel and clickpad geometry
 script/              build_and_run.sh, package_app.sh (bundle assembly + signing),
                      release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift,
                      make_status_icons.swift
@@ -63,8 +63,11 @@ swift format lint --strict --recursive --parallel Sources Tests Package.swift  #
   restructure the code (a local `let`) rather than fighting the formatter.
 - Sandboxed shells: `swift build` fails on the module cache and on git
   cloning the dependency. Run SwiftPM and the run script outside the sandbox.
-- Logs: `log show --last 5m --info --predicate 'subsystem == "com.jakejarvis.Clicker"'`.
-  Categories: connection, pairing, discovery, remote, storage, updates.
+- Logs: `/usr/bin/log show --last 5m --info --predicate 'subsystem == "com.jakejarvis.Clicker"'`
+  (full path: zsh has a `log` builtin that swallows the arguments). Categories:
+  connection, pairing, discovery, remote (every HID down/up at info), storage,
+  updates. Debug-level messages are not persisted, so use info for anything
+  you want to read back with `log show`.
   Sparkle logs under `org.sparkle-project.Sparkle`.
 - Credentials live in `~/Library/Application Support/Clicker/pairings.json`
   (0600). Not Keychain, deliberately: ad-hoc signed dev builds would prompt on
@@ -78,8 +81,12 @@ works:
 1. `./script/build_and_run.sh --install`, then
    `open -n /Applications/Clicker.app --args --regular` (shows a Dock icon).
 2. Grant "Clicker" and "Finder"; bring Finder forward so the frontmost app is
-   allowed; click the appletv status item (around x=883, y=14 on a 1372x891
-   frame) and `zoom` on the panel (roughly `[740, 24, 1030, 560]`).
+   allowed; zoom on the menu bar to find the remote-glyph status item (its x
+   shifts with other status items; it has been at 838 and 883 on a 1372x891
+   frame), click it, and `zoom` on the panel below it.
+   Zooms taken while a mouse button is held after a `wait` come back black;
+   that is a capture artifact, not the panel closing. Verify presses from the
+   remote log category instead.
 3. Hover works with synthetic pointer moves; `.onHover` is fine in the panel.
 4. Relaunch without `--regular` when done (`--install` again).
 
@@ -130,10 +137,16 @@ robinebers/openusage:
   callout, primary text). Quit lives there; Check for Updates belongs there too.
 - Remote buttons send HID down on press and up on release (`HoldButton`), so
   Siri hold works. Commands are serialized in `RemoteController.perform`.
-- Clickpad arrows are primary-colored glyphs drawn directly on the flat ring.
-  Feedback is on the glyph only: grow on hover, shrink and dim while held
-  (`RemotePressStyle.Feedback.glyph`). A hover disc behind the arrow was tried
-  and rejected as ugly. Only the center Select is glass.
+- Clickpad: four glass annular sectors plus a glass Select, all from
+  `ClickpadGeometry` (192pt pad, 84pt Select, 6pt channels, 6pt corners).
+  The straight edges are offset from the diagonals so channels have constant
+  width; corners are rounded by insetting the sector and unioning a
+  round-joined stroke. Each `DirectionButton` is framed to its sector's
+  bounding box with the sector as content shape, so tooltips and hit testing
+  match the drawing. The pad has its own `SurfaceContainer(spacing: 3)` so
+  the 6pt channels do not blend; the capsule grid keeps the 10pt one. Earlier
+  attempts (flat ring with secondary arrows, a hover disc behind each arrow)
+  looked disabled or ugly; do not go back to them.
 - Power is a 32pt round glass `Menu` floating at the top right of the clickpad
   (Siri Remote placement). It needs `.menuStyle(.button)` plus a plain button
   style and `.fixedSize()`; `.borderlessButton` ignores the label frame.

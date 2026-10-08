@@ -39,55 +39,64 @@ enum RemoteMetrics {
 private struct ClickpadView: View {
     let controller: RemoteController
 
-    private let diameter: CGFloat = 192
-    private let centerDiameter: CGFloat = 84
-    private let markOffset: CGFloat = 74
-
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(.quaternary)
-                .overlay(Circle().strokeBorder(.separator.opacity(0.6), lineWidth: 1))
-                .frame(width: diameter, height: diameter)
+        // Its own glass container with a tight spacing: the sectors and Select
+        // are 6pt apart and must stay distinct instead of blending.
+        SurfaceContainer(spacing: 3) {
+            ZStack {
+                ForEach(ClickpadGeometry.Direction.allCases, id: \.self) { direction in
+                    DirectionButton(controller: controller, direction: direction)
+                }
 
-            DirectionButton(controller: controller, command: .up).offset(y: -markOffset)
-            DirectionButton(controller: controller, command: .down).offset(y: markOffset)
-            DirectionButton(controller: controller, command: .left).offset(x: -markOffset)
-            DirectionButton(controller: controller, command: .right).offset(x: markOffset)
-
-            HoldButton(controller: controller, command: .select) {
-                Circle()
-                    .fill(.clear)
-                    .frame(width: centerDiameter, height: centerDiameter)
-                    .contentShape(Circle())
+                HoldButton(controller: controller, command: .select) {
+                    Circle()
+                        .fill(.clear)
+                        .frame(width: ClickpadGeometry.selectDiameter, height: ClickpadGeometry.selectDiameter)
+                        .contentShape(Circle())
+                }
+                .surface(Circle())
+                .help("Select (Return)")
             }
-            .surface(Circle())
-            .help("Select (Return)")
+            .frame(width: ClickpadGeometry.diameter, height: ClickpadGeometry.diameter)
         }
-        .frame(width: diameter, height: diameter)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Clickpad")
     }
-
 }
 
-/// One direction on the clickpad. The arrow sits directly on the ring; hover
-/// and press feedback are on the glyph only.
+/// One sector of the clickpad: a glass annular sector with an arrow at the
+/// middle of the band. The button is framed to the sector's bounding box so
+/// tooltips, press scaling and accessibility frames match what is drawn.
 private struct DirectionButton: View {
     let controller: RemoteController
-    let command: HIDCommand
-    @State private var isHovered = false
+    let direction: ClickpadGeometry.Direction
+
+    private var command: HIDCommand {
+        switch direction {
+        case .up: return .up
+        case .down: return .down
+        case .left: return .left
+        case .right: return .right
+        }
+    }
 
     var body: some View {
-        HoldButton(controller: controller, command: command, feedback: .glyph(isHovered: isHovered)) {
+        let shape = ClickpadSegment(direction: direction)
+        let bounds = ClickpadGeometry.bounds(for: direction)
+        let arrow = CGPoint(
+            x: direction.unit.x * ClickpadGeometry.arrowRadius - bounds.midX,
+            y: direction.unit.y * ClickpadGeometry.arrowRadius - bounds.midY)
+
+        HoldButton(controller: controller, command: command, feedback: .dim(scale: 0.97)) {
             Image(systemName: command.systemImage)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.primary)
-                .frame(width: 52, height: 52)
-                .contentShape(Circle())
+                .offset(x: arrow.x, y: arrow.y)
+                .frame(width: bounds.width, height: bounds.height)
+                .contentShape(shape)
         }
-        .onHover { isHovered = $0 }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .surface(shape)
+        .offset(x: bounds.midX, y: bounds.midY)
         .help(command.title)
     }
 }
@@ -180,7 +189,7 @@ private struct RemoteGlyph: View {
 private struct HoldButton<Label: View>: View {
     let controller: RemoteController
     let command: HIDCommand
-    var feedback: RemotePressStyle.Feedback = .dim
+    var feedback: RemotePressStyle.Feedback = .dim()
     @ViewBuilder let label: () -> Label
 
     var body: some View {
@@ -202,14 +211,11 @@ private struct HoldButton<Label: View>: View {
 
 private struct RemotePressStyle: ButtonStyle {
     enum Feedback {
-        /// Glass buttons: shrink and dim slightly while held.
-        case dim
-        /// Glyphs drawn directly on a surface: grow a little on hover, shrink
-        /// and dim while held. No shape, so nothing fights the ring.
-        case glyph(isHovered: Bool)
+        /// Shrink to `scale` and dim slightly while held.
+        case dim(scale: CGFloat = 0.94)
     }
 
-    var feedback: Feedback = .dim
+    var feedback: Feedback = .dim()
     var onPressChanged: ((Bool) -> Void)?
 
     func makeBody(configuration: Configuration) -> some View {
@@ -223,15 +229,10 @@ private struct RemotePressStyle: ButtonStyle {
     @ViewBuilder
     private func styled(_ configuration: Configuration) -> some View {
         switch feedback {
-        case .dim:
+        case .dim(let scale):
             configuration.label
-                .scaleEffect(configuration.isPressed ? 0.94 : 1)
+                .scaleEffect(configuration.isPressed ? scale : 1)
                 .opacity(configuration.isPressed ? 0.75 : 1)
-        case .glyph(let isHovered):
-            let scale: CGFloat = configuration.isPressed ? 0.85 : (isHovered ? 1.15 : 1)
-            configuration.label
-                .scaleEffect(scale)
-                .opacity(configuration.isPressed ? 0.6 : 1)
         }
     }
 }

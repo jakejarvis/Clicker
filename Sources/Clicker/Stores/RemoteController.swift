@@ -314,6 +314,7 @@ final class RemoteController {
 
     func press(_ command: HIDCommand) {
         if command == .volumeUp || command == .volumeDown { isMuted = false }
+        Log.remote.info("Press \(command.title, privacy: .public)")
         perform { try await $0.press(command) }
     }
 
@@ -336,10 +337,12 @@ final class RemoteController {
 
     func buttonDown(_ command: HIDCommand) {
         if command == .volumeUp || command == .volumeDown { isMuted = false }
+        Log.remote.info("Down \(command.title, privacy: .public)")
         perform { try await $0.buttonDown(command) }
     }
 
     func buttonUp(_ command: HIDCommand) {
+        Log.remote.info("Up \(command.title, privacy: .public)")
         perform { try await $0.buttonUp(command) }
     }
 
