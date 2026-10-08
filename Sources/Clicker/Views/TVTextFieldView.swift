@@ -21,7 +21,9 @@ struct TVTextFieldView: View {
             CommittedTextField(
                 text: text,
                 placeholder: "Type on Apple TV",
-                onSubmit: { controller.submitTVText() }
+                focusToken: controller.panelAppearances,
+                onSubmit: { controller.submitTVText() },
+                onCancel: { controller.focusPad() }
             )
             if !controller.tvText.isEmpty {
                 Button {
@@ -48,14 +50,19 @@ struct TVTextFieldView: View {
 /// binding, which here would mean a replace event to the TV per keystroke.
 /// This field skips changes made while marked text is present and forwards
 /// the text once the composition is committed. It takes focus when it
-/// appears and gives it up on Esc, so the clickpad's shortcuts work again.
+/// appears and whenever `focusToken` changes (the panel opening again, which
+/// clears the first responder). Esc resigns it and calls `onCancel`, which
+/// hands the keys to the clickpad; resigning alone leaves the window itself
+/// as first responder and every key beeps.
 private struct CommittedTextField: NSViewRepresentable {
     @Binding var text: String
     let placeholder: String
+    let focusToken: Int
     let onSubmit: () -> Void
+    let onCancel: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, onSubmit: onSubmit)
+        Coordinator(text: $text, focusToken: focusToken, onSubmit: onSubmit, onCancel: onCancel)
     }
 
     func makeNSView(context: Context) -> FocusOnAppearTextField {
@@ -77,10 +84,15 @@ private struct CommittedTextField: NSViewRepresentable {
     func updateNSView(_ field: FocusOnAppearTextField, context: Context) {
         context.coordinator.text = $text
         context.coordinator.onSubmit = onSubmit
+        context.coordinator.onCancel = onCancel
         // The TV can change the text under us (a new field gaining focus, or
         // Clear); never interrupt a composition in progress to show it.
         if field.stringValue != text, !Self.isComposing(field) {
             field.stringValue = text
+        }
+        if context.coordinator.focusToken != focusToken {
+            context.coordinator.focusToken = focusToken
+            field.requestFocus()
         }
     }
 
@@ -90,11 +102,17 @@ private struct CommittedTextField: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var text: Binding<String>
+        var focusToken: Int
         var onSubmit: () -> Void
+        var onCancel: () -> Void
 
-        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
+        init(
+            text: Binding<String>, focusToken: Int, onSubmit: @escaping () -> Void, onCancel: @escaping () -> Void
+        ) {
             self.text = text
+            self.focusToken = focusToken
             self.onSubmit = onSubmit
+            self.onCancel = onCancel
         }
 
         func controlTextDidChange(_ notification: Notification) {
@@ -113,6 +131,7 @@ private struct CommittedTextField: NSViewRepresentable {
                 return true
             case #selector(NSResponder.cancelOperation(_:)):
                 control.window?.makeFirstResponder(nil)
+                onCancel()
                 return true
             default:
                 return false
@@ -122,14 +141,21 @@ private struct CommittedTextField: NSViewRepresentable {
 }
 
 /// Becomes first responder the first time it lands in a window, the way the
-/// SwiftUI field used `@FocusState` on appear.
+/// SwiftUI field used `@FocusState` on appear, and again on request.
 final class FocusOnAppearTextField: NSTextField {
     private var hasRequestedFocus = false
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        guard !hasRequestedFocus, let window else { return }
+        guard !hasRequestedFocus, window != nil else { return }
         hasRequestedFocus = true
+        requestFocus()
+    }
+
+    /// Deferred a turn so it lands after whatever cleared the first
+    /// responder in the same pass.
+    func requestFocus() {
+        guard let window else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.window === window else { return }
             window.makeFirstResponder(self)

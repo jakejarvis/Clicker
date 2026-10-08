@@ -118,6 +118,14 @@ final class RemoteController {
     /// window underneath a popover, so the clickpad's shortcuts stand down
     /// while this is set and Esc closes the picker before anything else.
     var isAppPickerPresented = false
+    /// Bumped each time the panel opens. Showing the panel clears its first
+    /// responder, so the clickpad (or the TV text field) takes keyboard focus
+    /// again on every change of this, not only when it first appears.
+    private(set) var panelAppearances = 0
+    /// Bumped when the clickpad should take keyboard focus even though the
+    /// TV text field is showing: Esc in the field gives the keys back to the
+    /// remote without hiding the field.
+    private(set) var padFocusRequests = 0
 
     @ObservationIgnored private var client: CompanionClient?
     @ObservationIgnored private var clientDeviceID: String?
@@ -348,6 +356,7 @@ final class RemoteController {
     func panelDidAppear() {
         if demo == nil { browser.start() }
         lastActionError = nil
+        panelAppearances += 1
         connectIfNeeded()
     }
 
@@ -611,6 +620,11 @@ final class RemoteController {
     func toggleTextField() {
         guard keyboardSession != nil else { return }
         isTextFieldShown.toggle()
+    }
+
+    /// Hands keyboard focus to the clickpad (see `padFocusRequests`).
+    func focusPad() {
+        padFocusRequests += 1
     }
 
     /// Mirrors an edit in the panel's text field to the TV. Appending sends

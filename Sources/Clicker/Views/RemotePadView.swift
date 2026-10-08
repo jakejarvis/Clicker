@@ -291,22 +291,43 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             .focusable()
             .focusEffectDisabled()
             .focused($isFocused)
-            .onAppear {
-                if controller.keyboardSession == nil {
-                    DispatchQueue.main.async { isFocused = true }
-                }
+            .onAppear(perform: takeFocusIfFree)
+            // Showing the panel clears the window's first responder (the pad
+            // first appears while the panel is still hidden, so the focus
+            // taken then is gone by the first click); take it back on every
+            // open.
+            .onChange(of: controller.panelAppearances) { takeFocusIfFree() }
+            // Esc in the TV text field: the field resigns and the pad takes
+            // over, with the field left on screen for a click.
+            .onChange(of: controller.padFocusRequests) {
+                guard !controller.isAppPickerPresented else { return }
+                DispatchQueue.main.async { isFocused = true }
             }
-            .onChange(of: controller.keyboardSession == nil) { _, keyboardHidden in
-                if keyboardHidden { isFocused = true }
+            // When the TV text field goes away (the TV lost its field, or
+            // the footer button hid it) the keys belong to the pad again.
+            .onChange(of: controller.isTextFieldShown) { _, shown in
+                if !shown { takeFocusIfFree() }
             }
             // The panel stays key under the Apps popover, so without this the
             // pad would swallow the keys meant for its search field.
             .onChange(of: controller.isAppPickerPresented) { _, pickerOpen in
-                isFocused = !pickerOpen
+                if pickerOpen {
+                    isFocused = false
+                } else {
+                    takeFocusIfFree()
+                }
             }
             .onKeyPress(phases: .down) { press in
                 handle(press)
             }
+    }
+
+    /// Takes keyboard focus unless the TV text field or the Apps picker
+    /// should have it. Deferred a turn so it lands after whatever cleared the
+    /// first responder in the same pass (the panel's own show, for one).
+    private func takeFocusIfFree() {
+        guard !controller.isTextFieldShown, !controller.isAppPickerPresented else { return }
+        DispatchQueue.main.async { isFocused = true }
     }
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
