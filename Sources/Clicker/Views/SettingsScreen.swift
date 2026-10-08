@@ -46,19 +46,13 @@ struct SettingsScreen: View {
                     aboutSection
                     updatesSection
                     // Full-width actions live below the cards.
-                    VStack(spacing: 6) {
-                        PanelActionButton(
-                            title: updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…",
-                            systemImage: "arrow.down.circle"
-                        ) {
-                            updates.checkForUpdates()
-                        }
-                        .disabled(!updates.canCheckForUpdates)
-                        PanelActionButton(title: "Quit Clicker", systemImage: "power") {
-                            NSApplication.shared.terminate(nil)
-                        }
-                        .help("⌘Q")
+                    PanelActionButton(
+                        title: updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…",
+                        systemImage: "arrow.down.circle"
+                    ) {
+                        updates.checkForUpdates()
                     }
+                    .disabled(!updates.canCheckForUpdates)
                 }
                 .padding(.horizontal, PanelMetrics.horizontalPadding)
                 .padding(.top, 14)

@@ -22,7 +22,7 @@ on purpose and the dead ends already explored.
 Sources/Clicker
 ├── App/        ClickerApp (@main + AppDelegate), StatusItemController,
 │               MenuBarPanel + PanelMetrics/PanelGeometry/PanelBackdropView,
-│               PanelOutsideClickMonitor
+│               PanelOutsideClickMonitor, AboutPanel
 ├── Views/      MenuBarView (screen switch), DevicePickerMenu, RemotePadView,
 │               TVTextFieldView, PairingView, SettingsScreen, ActionMenus
 ├── Stores/     RemoteController (all UI-facing state), CredentialStore,
@@ -116,9 +116,12 @@ robinebers/openusage:
 - Dismissal: local + global mouse-down monitors close the panel on outside
   clicks, except clicks on the status button, inside the panel, in menu or
   popover windows, or while `panel.attachedSheet != nil`.
-- Right-click on the status item: Settings…, Check for Updates… and Quit.
-- Footer holds Apps, the update button, and Settings; power moved up beside
-  the clickpad.
+- Right-click on the status item: Settings…, Check for Updates…, About
+  Clicker and Quit. The footer gear is a SwiftUI `Menu` (`AppMenu`) with the
+  same items; About opens the standard About panel (`AboutPanel`), which
+  hides the panel first via `RemoteController.dismissPanel`.
+- Footer holds Apps, the update button, and the gear menu; power sits beside
+  the clickpad. Quit is only in menus, never a button in Settings.
 - SwiftUI `.popover` and `.alert` both work inside the panel (device picker
   and the Forget confirmation use them).
 
@@ -134,7 +137,7 @@ robinebers/openusage:
   every toggle a small `.switch`; explanations go in section footers, not in
   rows. Rows are 40pt min, 12/8 padding, hairline `SettingsDivider` between.
 - Full-width actions at the end of Settings use `PanelActionButton` (30pt,
-  callout, primary text). Quit lives there; Check for Updates belongs there too.
+  callout, primary text). Check for Updates lives there.
 - Remote buttons send HID down on press and up on release (`HoldButton`), so
   Siri hold works. Commands are serialized in `RemoteController.perform`.
 - Clickpad: four glass annular sectors plus a glass Select, all from

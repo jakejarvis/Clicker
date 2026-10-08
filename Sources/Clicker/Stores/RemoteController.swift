@@ -57,6 +57,9 @@ final class RemoteController {
     @ObservationIgnored private var pairingDeviceID: String?
     @ObservationIgnored private var commandQueue: Task<Void, Never>?
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
+    /// Hides the menu bar panel; installed by `StatusItemController`. Used
+    /// before presenting windows the panel would otherwise float above.
+    @ObservationIgnored var dismissPanel: () -> Void = {}
 
     private static let selectedDeviceKey = "selectedDeviceID"
 

@@ -57,3 +57,40 @@ struct PowerMenu: View {
         .accessibilityLabel("Power")
     }
 }
+
+/// The gear menu in the footer: app-level actions that are not about the TV.
+/// Mirrors the status item's right-click menu.
+struct AppMenu: View {
+    let controller: RemoteController
+    let updates: UpdateController
+
+    var body: some View {
+        Menu {
+            Button("Settings…") {
+                withAnimation(.snappy(duration: 0.3)) { controller.screen = .settings }
+            }
+            .keyboardShortcut(",")
+            if updates.isEnabled {
+                Button(updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…") {
+                    updates.checkForUpdates()
+                }
+                .disabled(!updates.canCheckForUpdates)
+            }
+            Button("About Clicker") {
+                controller.dismissPanel()
+                AboutPanel.present()
+            }
+            Divider()
+            Button("Quit Clicker") {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q")
+        } label: {
+            Image(systemName: "gearshape")
+                .frame(width: 28, height: 24)
+        }
+        .menuIndicator(.hidden)
+        .help("Settings, About and Quit")
+        .accessibilityLabel("Clicker menu")
+    }
+}

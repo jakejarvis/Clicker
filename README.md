@@ -59,10 +59,11 @@ Launching the binary with `--regular` shows a Dock icon, which some tooling
 needs in order to see the process.
 
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
-Click the Apple TV icon in the menu bar to open the remote; right-click it for
-Settings, Check for Updates and Quit. Settings (name shown on the TV, launch at login, forgetting
-pairings) slide in over the remote behind the gear button or ⌘,;
-Esc or the back button returns, and Esc on the remote closes the panel.
+Click the Apple TV icon in the menu bar to open the remote. The gear menu in
+the footer (and a right-click on the menu bar icon) offers Settings, Check for
+Updates, About and Quit. Settings (name shown on the TV, launch at login,
+forgetting pairings) slide in over the remote; ⌘, opens them too. Esc or the
+back button returns, and Esc on the remote closes the panel.
 
 ## Pairing
 

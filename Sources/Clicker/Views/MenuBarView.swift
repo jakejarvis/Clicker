@@ -136,13 +136,7 @@ struct MenuBarView: View {
                 .help("Clicker \(version) is available")
                 .accessibilityLabel("Update Clicker to \(version)")
             }
-            Button {
-                withAnimation(.snappy(duration: 0.3)) { controller.screen = .settings }
-            } label: {
-                Image(systemName: "gearshape")
-                    .frame(width: 28, height: 24)
-            }
-            .help("Settings (⌘,)")
+            AppMenu(controller: controller, updates: updates)
         }
         .buttonStyle(.borderless)
         .menuStyle(.borderlessButton)

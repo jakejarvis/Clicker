@@ -45,6 +45,10 @@ final class StatusItemController: NSObject {
             guard let self, self.panel.isVisible else { return }
             self.hidePanel()
         }
+        controller.dismissPanel = { [weak self] in
+            guard let self, self.panel.isVisible else { return }
+            self.hidePanel()
+        }
     }
 
     // MARK: - Configuration
@@ -208,6 +212,9 @@ final class StatusItemController: NSObject {
             check.isEnabled = updates.canCheckForUpdates
             menu.addItem(check)
         }
+        let about = NSMenuItem(title: "About Clicker", action: #selector(showAbout), keyEquivalent: "")
+        about.target = self
+        menu.addItem(about)
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit Clicker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
@@ -218,6 +225,10 @@ final class StatusItemController: NSObject {
 
     @objc private func checkForUpdates() {
         updates.checkForUpdates()
+    }
+
+    @objc private func showAbout() {
+        AboutPanel.present()
     }
 
     @objc private func openSettings() {
