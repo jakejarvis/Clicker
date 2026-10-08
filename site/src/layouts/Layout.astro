@@ -35,36 +35,51 @@ const {
     <Analytics />
   </head>
   <body>
-    <main>
+    <div class="page">
       <header>
         <a class="brand" href="/">
-          <Image src={icon} alt="" width={32} height={32} densities={[1, 2]} priority />
+          <Image src={icon} alt="" width={24} height={24} densities={[1, 2]} priority />
           <span class="name">Clicker</span>
         </a>
         <nav>
-          <a href={`${repo}/releases`}>Changelog</a>
-          <span class="divider" aria-hidden="true"></span>
-          <a href={repo} aria-label="GitHub">
-            <svg viewBox="0 0 16 16" width="1.4em" height="1.4em" fill="currentColor" aria-hidden="true">
+          <a class="nav-link" href={`${repo}/releases`}>Changelog</a>
+          <span class="separator" aria-hidden="true"></span>
+          <a class="nav-icon" href={repo} aria-label="GitHub">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path
-                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                fill="currentColor"
+                d="M12 1C5.923 1 1 5.923 1 12c0 4.867 3.149 8.979 7.521 10.436c.55.096.756-.233.756-.522c0-.262-.013-1.128-.013-2.049c-2.764.509-3.479-.674-3.699-1.292c-.124-.317-.66-1.293-1.127-1.554c-.385-.207-.936-.715-.014-.729c.866-.014 1.485.797 1.691 1.128c.99 1.663 2.571 1.196 3.204.907c.096-.715.385-1.196.701-1.471c-2.448-.275-5.005-1.224-5.005-5.432c0-1.196.426-2.186 1.128-2.956c-.111-.275-.496-1.402.11-2.915c0 0 .921-.288 3.024 1.128a10.2 10.2 0 0 1 2.75-.371c.936 0 1.871.123 2.75.371c2.104-1.43 3.025-1.128 3.025-1.128c.605 1.513.221 2.64.111 2.915c.701.77 1.127 1.747 1.127 2.956c0 4.222-2.571 5.157-5.019 5.432c.399.344.743 1.004.743 2.035c0 1.471-.014 2.654-.014 3.025c0 .289.206.632.756.522C19.851 20.979 23 16.854 23 12c0-6.077-4.922-11-11-11"
               ></path>
             </svg>
           </a>
         </nav>
       </header>
 
-      <slot />
+      <main>
+        <slot />
+      </main>
 
       <footer>
         <div class="footer-row">
-          <span>
-            Created by <a class="underline" href="https://jarv.is">@jakejarvis</a>{" "}
-            <span aria-hidden="true">↗</span>
-          </span>
+          <p>
+            Created by{" "}
+            <a class="footer-credit" href="https://jarv.is" target="_blank" rel="noopener">
+              <span>@jakejarvis</span><svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg
+              >
+            </a>
+          </p>
           <nav>
             <a href="/privacy">Privacy</a>
-            <span aria-hidden="true">•</span>
+            <span class="bullet" aria-hidden="true">•</span>
             <a href="/terms">Terms</a>
           </nav>
         </div>
@@ -73,6 +88,6 @@ const {
           and macOS are trademarks of Apple Inc.
         </p>
       </footer>
-    </main>
+    </div>
   </body>
 </html>
