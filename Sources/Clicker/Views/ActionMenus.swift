@@ -72,7 +72,7 @@ extension View {
     }
 }
 
-/// The gear menu in the footer: app-level actions that are not about the TV.
+/// The footer menu (three dots): app-level actions that are not about the TV.
 /// Mirrors the status item's right-click menu.
 struct AppMenu: View {
     let controller: RemoteController
@@ -100,11 +100,11 @@ struct AppMenu: View {
             }
             .keyboardShortcut("q")
         } label: {
-            Image(systemName: "gearshape")
+            Image(systemName: "ellipsis")
                 .frame(width: 28, height: 24)
         }
         .menuIndicator(.hidden)
-        .help("Settings, About and Quit")
+        .help("Menu")
         .accessibilityLabel("Clicker menu")
     }
 }

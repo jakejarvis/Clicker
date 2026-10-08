@@ -59,7 +59,7 @@ Hover over any button to see its shortcut.
 
 ## Settings
 
-Open Settings from the gear in the bottom corner of the panel, by right-clicking the menu bar icon, or with ⌘,. There you can:
+Open Settings from the ••• menu in the bottom corner of the panel, by right-clicking the menu bar icon, or with ⌘,. There you can:
 
 - change the name your Apple TV shows for this Mac under Remotes and Devices,
 - start Clicker when you log in,
@@ -68,7 +68,7 @@ Open Settings from the gear in the bottom corner of the panel, by right-clicking
 
 ## Updates
 
-Clicker checks for a new version once a day. When one is ready, a dot appears on the menu bar icon and an update button shows up in the panel. You can also check yourself with **Check for Updates…** in the gear menu or by right-clicking the menu bar icon. Turn the daily check off in Settings.
+Clicker checks for a new version once a day. When one is ready, a dot appears on the menu bar icon and an update button shows up in the panel. You can also check yourself with **Check for Updates…** in the ••• menu or by right-clicking the menu bar icon. Turn the daily check off in Settings.
 
 ## Privacy
 
