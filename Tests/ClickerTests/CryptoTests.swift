@@ -2,6 +2,7 @@ import BigInt
 import CryptoKit
 import Foundation
 import Testing
+
 @testable import Clicker
 
 @Suite struct CryptoTests {
@@ -26,7 +27,9 @@ import Testing
     }
 
     @Test func sealAndOpenWithLabelNonce() throws {
-        let key = HAPCrypto.deriveKey(salt: "Pair-Setup-Encrypt-Salt", info: "Pair-Setup-Encrypt-Info", sharedSecret: Data(repeating: 9, count: 64))
+        let key = HAPCrypto.deriveKey(
+            salt: "Pair-Setup-Encrypt-Salt", info: "Pair-Setup-Encrypt-Info",
+            sharedSecret: Data(repeating: 9, count: 64))
         let sealed = try HAPCrypto.seal(Data([1, 2, 3]), key: key, nonce: HAPCrypto.nonce(label: "PS-Msg05"))
         #expect(try HAPCrypto.open(sealed, key: key, nonce: HAPCrypto.nonce(label: "PS-Msg05")) == Data([1, 2, 3]))
         #expect(throws: (any Error).self) {

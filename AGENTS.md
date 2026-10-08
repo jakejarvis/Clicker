@@ -50,8 +50,14 @@ site/                Vercel project for clicker.jarv.is; vercel.json rewrites
 ./script/build_and_run.sh --release    # optimized (SRP pairing math is much faster)
 ./script/build_and_run.sh --telemetry  # launch + stream com.jakejarvis.Clicker logs
 swift test
+swift format --in-place --recursive --parallel Sources Tests Package.swift
+swift format lint --strict --recursive --parallel Sources Tests Package.swift  # CI runs this
 ```
 
+- Formatting is the toolchain's `swift-format`, configured in `.swift-format`
+  (4 spaces, 120 columns). `AlwaysUseLowerCamelCase` is off so SRP code can
+  keep RFC 5054 names (`N`, `A`, `B`, `M1`). When its wrapping reads badly,
+  restructure the code (a local `let`) rather than fighting the formatter.
 - Sandboxed shells: `swift build` fails on the module cache and on git
   cloning the dependency. Run SwiftPM and the run script outside the sandbox.
 - Logs: `log show --last 5m --info --predicate 'subsystem == "com.jakejarvis.Clicker"'`.

@@ -24,21 +24,21 @@ enum TextInputArchive {
     /// pyatv, so decoding never depends on tvOS-private classes being resolvable.
     static func session(from archive: Data) -> Session? {
         guard let plist = try? PropertyListSerialization.propertyList(from: archive, format: nil) as? [String: Any],
-              let objects = plist["$objects"] as? [Any],
-              let top = plist["$top"] as? [String: Any]
+            let objects = plist["$objects"] as? [Any],
+            let top = plist["$top"] as? [String: Any]
         else { return nil }
 
         let graph = ArchiveGraph(objects: objects)
         guard let uuidObject = graph.resolve(top["sessionUUID"]) as? [String: Any],
-              let uuidBytes = uuidObject["NS.uuidbytes"] as? Data,
-              uuidBytes.count == 16
+            let uuidBytes = uuidObject["NS.uuidbytes"] as? Data,
+            uuidBytes.count == 16
         else { return nil }
         let uuid = uuidBytes.withUnsafeBytes { UUID(uuid: $0.load(as: uuid_t.self)) }
 
         var text = ""
         if let documentState = graph.resolve(top["documentState"]) as? [String: Any],
-           let docState = graph.resolve(documentState["docSt"]) as? [String: Any],
-           let context = graph.resolve(docState["contextBeforeInput"]) as? String
+            let docState = graph.resolve(documentState["docSt"]) as? [String: Any],
+            let context = graph.resolve(docState["contextBeforeInput"]) as? String
         {
             text = context
         }
@@ -63,7 +63,7 @@ enum TextInputArchive {
         static func uidValue(_ value: Any) -> Int? {
             let description = String(describing: value)
             guard description.hasPrefix("<CFKeyedArchiverUID"),
-                  let range = description.range(of: "{value = ")
+                let range = description.range(of: "{value = ")
             else { return nil }
             let digits = description[range.upperBound...].prefix { $0.isNumber }
             return Int(digits)
@@ -74,12 +74,14 @@ enum TextInputArchive {
 
     /// Payload that inserts `text` at the cursor in the TV's focused field.
     static func insertTextPayload(sessionUUID: UUID, text: String) -> Data {
-        encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: KeyboardOutput(insertionText: text), textToAssert: nil))
+        let output = KeyboardOutput(insertionText: text)
+        return encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: output, textToAssert: nil))
     }
 
     /// Payload that clears the TV's focused field.
     static func clearTextPayload(sessionUUID: UUID) -> Data {
-        encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: KeyboardOutput(insertionText: nil), textToAssert: ""))
+        let output = KeyboardOutput(insertionText: nil)
+        return encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: output, textToAssert: ""))
     }
 
     private static func encode(_ operations: TextOperations) -> Data {
@@ -97,8 +99,10 @@ enum TextInputArchive {
     /// out) while preserving keyed-archiver UIDs, which
     /// `PropertyListSerialization` round-trips intact.
     private static func replacingArchiverName(in archive: Data, with name: String) -> Data? {
-        guard let plist = try? PropertyListSerialization.propertyList(from: archive, options: [.mutableContainers], format: nil),
-              let dictionary = plist as? NSMutableDictionary
+        guard
+            let plist = try? PropertyListSerialization.propertyList(
+                from: archive, options: [.mutableContainers], format: nil),
+            let dictionary = plist as? NSMutableDictionary
         else { return nil }
         dictionary["$archiver"] = name
         if let objects = dictionary["$objects"] as? NSMutableArray {
@@ -128,7 +132,7 @@ private final class TextOperations: NSObject, NSCoding {
 
     required init?(coder: NSCoder) {
         guard let uuid = coder.decodeObject(forKey: "targetSessionUUID") as? UUID,
-              let output = coder.decodeObject(forKey: "keyboardOutput") as? KeyboardOutput
+            let output = coder.decodeObject(forKey: "keyboardOutput") as? KeyboardOutput
         else { return nil }
         sessionUUID = uuid
         keyboardOutput = output

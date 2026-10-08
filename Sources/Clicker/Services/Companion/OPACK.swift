@@ -115,7 +115,8 @@ extension OPACKValue: CustomStringConvertible {
         case .data(let value): return "<\(value.count) bytes>"
         case .array(let values): return "[" + values.map(\.description).joined(separator: ", ") + "]"
         case .dictionary(let entries):
-            let body = entries
+            let body =
+                entries
                 .map { "\($0.key.description): \($0.value.description)" }
                 .sorted()
                 .joined(separator: ", ")

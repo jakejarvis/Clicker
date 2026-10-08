@@ -74,7 +74,9 @@ enum CompanionError: Error, LocalizedError, Sendable {
         case .pairingError(let message): return message
         case .authenticationFailed(let detail): return "Authentication failed: \(detail)"
         case .encryptionFailed: return "Could not decrypt a message from the Apple TV."
-        case .pairingDisabled: return "This Apple TV does not allow pairing with a PIN. Enable it in Settings › Remotes and Devices › Remote App and Devices."
+        case .pairingDisabled:
+            return
+                "This Apple TV does not allow pairing with a PIN. Enable it in Settings › Remotes and Devices › Remote App and Devices."
         }
     }
 }

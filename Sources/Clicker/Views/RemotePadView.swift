@@ -167,13 +167,15 @@ private struct HoldButton<Label: View>: View {
         Button(action: {}) {
             label()
         }
-        .buttonStyle(RemotePressStyle { pressed in
-            if pressed {
-                controller.buttonDown(command)
-            } else {
-                controller.buttonUp(command)
+        .buttonStyle(
+            RemotePressStyle { pressed in
+                if pressed {
+                    controller.buttonDown(command)
+                } else {
+                    controller.buttonUp(command)
+                }
             }
-        })
+        )
         .accessibilityLabel(command.title)
     }
 }

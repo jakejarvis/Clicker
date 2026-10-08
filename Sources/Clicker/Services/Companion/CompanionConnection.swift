@@ -191,11 +191,13 @@ actor CompanionConnection {
             body = try cipher!.encrypt(payload, aad: header)
         }
 
-        connection.send(content: header + body, completion: .contentProcessed { error in
-            if let error {
-                Log.connection.error("Send failed: \(error.localizedDescription, privacy: .public)")
-            }
-        })
+        connection.send(
+            content: header + body,
+            completion: .contentProcessed { error in
+                if let error {
+                    Log.connection.error("Send failed: \(error.localizedDescription, privacy: .public)")
+                }
+            })
     }
 
     private func takeTransactionID() -> Int64 {
@@ -278,7 +280,7 @@ actor CompanionConnection {
             }
         case .response:
             if let transactionID = message["_x"]?.intValue,
-               let continuation = pendingResponses.removeValue(forKey: transactionID)
+                let continuation = pendingResponses.removeValue(forKey: transactionID)
             {
                 continuation.resume(returning: message)
             } else {

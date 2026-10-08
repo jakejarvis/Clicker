@@ -34,7 +34,11 @@ struct SettingsScreen: View {
                 Divider()
                     .padding(.horizontal, PanelMetrics.horizontalPadding)
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.height
+            } action: {
+                barHeight = $0
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     thisMacSection
@@ -59,7 +63,11 @@ struct SettingsScreen: View {
                 .padding(.horizontal, PanelMetrics.horizontalPadding)
                 .padding(.top, 14)
                 .padding(.bottom, 16)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.height
+                } action: {
+                    contentHeight = $0
+                }
             }
             .scrollIndicators(.never)
         }
@@ -94,7 +102,8 @@ struct SettingsScreen: View {
     private var thisMacSection: some View {
         SettingsSection(
             "This Mac",
-            footer: launchAtLoginError ?? "The name appears under Remotes and Devices on the Apple TV the next time you pair."
+            footer: launchAtLoginError
+                ?? "The name appears under Remotes and Devices on the Apple TV the next time you pair."
         ) {
             SettingsRow("Name") {
                 TextField("Name", text: $clientName)

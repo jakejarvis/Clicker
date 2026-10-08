@@ -26,7 +26,9 @@ struct MenuBarView: View {
             switch controller.screen {
             case .remote:
                 remoteScreen
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.height
+                    } action: { height in
                         if height > 0 { remoteHeight = height }
                     }
                     .transition(.move(edge: .leading))
@@ -191,6 +193,8 @@ struct InlineNoticeView: View {
             }
         }
         .padding(8)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
+        .background(
+            .quaternary.opacity(0.5),
+            in: RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
     }
 }

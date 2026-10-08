@@ -144,15 +144,15 @@ final class StatusItemController: NSObject {
             let consumed = MainActor.assumeIsolated { () -> Bool in
                 guard let self, self.panel.isVisible, windowID == ObjectIdentifier(self.panel) else { return false }
                 switch (keyCode, modifiers) {
-                case (53, []): // Escape
+                case (53, []):  // Escape
                     if self.panel.firstResponder is NSText { return false }
                     if self.controller.handleEscape() { return true }
                     self.hidePanel()
                     return true
-                case (43, [.command]): // ⌘,
+                case (43, [.command]):  // ⌘,
                     withAnimation(.snappy(duration: 0.3)) { self.controller.screen = .settings }
                     return true
-                case (12, [.command]): // ⌘Q
+                case (12, [.command]):  // ⌘Q
                     NSApp.terminate(nil)
                     return true
                 default:
@@ -219,7 +219,8 @@ final class StatusItemController: NSObject {
         let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
         let screen = NSScreen.screens.first { $0.frame.intersects(buttonRect) } ?? NSScreen.main
         anchorScreen = screen
-        anchorTopLeft = PanelGeometry.topLeft(below: buttonRect, width: PanelMetrics.width, visibleFrame: screen?.visibleFrame)
+        anchorTopLeft = PanelGeometry.topLeft(
+            below: buttonRect, width: PanelMetrics.width, visibleFrame: screen?.visibleFrame)
 
         controller.panelDidAppear()
         let fitting = hosting.sizeThatFits(in: NSSize(width: PanelMetrics.width, height: .greatestFiniteMagnitude))

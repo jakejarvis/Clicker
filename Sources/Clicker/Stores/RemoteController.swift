@@ -194,7 +194,7 @@ final class RemoteController {
     func connectIfNeeded(isRetry: Bool = false) {
         guard connectTask == nil else { return }
         guard let device = selectedDevice, let endpoint = device.endpoint,
-              let credentials = credentialStore.credentials(for: device.id)
+            let credentials = credentialStore.credentials(for: device.id)
         else { return }
         if client != nil, clientDeviceID == device.id, connectionState == .connected { return }
 
@@ -287,7 +287,7 @@ final class RemoteController {
                     }
                 case "_tiStarted":
                     if let payload = event.content["_tiD"]?.dataValue,
-                       let session = TextInputArchive.session(from: payload)
+                        let session = TextInputArchive.session(from: payload)
                     {
                         self.keyboardSession = session
                         self.tvText = session.currentText

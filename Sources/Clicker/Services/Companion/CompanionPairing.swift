@@ -24,10 +24,12 @@ enum CompanionPairing {
         let ephemeral = Curve25519.KeyAgreement.PrivateKey()
         let ourPublic = ephemeral.publicKey.rawRepresentation
 
-        let startResponse = try await connection.exchangeAuthentication(.pairVerifyStart, [
-            "_pd": .data(TLV8.encode([(.state, Data([0x01])), (.publicKey, ourPublic)])),
-            "_auTy": 4,
-        ])
+        let startResponse = try await connection.exchangeAuthentication(
+            .pairVerifyStart,
+            [
+                "_pd": .data(TLV8.encode([(.state, Data([0x01])), (.publicKey, ourPublic)])),
+                "_auTy": 4,
+            ])
         let startItems = try pairingData(from: startResponse)
         guard let serverPublic = startItems[.publicKey], let encrypted = startItems[.encryptedData] else {
             throw CompanionError.unexpectedResponse("pair-verify M2 incomplete")
@@ -64,9 +66,11 @@ enum CompanionPairing {
         let payload = TLV8.encode([(.identifier, clientIdentifier), (.signature, ourSignature)])
         let sealed = try HAPCrypto.seal(payload, key: sessionKey, nonce: HAPCrypto.nonce(label: "PV-Msg03"))
 
-        let finishResponse = try await connection.exchangeAuthentication(.pairVerifyNext, [
-            "_pd": .data(TLV8.encode([(.state, Data([0x03])), (.encryptedData, sealed)])),
-        ])
+        let finishResponse = try await connection.exchangeAuthentication(
+            .pairVerifyNext,
+            [
+                "_pd": .data(TLV8.encode([(.state, Data([0x03])), (.encryptedData, sealed)]))
+            ])
         if finishResponse["_pd"] != nil {
             _ = try pairingData(from: finishResponse)
         }
@@ -94,10 +98,12 @@ actor CompanionPairingSession {
 
     func start() async throws {
         try await connection.connect()
-        let response = try await connection.exchangeAuthentication(.pairSetupStart, [
-            "_pd": .data(TLV8.encode([(.method, Data([0x00])), (.state, Data([0x01]))])),
-            "_pwTy": 1,
-        ])
+        let response = try await connection.exchangeAuthentication(
+            .pairSetupStart,
+            [
+                "_pd": .data(TLV8.encode([(.method, Data([0x00])), (.state, Data([0x01]))])),
+                "_pwTy": 1,
+            ])
         let items = try CompanionPairing.pairingData(from: response)
         guard let salt = items[.salt], let publicKey = items[.publicKey] else {
             throw CompanionError.unexpectedResponse("pair-setup M2 incomplete")
@@ -113,14 +119,17 @@ actor CompanionPairingSession {
         }
 
         let session = try srp.process(serverPublicKey: serverPublicKey, salt: salt, password: pin)
-        let proofResponse = try await connection.exchangeAuthentication(.pairSetupNext, [
-            "_pd": .data(TLV8.encode([
-                (.state, Data([0x03])),
-                (.publicKey, srp.publicKey),
-                (.proof, session.clientProof),
-            ])),
-            "_pwTy": 1,
-        ])
+        let proofResponse = try await connection.exchangeAuthentication(
+            .pairSetupNext,
+            [
+                "_pd": .data(
+                    TLV8.encode([
+                        (.state, Data([0x03])),
+                        (.publicKey, srp.publicKey),
+                        (.proof, session.clientProof),
+                    ])),
+                "_pwTy": 1,
+            ])
         let proofItems = try CompanionPairing.pairingData(from: proofResponse)
         guard let serverProof = proofItems[.proof] else {
             throw CompanionError.unexpectedResponse("pair-setup M4 missing proof")
@@ -151,10 +160,12 @@ actor CompanionPairingSession {
         ])
         let sealed = try HAPCrypto.seal(inner, key: encryptionKey, nonce: HAPCrypto.nonce(label: "PS-Msg05"))
 
-        let exchangeResponse = try await connection.exchangeAuthentication(.pairSetupNext, [
-            "_pd": .data(TLV8.encode([(.state, Data([0x05])), (.encryptedData, sealed)])),
-            "_pwTy": 1,
-        ])
+        let exchangeResponse = try await connection.exchangeAuthentication(
+            .pairSetupNext,
+            [
+                "_pd": .data(TLV8.encode([(.state, Data([0x05])), (.encryptedData, sealed)])),
+                "_pwTy": 1,
+            ])
         let exchangeItems = try CompanionPairing.pairingData(from: exchangeResponse)
         guard let encrypted = exchangeItems[.encryptedData] else {
             throw CompanionError.unexpectedResponse("pair-setup M6 missing data")
@@ -162,8 +173,8 @@ actor CompanionPairingSession {
         let decrypted = try HAPCrypto.open(encrypted, key: encryptionKey, nonce: HAPCrypto.nonce(label: "PS-Msg06"))
         let accessory = try TLV8.decode(decrypted)
         guard let accessoryIdentifier = accessory[.identifier],
-              let accessoryPublicKey = accessory[.publicKey],
-              let accessorySignature = accessory[.signature]
+            let accessoryPublicKey = accessory[.publicKey],
+            let accessorySignature = accessory[.signature]
         else {
             throw CompanionError.unexpectedResponse("pair-setup M6 incomplete")
         }
@@ -177,7 +188,8 @@ actor CompanionPairingSession {
             sharedSecret: session.sessionKey
         )
         if let key = try? Curve25519.Signing.PublicKey(rawRepresentation: accessoryPublicKey),
-           !key.isValidSignature(accessorySignature, for: accessorySigningSalt.rawData + accessoryIdentifier + accessoryPublicKey)
+            !key.isValidSignature(
+                accessorySignature, for: accessorySigningSalt.rawData + accessoryIdentifier + accessoryPublicKey)
         {
             Log.pairing.warning("Accessory signature in PS-Msg06 did not verify")
         }

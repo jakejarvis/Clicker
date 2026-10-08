@@ -79,10 +79,12 @@ actor CompanionClient {
     }
 
     func setVolume(_ volume: Double) async throws {
-        _ = try await request("_mcc", [
-            "_mcc": .int(MediaControlCommand.setVolume.rawValue),
-            "_vol": .double(min(max(volume, 0), 1)),
-        ])
+        _ = try await request(
+            "_mcc",
+            [
+                "_mcc": .int(MediaControlCommand.setVolume.rawValue),
+                "_vol": .double(min(max(volume, 0), 1)),
+            ])
     }
 
     // MARK: - Apps
@@ -119,17 +121,21 @@ actor CompanionClient {
     }
 
     func insertText(_ text: String, session: TextInputArchive.Session) async throws {
-        try await sendEvent("_tiC", [
-            "_tiV": 1,
-            "_tiD": .data(TextInputArchive.insertTextPayload(sessionUUID: session.sessionUUID, text: text)),
-        ])
+        try await sendEvent(
+            "_tiC",
+            [
+                "_tiV": 1,
+                "_tiD": .data(TextInputArchive.insertTextPayload(sessionUUID: session.sessionUUID, text: text)),
+            ])
     }
 
     func clearText(session: TextInputArchive.Session) async throws {
-        try await sendEvent("_tiC", [
-            "_tiV": 1,
-            "_tiD": .data(TextInputArchive.clearTextPayload(sessionUUID: session.sessionUUID)),
-        ])
+        try await sendEvent(
+            "_tiC",
+            [
+                "_tiV": 1,
+                "_tiD": .data(TextInputArchive.clearTextPayload(sessionUUID: session.sessionUUID)),
+            ])
     }
 
     // MARK: - Power
@@ -146,18 +152,20 @@ actor CompanionClient {
     // MARK: - Session setup
 
     private func sendSystemInfo() async throws {
-        _ = try await request("_systemInfo", [
-            "_bf": 0,
-            "_cf": 512,
-            "_clFl": 128,
-            "_i": .string(identity.deviceID.replacingOccurrences(of: ":", with: "").lowercased()),
-            "_idsID": .data(Data(credentials.clientIdentifier.utf8)),
-            "_pubID": .string(identity.deviceID),
-            "_sf": 256,
-            "_sv": "170.18",
-            "model": "iPhone14,3",
-            "name": .string(identity.name),
-        ])
+        _ = try await request(
+            "_systemInfo",
+            [
+                "_bf": 0,
+                "_cf": 512,
+                "_clFl": 128,
+                "_i": .string(identity.deviceID.replacingOccurrences(of: ":", with: "").lowercased()),
+                "_idsID": .data(Data(credentials.clientIdentifier.utf8)),
+                "_pubID": .string(identity.deviceID),
+                "_sf": 256,
+                "_sv": "170.18",
+                "model": "iPhone14,3",
+                "name": .string(identity.name),
+            ])
     }
 
     private func startSession() async throws {
@@ -183,18 +191,22 @@ actor CompanionClient {
         _ content: [String: OPACKValue],
         timeout: TimeInterval = 5
     ) async throws -> OPACKValue {
-        try await connection.exchange(.encryptedOPACK, [
-            "_i": .string(identifier),
-            "_t": .int(CompanionMessageType.request.rawValue),
-            "_c": .dictionary(content),
-        ], timeout: timeout)
+        try await connection.exchange(
+            .encryptedOPACK,
+            [
+                "_i": .string(identifier),
+                "_t": .int(CompanionMessageType.request.rawValue),
+                "_c": .dictionary(content),
+            ], timeout: timeout)
     }
 
     private func sendEvent(_ identifier: String, _ content: [String: OPACKValue]) async throws {
-        try await connection.send(.encryptedOPACK, [
-            "_i": .string(identifier),
-            "_t": .int(CompanionMessageType.event.rawValue),
-            "_c": .dictionary(content),
-        ])
+        try await connection.send(
+            .encryptedOPACK,
+            [
+                "_i": .string(identifier),
+                "_t": .int(CompanionMessageType.event.rawValue),
+                "_c": .dictionary(content),
+            ])
     }
 }

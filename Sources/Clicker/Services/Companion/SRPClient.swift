@@ -53,7 +53,8 @@ struct SRPClient {
         Self.pad(publicKeyValue)
     }
 
-    func process(serverPublicKey: Data, salt: Data, username: String = "Pair-Setup", password: String) throws -> Session {
+    func process(serverPublicKey: Data, salt: Data, username: String = "Pair-Setup", password: String) throws -> Session
+    {
         let N = Self.prime
         let g = Self.generator
         let A = publicKeyValue

@@ -18,23 +18,29 @@ final class PanelOutsideClickMonitor {
     func start() {
         stop()
         let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-        if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in
-            let windowID = event.window.map(ObjectIdentifier.init)
-            let windowTypeName = event.window.map { String(describing: type(of: $0)) }
-            let point = NSEvent.mouseLocation
-            MainActor.assumeIsolated {
-                self?.handleClick(windowID: windowID, windowTypeName: windowTypeName, screenPoint: point)
-            }
-            return event
-        }) {
+        if let local = NSEvent.addLocalMonitorForEvents(
+            matching: mask,
+            handler: { [weak self] event in
+                let windowID = event.window.map(ObjectIdentifier.init)
+                let windowTypeName = event.window.map { String(describing: type(of: $0)) }
+                let point = NSEvent.mouseLocation
+                MainActor.assumeIsolated {
+                    self?.handleClick(windowID: windowID, windowTypeName: windowTypeName, screenPoint: point)
+                }
+                return event
+            })
+        {
             monitors.append(local)
         }
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] _ in
-            let point = NSEvent.mouseLocation
-            Task { @MainActor [weak self] in
-                self?.handleClick(windowID: nil, windowTypeName: nil, screenPoint: point)
-            }
-        }) {
+        if let global = NSEvent.addGlobalMonitorForEvents(
+            matching: mask,
+            handler: { [weak self] _ in
+                let point = NSEvent.mouseLocation
+                Task { @MainActor [weak self] in
+                    self?.handleClick(windowID: nil, windowTypeName: nil, screenPoint: point)
+                }
+            })
+        {
             monitors.append(global)
         }
     }

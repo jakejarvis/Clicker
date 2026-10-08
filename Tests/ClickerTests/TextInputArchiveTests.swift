@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import Clicker
 
 @Suite struct TextInputArchiveTests {
@@ -27,7 +28,8 @@ import Testing
 
     @Test func clearPayloadAssertsEmptyText() throws {
         let payload = TextInputArchive.clearTextPayload(sessionUUID: UUID())
-        let plist = try #require(try PropertyListSerialization.propertyList(from: payload, format: nil) as? [String: Any])
+        let plist = try #require(
+            try PropertyListSerialization.propertyList(from: payload, format: nil) as? [String: Any])
         let objects = try #require(plist["$objects"] as? [Any])
         let operations = try #require(objects.compactMap { $0 as? [String: Any] }.first { $0["textToAssert"] != nil })
         #expect(operations["keyboardOutput"] != nil)
@@ -47,7 +49,9 @@ import Testing
         archiver.finishEncoding()
 
         // Mimic RTIKeyedArchiver's archiver name.
-        let plist = try #require(try PropertyListSerialization.propertyList(from: archiver.encodedData, options: [.mutableContainers], format: nil) as? NSMutableDictionary)
+        let plist = try #require(
+            try PropertyListSerialization.propertyList(
+                from: archiver.encodedData, options: [.mutableContainers], format: nil) as? NSMutableDictionary)
         plist["$archiver"] = "RTIKeyedArchiver"
         let payload = try PropertyListSerialization.data(fromPropertyList: plist, format: .binary, options: 0)
 

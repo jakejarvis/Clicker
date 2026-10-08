@@ -26,6 +26,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Lint
+        run: swift format lint --strict --recursive --parallel Sources Tests Package.swift
+
       - name: Test
         run: swift test
 

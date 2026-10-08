@@ -39,7 +39,9 @@ final class UpdateController: NSObject {
 
     func start() {
         guard isEnabled else { return }
-        canCheckObservation = updaterController.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] updater, _ in
+        let updater = updaterController.updater
+        let options: NSKeyValueObservingOptions = [.initial, .new]
+        canCheckObservation = updater.observe(\.canCheckForUpdates, options: options) { [weak self] updater, _ in
             MainActor.assumeIsolated { self?.canCheckForUpdates = updater.canCheckForUpdates }
         }
         updaterController.startUpdater()
@@ -80,8 +82,9 @@ final class UpdateController: NSObject {
 extension UpdateController: SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
         if let error = error as NSError?,
-           error.code != Int(SUError.noUpdateError.rawValue),
-           error.code != Int(SUError.installationCanceledError.rawValue) {
+            error.code != Int(SUError.noUpdateError.rawValue),
+            error.code != Int(SUError.installationCanceledError.rawValue)
+        {
             Log.updates.error("Update cycle failed: \(String(describing: error), privacy: .public)")
         }
         lastUpdateCheckDate = updater.lastUpdateCheckDate
@@ -98,11 +101,15 @@ extension UpdateController: SPUUpdaterDelegate {
 extension UpdateController: @preconcurrency SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
 
-    func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool {
+    func standardUserDriverShouldHandleShowingScheduledUpdate(
+        _ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool
+    ) -> Bool {
         immediateFocus
     }
 
-    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+    func standardUserDriverWillHandleShowingUpdate(
+        _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
+    ) {
         if handleShowingUpdate {
             presentForUpdate()
         } else {

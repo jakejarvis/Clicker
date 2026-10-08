@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import Clicker
 
 @Suite struct OPACKTests {
