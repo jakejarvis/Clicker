@@ -37,7 +37,7 @@ Sources/Clicker
 Tests/ClickerTests   codec, crypto, SRP, text-input archive, panel and clickpad geometry
 script/              build_and_run.sh, package_app.sh (bundle assembly + signing),
                      release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift,
-                     make_status_icons.swift
+                     make_status_icons.swift, screenshots.sh (VMPal VM captures)
 Resources/           Info.plist, Clicker.entitlements + Clicker.provisionprofile (keychain,
                      real identities only), AppIcon.icns (generated; regenerate with script/make_icon.sh),
                      StatusIcon/ menu bar glyph SVGs + generated PDFs
@@ -104,6 +104,17 @@ opens the panel half a second after launch and overrides the Settings name
 through the volatile argument domain, so nothing is persisted. The `pin`
 scenario's code field needs a click before it takes typing. Combine with
 `--regular` for the computer-use workflow above.
+
+Marketing screenshots come from `script/screenshots.sh` in a VMPal macOS VM
+(stock menu bar and wallpaper). What it works around, as of VMPal 0.51:
+VMPal's own screenshots are JPEG even with `--png` and capped at 2576 px, so
+the script runs `screencapture` in the guest (Screen Recording for VMPal
+Tools); `send_files` left the bundle without its Info.plist and with an empty
+Sparkle.framework, so the app goes in as a zip through `vmpal cp`; `vmpal cp` refuses to run when invoked by bare name from PATH; a
+window capture (`screencapture -l`) of the panel loses its glass, and macOS
+shows its recording dot in the menu bar from the second capture in a row, so
+the corner and panel shots are cropped from one full capture. Admin exec sets the clock with `date` after turning
+network time off, and turns it back on at the end.
 
 ImageRenderer and offscreen `cacheDisplay` snapshots are useless here (they
 drop AppKit-backed controls and Liquid Glass); `screencapture -l` needs Screen

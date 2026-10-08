@@ -67,6 +67,13 @@ settings are left alone. Scenarios: `ready` (the default), `asleep`, `typing`,
 open -n dist/Clicker.app --args --demo pin
 ```
 
+`script/screenshots.sh <VM>` captures every scenario in light and dark mode in
+a [VMPal](https://vmpal.com) macOS VM, so the menu bar and wallpaper are stock:
+lossless PNGs at the guest's native resolution with the clock set to 9:41, in
+`dist/screenshots`. `--install` builds a release copy and installs it in the VM
+first. The VM needs agent control and administrator commands approved in its
+Settings › AI Agents, and Screen Recording allowed for VMPal Tools inside it.
+
 Clicker is intentionally menu-bar-only: it has no Dock icon and no main window.
 Click the Apple TV icon in the menu bar to open the remote. The gear menu in
 the footer (and a right-click on the menu bar icon) offers Settings, Check for
