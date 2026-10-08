@@ -216,6 +216,11 @@ robinebers/openusage:
 - `PINCodeField` is a focusable view collecting digits with `onKeyPress`,
   not a hidden `TextField`: a hidden field never became first responder in
   the non-activating panel, so typing went nowhere.
+- The TV text field (`TVTextFieldView`) appears below the button grid, not
+  above the clickpad: the panel is anchored at its top and grows downward,
+  so a keyboard appearing on the TV never moves a button. A card over the
+  pad (like pairing) was considered and set aside because the pad may still
+  be needed to finish typing on the TV.
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".
 - Keyboard: arrows, Return=Select, Delete=Back, Space=Play/Pause, H=TV,
   M=Mute, +/−=Volume, Esc=close. These are in tooltips, not listed in Settings.

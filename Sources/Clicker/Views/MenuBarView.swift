@@ -85,10 +85,6 @@ struct MenuBarView: View {
         let overlay = overlay
         let isLive = overlay == nil
         return VStack(spacing: 14) {
-            if isLive, controller.keyboardSession != nil {
-                TVTextFieldView(controller: controller)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
             RemotePadView(controller: controller, isInteractive: isLive)
                 .opacity(isLive ? 1 : 0.35)
                 .blur(radius: isLive ? 0 : 2)
@@ -103,6 +99,12 @@ struct MenuBarView: View {
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
+            // Below the remote, so the panel grows downward from its anchored
+            // top and no button moves when the TV shows or hides a keyboard.
+            if isLive, controller.keyboardSession != nil {
+                TVTextFieldView(controller: controller)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             if isLive {
                 connectionBanner
             }
