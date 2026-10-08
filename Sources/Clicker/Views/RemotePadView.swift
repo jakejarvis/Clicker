@@ -33,7 +33,11 @@ struct RemotePadView: View {
                     HoldRemoteButton(command: .home, controller: controller)
                     HoldRemoteButton(command: .playPause, controller: controller)
                     MuteButton(controller: controller)
-                    HoldRemoteButton(command: .siri, controller: controller, tint: .purple)
+                    // The orb is an outline, so it needs extra size and weight
+                    // to sit evenly next to the filled glyphs around it.
+                    HoldRemoteButton(
+                        command: .siri, controller: controller, tint: RemoteMetrics.siriTint, size: 18,
+                        weight: .semibold)
                     VolumeRocker(controller: controller)
                 }
             }
@@ -44,6 +48,18 @@ struct RemotePadView: View {
 enum RemoteMetrics {
     static let buttonHeight: CGFloat = 44
     static let cornerButtonDiameter: CGFloat = 32
+
+    /// Siri's orb colors. SF Symbols has no colored Siri glyph, so the
+    /// gradient is painted through the symbol instead.
+    static let siriTint = AnyShapeStyle(
+        LinearGradient(
+            colors: [
+                Color(red: 0.98, green: 0.36, blue: 0.62),
+                Color(red: 0.62, green: 0.36, blue: 0.98),
+                Color(red: 0.25, green: 0.65, blue: 1.0),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing))
 }
 
 private struct ClickpadView: View {
@@ -115,11 +131,13 @@ private struct DirectionButton: View {
 private struct HoldRemoteButton: View {
     let command: HIDCommand
     let controller: RemoteController
-    var tint: Color?
+    var tint: AnyShapeStyle?
+    var size: CGFloat = 16
+    var weight: Font.Weight = .medium
 
     var body: some View {
         HoldButton(controller: controller, command: command) {
-            RemoteGlyph(systemImage: command.systemImage, tint: tint)
+            RemoteGlyph(systemImage: command.systemImage, tint: tint, size: size, weight: weight)
                 .contentShape(Capsule())
         }
         .surface(Capsule())
@@ -137,7 +155,7 @@ private struct MuteButton: View {
         } label: {
             RemoteGlyph(
                 systemImage: controller.isMuted ? "speaker.slash.fill" : "speaker.slash",
-                tint: controller.isMuted ? .orange : nil
+                tint: controller.isMuted ? AnyShapeStyle(.orange) : nil
             )
             .contentShape(Capsule())
         }
@@ -186,12 +204,14 @@ private struct VolumeRocker: View {
 
 private struct RemoteGlyph: View {
     let systemImage: String
-    var tint: Color?
+    var tint: AnyShapeStyle?
+    var size: CGFloat = 16
+    var weight: Font.Weight = .medium
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(tint ?? .primary)
+            .font(.system(size: size, weight: weight))
+            .foregroundStyle(tint ?? AnyShapeStyle(.primary))
             .frame(maxWidth: .infinity)
             .frame(height: RemoteMetrics.buttonHeight)
     }

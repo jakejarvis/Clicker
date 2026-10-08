@@ -57,7 +57,10 @@ enum HIDCommand: Int64, CaseIterable, Sendable {
         case .home: return "tv"
         case .volumeUp: return "speaker.wave.3"
         case .volumeDown: return "speaker.wave.1"
-        case .siri: return "mic.fill"
+        case .siri:
+            // The Siri orb glyph arrived with the 2025 symbol catalog.
+            if #available(macOS 26, *) { return "siri" }
+            return "mic.fill"
         case .screensaver: return "sparkles.tv"
         case .sleep: return "moon.fill"
         case .wake: return "sun.max.fill"

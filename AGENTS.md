@@ -179,6 +179,11 @@ robinebers/openusage:
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".
 - Keyboard: arrows, Return=Select, Delete=Back, Space=Play/Pause, H=TV,
   M=Mute, +/−=Volume, Esc=close. These are in tooltips, not listed in Settings.
+- Siri button: the `siri` SF Symbol (2025 catalog, macOS 26 only) at 18pt
+  semibold, painted with `RemoteMetrics.siriTint` (a pink → purple → blue
+  gradient; no SF Symbol has a colored Siri). macOS 15 falls back to `mic.fill`
+  with the same gradient. `apple.intelligence` was considered and rejected
+  for the fallback.
 
 ## Keychain (measured on macOS 27, 2026-10)
 
