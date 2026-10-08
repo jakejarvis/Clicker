@@ -1,18 +1,15 @@
 import SwiftUI
 
-/// Pure geometry of the segmented clickpad: four annular sectors around a
-/// round Select button. Kept free of views so the math is unit tested.
+/// Pure geometry of the clickpad: a ring of four quadrants around a round
+/// Select. Kept free of views so the math is unit tested.
 ///
 /// Coordinates are SwiftUI's (y grows downward); angles grow clockwise on
-/// screen. The straight edges of each sector are offset from the diagonals by
-/// half the gap, so the channel between neighbours has the same width at the
-/// rim as it does next to the center.
+/// screen.
 enum ClickpadGeometry {
     static let diameter: CGFloat = 192
     static let selectDiameter: CGFloat = 84
-    /// Channel between neighbouring sectors, and between sectors and Select.
-    static let gap: CGFloat = 6
-    static let cornerRadius: CGFloat = 6
+    /// Channel between the ring and Select.
+    static let gap: CGFloat = 3
 
     static var outerRadius: CGFloat { diameter / 2 }
     static var innerRadius: CGFloat { selectDiameter / 2 + gap }
@@ -25,7 +22,7 @@ enum ClickpadGeometry {
         case down
         case left
 
-        /// Angle of the sector's center line, in radians.
+        /// Angle of the quadrant's center line, in radians.
         var centerAngle: CGFloat {
             switch self {
             case .right: return 0
@@ -35,90 +32,70 @@ enum ClickpadGeometry {
             }
         }
 
-        /// Unit vector pointing from the pad center through the sector.
+        /// Unit vector pointing from the pad center through the quadrant.
         var unit: CGPoint {
             CGPoint(x: cos(centerAngle), y: sin(centerAngle))
         }
     }
 
-    /// One sector with the default dimensions, optionally inset (for hairline
-    /// strokes on the material fallback).
-    static func path(for direction: Direction, center: CGPoint, inset: CGFloat = 0) -> Path {
-        path(
-            for: direction, center: center,
-            outerRadius: outerRadius - inset, innerRadius: innerRadius + inset,
-            gap: gap + 2 * inset, cornerRadius: max(cornerRadius - inset, 0))
-    }
-
-    /// One sector with explicit dimensions.
-    static func path(
-        for direction: Direction, center: CGPoint, outerRadius: CGFloat, innerRadius: CGFloat, gap: CGFloat,
-        cornerRadius: CGFloat
-    ) -> Path {
-        guard cornerRadius > 0 else {
-            return sharpPath(
-                for: direction, center: center, outerRadius: outerRadius, innerRadius: innerRadius, gap: gap)
+    /// The quadrant under a point, or nil outside the band. Each direction
+    /// owns the 90° arc centered on its axis, split along the diagonals.
+    static func direction(at point: CGPoint, center: CGPoint) -> Direction? {
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        let radius = (dx * dx + dy * dy).squareRoot()
+        guard radius >= innerRadius, radius <= outerRadius else { return nil }
+        if abs(dx) > abs(dy) {
+            return dx > 0 ? .right : .left
         }
-        // Inset the sector by the corner radius, then grow it back with a
-        // round-joined stroke: every corner comes out rounded and every edge
-        // lands back where it started.
-        let core = sharpPath(
-            for: direction, center: center, outerRadius: outerRadius - cornerRadius,
-            innerRadius: innerRadius + cornerRadius, gap: gap + 2 * cornerRadius)
-        let rim = core.strokedPath(StrokeStyle(lineWidth: 2 * cornerRadius, lineCap: .round, lineJoin: .round))
-        return core.union(rim)
+        return dy > 0 ? .down : .up
     }
 
-    /// Bounding box of a sector drawn around the origin, with default dimensions.
-    static func bounds(for direction: Direction) -> CGRect {
-        boundsByDirection[direction] ?? .zero
-    }
-
-    private static let boundsByDirection: [Direction: CGRect] = Dictionary(
-        uniqueKeysWithValues: Direction.allCases.map { ($0, path(for: $0, center: .zero).boundingRect) })
-
-    /// Angle by which a sector edge moves in from the diagonal at a given
-    /// radius so the straight edge sits `gap / 2` from the diagonal.
-    static func edgeInset(atRadius radius: CGFloat, gap: CGFloat) -> CGFloat {
-        asin(min(gap / (2 * radius), 1))
-    }
-
-    private static func sharpPath(
-        for direction: Direction, center: CGPoint, outerRadius: CGFloat, innerRadius: CGFloat, gap: CGFloat
-    ) -> Path {
-        let outerInset = edgeInset(atRadius: outerRadius, gap: gap)
-        let innerInset = edgeInset(atRadius: innerRadius, gap: gap)
+    /// One quadrant of the band, diagonal to diagonal.
+    static func quadrantPath(for direction: Direction, center: CGPoint) -> Path {
         let start = direction.centerAngle - .pi / 4
         let end = direction.centerAngle + .pi / 4
-
         var path = Path()
         path.addArc(
-            center: center, radius: outerRadius,
-            startAngle: .radians(start + outerInset), endAngle: .radians(end - outerInset), clockwise: false)
+            center: center, radius: outerRadius, startAngle: .radians(start), endAngle: .radians(end),
+            clockwise: false)
         path.addArc(
-            center: center, radius: innerRadius,
-            startAngle: .radians(end - innerInset), endAngle: .radians(start + innerInset), clockwise: true)
+            center: center, radius: innerRadius, startAngle: .radians(end), endAngle: .radians(start), clockwise: true
+        )
         path.closeSubpath()
         return path
     }
 }
 
-/// A clickpad sector as a SwiftUI shape. The shape is drawn in the sector's
-/// own bounding box (see `ClickpadGeometry.bounds(for:)`), so each direction
-/// button is only as large as the sector it draws.
-struct ClickpadSegment: InsettableShape {
-    let direction: ClickpadGeometry.Direction
+/// The band as one shape: the disc with Select's hole cut out, so one glass
+/// surface backs all four directions without stacking on the glass Select.
+struct ClickpadRing: InsettableShape {
     var insetAmount: CGFloat = 0
 
     func path(in rect: CGRect) -> Path {
-        let bounds = ClickpadGeometry.bounds(for: direction)
-        let center = CGPoint(x: rect.minX - bounds.minX, y: rect.minY - bounds.minY)
-        return ClickpadGeometry.path(for: direction, center: center, inset: insetAmount)
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let outer = ClickpadGeometry.outerRadius - insetAmount
+        let inner = ClickpadGeometry.innerRadius + insetAmount
+        let disc = Path(
+            ellipseIn: CGRect(x: center.x - outer, y: center.y - outer, width: 2 * outer, height: 2 * outer))
+        let hole = Path(
+            ellipseIn: CGRect(x: center.x - inner, y: center.y - inner, width: 2 * inner, height: 2 * inner))
+        return disc.subtracting(hole)
     }
 
-    func inset(by amount: CGFloat) -> ClickpadSegment {
+    func inset(by amount: CGFloat) -> ClickpadRing {
         var copy = self
         copy.insetAmount += amount
         return copy
+    }
+}
+
+/// One quadrant of the band, drawn around the center of its frame. Used for
+/// the hover and press wash over the ring.
+struct ClickpadQuadrant: Shape {
+    let direction: ClickpadGeometry.Direction
+
+    func path(in rect: CGRect) -> Path {
+        ClickpadGeometry.quadrantPath(for: direction, center: CGPoint(x: rect.midX, y: rect.midY))
     }
 }

@@ -59,13 +59,11 @@ private struct ClickpadView: View {
     let controller: RemoteController
 
     var body: some View {
-        // Its own glass container with a tight spacing: the sectors and Select
-        // are 6pt apart and must stay distinct instead of blending.
-        SurfaceContainer(spacing: 3) {
+        // One ring of glass with Select in its hole, like the volume rocker. The
+        // container spacing stays under the 3pt channel so the two do not merge.
+        SurfaceContainer(spacing: 1) {
             ZStack {
-                ForEach(ClickpadGeometry.Direction.allCases, id: \.self) { direction in
-                    DirectionButton(controller: controller, direction: direction)
-                }
+                ClickpadRingView(controller: controller)
 
                 HoldButton(controller: controller, command: .select, shape: Circle()) {
                     Circle()
@@ -81,38 +79,78 @@ private struct ClickpadView: View {
     }
 }
 
-/// One sector of the clickpad: a glass annular sector with an arrow at the
-/// middle of the band. The button is framed to the sector's bounding box so
-/// tooltips, press scaling and accessibility frames match what is drawn.
-private struct DirectionButton: View {
+/// The four directions as one control: a glass ring that works out the
+/// quadrant from the pointer itself, so hover, press and the highlight all
+/// come from the same `ClickpadGeometry.direction(at:)`. A press sends HID
+/// down for the quadrant it started in and up on release, wherever the
+/// pointer went in between.
+private struct ClickpadRingView: View {
     let controller: RemoteController
-    let direction: ClickpadGeometry.Direction
+    @State private var hovered: ClickpadGeometry.Direction?
+    @State private var pressed: ClickpadGeometry.Direction?
 
-    private var command: HIDCommand {
-        switch direction {
+    var body: some View {
+        let highlight = pressed ?? hovered
+        let center = CGPoint(x: ClickpadGeometry.outerRadius, y: ClickpadGeometry.outerRadius)
+
+        ZStack {
+            if let highlight {
+                ClickpadQuadrant(direction: highlight)
+                    .fill(
+                        .primary.opacity(
+                            pressed == nil ? SurfaceHighlight.hovered.opacity : SurfaceHighlight.pressed.opacity))
+            }
+            ForEach(ClickpadGeometry.Direction.allCases, id: \.self) { direction in
+                Image(systemName: direction.command.systemImage)
+                    .font(RemoteMetrics.glyphFont)
+                    .foregroundStyle(.primary)
+                    .offset(
+                        x: direction.unit.x * ClickpadGeometry.arrowRadius,
+                        y: direction.unit.y * ClickpadGeometry.arrowRadius)
+            }
+        }
+        .frame(width: ClickpadGeometry.diameter, height: ClickpadGeometry.diameter)
+        .contentShape(ClickpadRing())
+        .surface(ClickpadRing())
+        .animation(.easeOut(duration: 0.1), value: highlight)
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(let location): hovered = ClickpadGeometry.direction(at: location, center: center)
+            case .ended: hovered = nil
+            }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    guard pressed == nil,
+                        let direction = ClickpadGeometry.direction(at: value.startLocation, center: center)
+                    else { return }
+                    pressed = direction
+                    controller.buttonDown(direction.command)
+                }
+                .onEnded { _ in
+                    guard let direction = pressed else { return }
+                    pressed = nil
+                    controller.buttonUp(direction.command)
+                }
+        )
+        .help(hovered?.command.title ?? "")
+        .accessibilityChildren {
+            ForEach(ClickpadGeometry.Direction.allCases, id: \.self) { direction in
+                Button(direction.command.title) { controller.press(direction.command) }
+            }
+        }
+    }
+}
+
+extension ClickpadGeometry.Direction {
+    fileprivate var command: HIDCommand {
+        switch self {
         case .up: return .up
         case .down: return .down
         case .left: return .left
         case .right: return .right
         }
-    }
-
-    var body: some View {
-        let shape = ClickpadSegment(direction: direction)
-        let bounds = ClickpadGeometry.bounds(for: direction)
-        let arrow = CGPoint(
-            x: direction.unit.x * ClickpadGeometry.arrowRadius - bounds.midX,
-            y: direction.unit.y * ClickpadGeometry.arrowRadius - bounds.midY)
-
-        HoldButton(controller: controller, command: command, shape: shape, pressScale: 0.97) {
-            Image(systemName: command.systemImage)
-                .font(RemoteMetrics.glyphFont)
-                .foregroundStyle(.primary)
-                .offset(x: arrow.x, y: arrow.y)
-                .frame(width: bounds.width, height: bounds.height)
-        }
-        .offset(x: bounds.midX, y: bounds.midY)
-        .help(command.title)
     }
 }
 
