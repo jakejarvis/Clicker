@@ -222,3 +222,106 @@ footer a:hover {
     padding-block: 5rem;
   }
 }
+
+.changelog h1 {
+  margin: 0 0 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 1px;
+}
+
+.releases {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.release {
+  scroll-margin-top: 6rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--faint);
+}
+
+.release-tag {
+  font-family: var(--mono);
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.release-tag:hover {
+  color: rgb(237 237 237 / 80%);
+}
+
+.release-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.release-meta a {
+  transition: color 0.15s;
+}
+
+.release-meta a:hover {
+  color: var(--fg);
+}
+
+.release-meta .download-link {
+  font-weight: 500;
+  color: rgb(237 237 237 / 75%);
+}
+
+.slash {
+  color: rgb(237 237 237 / 35%);
+}
+
+.release-body {
+  margin-top: 0.5rem;
+  color: rgb(237 237 237 / 90%);
+}
+
+.release-body > :first-child {
+  margin-top: 0;
+}
+
+.release-body > :last-child {
+  margin-bottom: 0;
+}
+
+.release-body p,
+.release-body ul,
+.release-body ol {
+  margin: 0 0 0.75rem;
+}
+
+.release-body ul,
+.release-body ol {
+  padding-left: 1.25rem;
+}
+
+.release-body h1,
+.release-body h2,
+.release-body h3 {
+  margin: 1.25rem 0 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.release-body a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 1px;
+}
+
+.release-body code {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}

@@ -38,7 +38,9 @@ Resources/           Info.plist, Clicker.entitlements + Clicker.provisionprofile
                      StatusIcon/ menu bar glyph SVGs + generated PDFs
                      (regenerate with swift script/make_status_icons.swift)
 .github/workflows/   ci.yml (test + package), release.yml (on v* tags)
-site/                Vercel project for clicker.jarv.is; vercel.json rewrites
+site/                Astro on Vercel for clicker.jarv.is; /changelog is server-rendered
+                     from the GitHub releases API (edge-cached 10 min, optional
+                     GITHUB_TOKEN), other pages prerender; vercel.json rewrites
                      /appcast.xml to the gh-pages branch
 README.md            for users: install, pairing, using the remote, troubleshooting
 CONTRIBUTING.md      build and run, demo mode, screenshots, releasing

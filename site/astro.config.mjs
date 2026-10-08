@@ -5,7 +5,6 @@ import vercel from "@astrojs/vercel";
 // https://astro.build/config
 export default defineConfig({
   site: "https://clicker.jarv.is",
-  output: "static",
   adapter: vercel({
     imageService: true,
   }),
