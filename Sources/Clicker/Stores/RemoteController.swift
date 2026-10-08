@@ -149,14 +149,31 @@ final class RemoteController {
 
     // MARK: - Devices
 
-    /// Online devices merged with paired devices that are not currently visible.
+    /// Online devices merged with paired devices that are not currently visible, in picker order.
     var devices: [AppleTVDevice] {
         var result = demo?.onlineDevices ?? browser.devices
         let onlineIDs = Set(result.map(\.id))
         for credentials in credentialStore.credentials where !onlineIDs.contains(credentials.deviceID) {
             result.append(AppleTVDevice(offline: credentials))
         }
-        return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        return Self.pickerOrder(result, isPaired: isPaired)
+    }
+
+    /// Usable TVs first, like the Wi‑Fi menu: paired and online, then paired but offline, then
+    /// unpaired, by name within each group. The selected TV is not floated to the top (it already
+    /// has the check mark) so the list does not jump when switching.
+    nonisolated static func pickerOrder(_ devices: [AppleTVDevice], isPaired: (AppleTVDevice) -> Bool)
+        -> [AppleTVDevice]
+    {
+        func rank(_ device: AppleTVDevice) -> Int {
+            guard isPaired(device) else { return 2 }
+            return device.isOnline ? 0 : 1
+        }
+        return devices.sorted { a, b in
+            let (ra, rb) = (rank(a), rank(b))
+            if ra != rb { return ra < rb }
+            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+        }
     }
 
     var selectedDevice: AppleTVDevice? {
