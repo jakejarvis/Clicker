@@ -35,10 +35,10 @@ enum TLV8 {
             switch self {
             case .unknown: return "The Apple TV reported an unknown error."
             case .authentication: return "That code wasn't accepted."
-            case .backoff: return "The Apple TV asked to wait before trying again."
+            case .backoff: return "The Apple TV needs a moment. Try again shortly."
             case .maxPeers: return "The Apple TV has reached its pairing limit."
             case .maxTries: return "Too many failed attempts. Try again later."
-            case .unavailable: return "Pairing is currently unavailable."
+            case .unavailable: return "Pairing isn't available right now."
             case .busy: return "The Apple TV is busy with another pairing."
             }
         }

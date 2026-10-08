@@ -82,7 +82,7 @@ struct DevicePickerMenu: View {
             HStack(spacing: 5) {
                 ProgressView()
                     .controlSize(.mini)
-                Text("Looking on your network…")
+                Text("Searching…")
             }
         } else {
             Text("\(controller.devices.count) found")

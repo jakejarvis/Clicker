@@ -194,7 +194,9 @@ extension MenuBarView {
                 .frame(width: 28, height: 24)
         }
         .disabled(!canType)
-        .accessibilityLabel(controller.isTextFieldShown ? "Hide Apple TV text field" : "Show Apple TV text field")
+        .accessibilityLabel(
+            controller.isTextFieldShown ? "Hide the Apple TV text field" : "Show the Apple TV text field"
+        )
         .contentShape(Rectangle())
         .help(help)
     }
