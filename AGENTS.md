@@ -159,6 +159,24 @@ robinebers/openusage:
 - Interactive surfaces use `.surface(shape)` (Liquid Glass on 26, materials on
   15). Static containers use `.card()` (flat quaternary fill + hairline).
   Never put glass on glass for non-interactive content.
+- Buttons use `SurfaceButtonStyle(shape:)` (Surface.swift), never `.surface`
+  on the outside of a `Button`: the style owns the glass, so hover and press
+  wash the whole shape with `.primary` (`SurfaceHighlight`, 10%/18%: brighter
+  in dark mode, darker in light), the whole control shrinks while held
+  (`pressScale`, 0.96 default, 0.97 sectors, 0.98 wide controls), and a
+  disabled control keeps its shape but fades its label to 40%. `glass: false`
+  draws only the highlight, for the volume rocker halves inside one capsule
+  and the flat footer controls. `Glass.interactive()` alone never showed any
+  hover or press change in this panel, which is why the highlight is explicit.
+- In dark mode untinted glass is nearly the panel's own shade, so `.surface`
+  tints it `white.opacity(0.12)` there (`SurfaceModifier.glassTint`). Light
+  mode gets no tint. A hairline stroke was not needed.
+- Every remote glyph uses `RemoteMetrics.glyphFont` (16pt medium) and an
+  outline symbol (`playpause`, `speaker.slash`, `tv`, `siri`, `power`,
+  `square.grid.2x2`, chevrons, plus, minus). Filled symbols next to stroked
+  ones look several times heavier whatever the weight, and a per-glyph table
+  of sizes and weights (tried, with custom-drawn TV and plus/minus paths)
+  looked worse than one font. Don't do either again.
 - Settings: section headers `.subheadline.semibold` secondary; row titles
   `.body`; secondary text `.caption`; every action a small `.bordered` button;
   every toggle a small `.switch`; explanations go in section footers, not in
@@ -198,10 +216,9 @@ robinebers/openusage:
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".
 - Keyboard: arrows, Return=Select, Delete=Back, Space=Play/Pause, H=TV,
   M=Mute, +/−=Volume, Esc=close. These are in tooltips, not listed in Settings.
-- Siri button: the `siri` SF Symbol (2025 catalog, macOS 26 only) at 18pt
-  semibold, painted with `RemoteMetrics.siriTint` (a pink → purple → blue
-  gradient; no SF Symbol has a colored Siri). macOS 15 falls back to `mic.fill`
-  with the same gradient. `apple.intelligence` was considered and rejected
+- Siri button: the `siri` SF Symbol (2025 catalog, macOS 26 only), painted
+  with `RemoteMetrics.siriTint` (a pink → purple → blue gradient; no SF Symbol
+  has a colored Siri). macOS 15 falls back to `mic` with the same gradient. `apple.intelligence` was considered and rejected
   for the fallback.
 
 ## Keychain (measured on macOS 27, 2026-10)

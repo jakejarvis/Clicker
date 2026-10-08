@@ -33,11 +33,7 @@ struct RemotePadView: View {
                     HoldRemoteButton(command: .home, controller: controller)
                     HoldRemoteButton(command: .playPause, controller: controller)
                     MuteButton(controller: controller)
-                    // The orb is an outline, so it needs extra size and weight
-                    // to sit evenly next to the filled glyphs around it.
-                    HoldRemoteButton(
-                        command: .siri, controller: controller, tint: RemoteMetrics.siriTint, size: 18,
-                        weight: .semibold)
+                    HoldRemoteButton(command: .siri, controller: controller)
                     VolumeRocker(controller: controller)
                 }
             }
@@ -48,6 +44,10 @@ struct RemotePadView: View {
 enum RemoteMetrics {
     static let buttonHeight: CGFloat = 44
     static let cornerButtonDiameter: CGFloat = 32
+
+    /// One font for every glyph on the remote, with outline symbols
+    /// throughout, so strokes read the same width from button to button.
+    static let glyphFont: Font = .system(size: 16, weight: .medium)
 
     /// Siri's orb colors. SF Symbols has no colored Siri glyph, so the
     /// gradient is painted through the symbol instead.
@@ -74,13 +74,11 @@ private struct ClickpadView: View {
                     DirectionButton(controller: controller, direction: direction)
                 }
 
-                HoldButton(controller: controller, command: .select) {
+                HoldButton(controller: controller, command: .select, shape: Circle()) {
                     Circle()
                         .fill(.clear)
                         .frame(width: ClickpadGeometry.selectDiameter, height: ClickpadGeometry.selectDiameter)
-                        .contentShape(Circle())
                 }
-                .surface(Circle())
                 .help("Select (Return)")
             }
             .frame(width: ClickpadGeometry.diameter, height: ClickpadGeometry.diameter)
@@ -113,15 +111,13 @@ private struct DirectionButton: View {
             x: direction.unit.x * ClickpadGeometry.arrowRadius - bounds.midX,
             y: direction.unit.y * ClickpadGeometry.arrowRadius - bounds.midY)
 
-        HoldButton(controller: controller, command: command, feedback: .dim(scale: 0.97)) {
+        HoldButton(controller: controller, command: command, shape: shape, pressScale: 0.97) {
             Image(systemName: command.systemImage)
-                .font(.system(size: 14, weight: .semibold))
+                .font(RemoteMetrics.glyphFont)
                 .foregroundStyle(.primary)
                 .offset(x: arrow.x, y: arrow.y)
                 .frame(width: bounds.width, height: bounds.height)
-                .contentShape(shape)
         }
-        .surface(shape)
         .offset(x: bounds.midX, y: bounds.midY)
         .help(command.title)
     }
@@ -131,16 +127,11 @@ private struct DirectionButton: View {
 private struct HoldRemoteButton: View {
     let command: HIDCommand
     let controller: RemoteController
-    var tint: AnyShapeStyle?
-    var size: CGFloat = 16
-    var weight: Font.Weight = .medium
 
     var body: some View {
-        HoldButton(controller: controller, command: command) {
-            RemoteGlyph(systemImage: command.systemImage, tint: tint, size: size, weight: weight)
-                .contentShape(Capsule())
+        HoldButton(controller: controller, command: command, shape: Capsule()) {
+            RemoteGlyph(systemImage: command.systemImage, tint: command == .siri ? RemoteMetrics.siriTint : nil)
         }
-        .surface(Capsule())
         .help(command == .siri ? "Hold for Siri" : command.title)
     }
 }
@@ -153,16 +144,11 @@ private struct MuteButton: View {
         Button {
             controller.toggleMute()
         } label: {
-            RemoteGlyph(
-                systemImage: controller.isMuted ? "speaker.slash.fill" : "speaker.slash",
-                tint: controller.isMuted ? AnyShapeStyle(.orange) : nil
-            )
-            .contentShape(Capsule())
+            RemoteGlyph(systemImage: "speaker.slash", tint: controller.isMuted ? AnyShapeStyle(.orange) : nil)
         }
-        .buttonStyle(RemotePressStyle())
+        .buttonStyle(SurfaceButtonStyle(shape: Capsule(), tint: controller.isMuted ? .orange : nil))
         .focusable(false)
         .focusEffectDisabled()
-        .surface(Capsule(), tint: controller.isMuted ? .orange : nil)
         .help(controller.isMuted ? "Unmute (M)" : "Mute (M)")
         .accessibilityLabel(controller.isMuted ? "Unmute" : "Mute")
     }
@@ -173,13 +159,12 @@ private struct VolumeRocker: View {
     let controller: RemoteController
 
     var body: some View {
+        // One capsule of glass; each half highlights on its own and the
+        // rocker does not shrink, since pressing half a capsule should not
+        // move the other half.
         HStack(spacing: 0) {
-            HoldButton(controller: controller, command: .volumeDown) {
-                Image(systemName: "minus")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: RemoteMetrics.buttonHeight)
-                    .contentShape(Rectangle())
+            HoldButton(controller: controller, command: .volumeDown, shape: Rectangle(), glass: false, pressScale: 1) {
+                RemoteGlyph(systemImage: "minus")
             }
             .help("Volume Down (−)")
 
@@ -187,15 +172,12 @@ private struct VolumeRocker: View {
                 .fill(.separator)
                 .frame(width: 1, height: RemoteMetrics.buttonHeight * 0.5)
 
-            HoldButton(controller: controller, command: .volumeUp) {
-                Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: RemoteMetrics.buttonHeight)
-                    .contentShape(Rectangle())
+            HoldButton(controller: controller, command: .volumeUp, shape: Rectangle(), glass: false, pressScale: 1) {
+                RemoteGlyph(systemImage: "plus")
             }
             .help("Volume Up (+)")
         }
+        .clipShape(Capsule())
         .surface(Capsule())
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Volume")
@@ -205,23 +187,23 @@ private struct VolumeRocker: View {
 private struct RemoteGlyph: View {
     let systemImage: String
     var tint: AnyShapeStyle?
-    var size: CGFloat = 16
-    var weight: Font.Weight = .medium
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: size, weight: weight))
+            .font(RemoteMetrics.glyphFont)
             .foregroundStyle(tint ?? AnyShapeStyle(.primary))
             .frame(maxWidth: .infinity)
             .frame(height: RemoteMetrics.buttonHeight)
     }
 }
 
-/// A button that reports press and release separately.
-private struct HoldButton<Label: View>: View {
+/// A glass button that reports press and release separately.
+private struct HoldButton<Shape: InsettableShape, Label: View>: View {
     let controller: RemoteController
     let command: HIDCommand
-    var feedback: RemotePressStyle.Feedback = .dim()
+    let shape: Shape
+    var glass = true
+    var pressScale: CGFloat = 0.96
     @ViewBuilder let label: () -> Label
 
     var body: some View {
@@ -229,7 +211,7 @@ private struct HoldButton<Label: View>: View {
             label()
         }
         .buttonStyle(
-            RemotePressStyle(feedback: feedback) { pressed in
+            SurfaceButtonStyle(shape: shape, glass: glass, pressScale: pressScale) { pressed in
                 if pressed {
                     controller.buttonDown(command)
                 } else {
@@ -242,34 +224,6 @@ private struct HoldButton<Label: View>: View {
         .focusable(false)
         .focusEffectDisabled()
         .accessibilityLabel(command.title)
-    }
-}
-
-private struct RemotePressStyle: ButtonStyle {
-    enum Feedback {
-        /// Shrink to `scale` and dim slightly while held.
-        case dim(scale: CGFloat = 0.94)
-    }
-
-    var feedback: Feedback = .dim()
-    var onPressChanged: ((Bool) -> Void)?
-
-    func makeBody(configuration: Configuration) -> some View {
-        styled(configuration)
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, pressed in
-                onPressChanged?(pressed)
-            }
-    }
-
-    @ViewBuilder
-    private func styled(_ configuration: Configuration) -> some View {
-        switch feedback {
-        case .dim(let scale):
-            configuration.label
-                .scaleEffect(configuration.isPressed ? scale : 1)
-                .opacity(configuration.isPressed ? 0.75 : 1)
-        }
     }
 }
 

@@ -161,8 +161,12 @@ struct MenuBarView: View {
             }
             AppMenu(controller: controller, updates: updates)
         }
-        .buttonStyle(.borderless)
-        .menuStyle(.borderlessButton)
+        // Flat footer controls: a rounded highlight on hover, no glass.
+        .buttonStyle(
+            SurfaceButtonStyle(
+                shape: RoundedRectangle(cornerRadius: 6, style: .continuous), glass: false, pressScale: 1)
+        )
+        .menuStyle(.button)
         .foregroundStyle(.secondary)
     }
 }

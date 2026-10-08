@@ -205,10 +205,8 @@ struct PanelNavigationBar: View {
                     Image(systemName: "chevron.backward")
                         .font(.system(size: 12, weight: .semibold))
                         .frame(width: 28, height: 28)
-                        .contentShape(Circle())
                 }
-                .buttonStyle(PressFeedbackStyle())
-                .surface(Circle())
+                .buttonStyle(SurfaceButtonStyle(shape: Circle()))
                 .help("Back (Esc)")
                 .accessibilityLabel("Back")
                 Spacer()
@@ -275,9 +273,8 @@ private struct PairedDeviceRow: View {
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .frame(width: 24, height: 24)
-                    .contentShape(Circle())
             }
-            .buttonStyle(PressFeedbackStyle())
+            .buttonStyle(SurfaceButtonStyle(shape: Circle(), glass: false, pressScale: 1))
             .opacity(isHovered ? 1 : 0)
             .help("Forget this pairing")
             .accessibilityLabel("Forget \(name)")
@@ -301,8 +298,6 @@ struct PanelActionButton: View {
     var systemImage: String?
     let action: () -> Void
 
-    @Environment(\.isEnabled) private var isEnabled
-
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -314,13 +309,13 @@ struct PanelActionButton: View {
                     .font(.callout)
             }
             .foregroundStyle(.primary)
-            .opacity(isEnabled ? 1 : 0.4)
             .frame(maxWidth: .infinity)
             .frame(height: 30)
-            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
         }
-        .buttonStyle(PressFeedbackStyle())
-        .surface(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
+        .buttonStyle(
+            SurfaceButtonStyle(
+                shape: RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous),
+                pressScale: 0.98))
     }
 }
 

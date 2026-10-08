@@ -33,10 +33,8 @@ struct DevicePickerMenu: View {
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: PanelMetrics.headerControlHeight)
-            .contentShape(shape)
         }
-        .buttonStyle(PressFeedbackStyle())
-        .surface(shape)
+        .buttonStyle(SurfaceButtonStyle(shape: shape, pressScale: 0.98))
         .disabled(controller.devices.isEmpty)
         .help("Choose an Apple TV")
         .accessibilityLabel("Apple TV: \(controller.selectedDevice?.name ?? "none selected")")
@@ -172,14 +170,5 @@ private struct DeviceRow: View {
         .onHover { isHovered = $0 }
         .accessibilityLabel("\(device.name), \(subtitle)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-/// Subtle press feedback for plain, non-remote buttons.
-struct PressFeedbackStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.7 : 1)
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }

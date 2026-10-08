@@ -57,10 +57,9 @@ private struct CornerMenuGlyph: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: 13, weight: .semibold))
+            .font(RemoteMetrics.glyphFont)
             .foregroundStyle(.primary)
             .frame(width: RemoteMetrics.cornerButtonDiameter, height: RemoteMetrics.cornerButtonDiameter)
-            .contentShape(Circle())
     }
 }
 
@@ -69,10 +68,9 @@ extension View {
     /// style is required: `.borderlessButton` ignores the label frame.
     fileprivate func cornerMenuStyle() -> some View {
         menuStyle(.button)
-            .buttonStyle(PressFeedbackStyle())
+            .buttonStyle(SurfaceButtonStyle(shape: Circle()))
             .menuIndicator(.hidden)
             .fixedSize()
-            .surface(Circle())
     }
 }
 
