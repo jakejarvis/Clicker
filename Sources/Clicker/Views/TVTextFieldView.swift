@@ -22,7 +22,7 @@ struct TVTextFieldView: View {
                 .textFieldStyle(.plain)
                 .focused($isFocused)
                 .onExitCommand { isFocused = false }
-                .onSubmit { isFocused = false }
+                .onSubmit { controller.submitTVText() }
             if !controller.tvText.isEmpty {
                 Button {
                     controller.clearTVText()

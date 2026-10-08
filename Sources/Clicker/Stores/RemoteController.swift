@@ -426,6 +426,16 @@ final class RemoteController {
         updateTVText("")
     }
 
+    /// Sends Return to the TV's field as a newline insertion, the way a
+    /// hardware keyboard's Return reaches a UIKit text field. Whether tvOS
+    /// treats it as Done over Companion is unverified; the panel's text is
+    /// left alone so typing can continue if nothing happens.
+    func submitTVText() {
+        guard let session = keyboardSession else { return }
+        Log.remote.info("Return to TV field")
+        perform { try await $0.insertText("\n", session: session) }
+    }
+
     func launch(_ app: AppleTVApp) {
         perform { try await $0.launchApp(bundleIdentifier: app.bundleIdentifier) }
     }

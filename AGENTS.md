@@ -273,6 +273,12 @@ robinebers/openusage:
   Reading `_tiD` walks UIDs by hand because class-name lookup can resolve to
   real private classes when AppKit is loaded. The end-to-end flow against a
   TV keyboard is still unverified by an agent; the user has not tested it yet.
+  Return in the panel's field sends `"\n"` as an `insertionText`
+  (`RemoteController.submitTVText`); pyatv has no submit, and the private
+  `TIKeyboardOutput` / `RTITextOperations` headers show no return or done
+  field (only `insertionText`, `textToCommit`, deletion counts and an
+  `editingActionSelector`), so a newline is the best guess for Done and is
+  untested against a real TV.
 - A connection attempt right after another session drops often times out
   once; `connectIfNeeded` retries once quietly.
 
