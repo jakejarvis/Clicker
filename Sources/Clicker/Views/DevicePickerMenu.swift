@@ -31,8 +31,8 @@ struct DevicePickerMenu: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: PanelMetrics.headerControlHeight)
             .contentShape(shape)
         }
         .buttonStyle(PressFeedbackStyle())

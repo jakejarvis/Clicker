@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Footer menu listing the apps installed on the Apple TV.
 struct AppsMenu: View {
     let controller: RemoteController
 
@@ -25,6 +26,9 @@ struct AppsMenu: View {
     }
 }
 
+/// Round power button beside the clickpad, where it sits on the Siri Remote. Opens
+/// the wake/sleep menu rather than toggling, since the TV does not report
+/// power reliably enough to make a single tap safe.
 struct PowerMenu: View {
     let controller: RemoteController
 
@@ -37,11 +41,19 @@ struct PowerMenu: View {
             Button("Control Center", systemImage: "switch.2") { controller.press(.pageDown) }
             Button("Guide", systemImage: "list.bullet.rectangle") { controller.press(.guide) }
         } label: {
-            Label("Power", systemImage: "power")
-                .padding(.horizontal, 4)
-                .frame(height: 24)
+            Image(systemName: "power")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: RemoteMetrics.powerButtonDiameter, height: RemoteMetrics.powerButtonDiameter)
+                .contentShape(Circle())
         }
+        .menuStyle(.button)
+        .buttonStyle(PressFeedbackStyle())
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .surface(Circle())
         .disabled(controller.connectionState != .connected)
-        .help("Apple TV is \(controller.powerState.title.lowercased())")
+        .help("Power · Apple TV is \(controller.powerState.title.lowercased())")
+        .accessibilityLabel("Power")
     }
 }

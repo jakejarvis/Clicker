@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Root of the menu bar panel, laid out in remote proportions: device cards
-/// on top, the clickpad and buttons in the middle, apps/power/settings below.
+/// Root of the menu bar panel, laid out in remote proportions: device picker
+/// on top, the clickpad and buttons in the middle, apps and settings below.
 struct MenuBarView: View {
     let controller: RemoteController
     let updates: UpdateController
@@ -124,7 +124,6 @@ struct MenuBarView: View {
     private var footer: some View {
         HStack(spacing: 2) {
             AppsMenu(controller: controller)
-            PowerMenu(controller: controller)
             Spacer()
             if let version = updates.pendingUpdateVersion {
                 Button {

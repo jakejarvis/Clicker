@@ -24,7 +24,7 @@ Sources/Clicker
 │               MenuBarPanel + PanelMetrics/PanelGeometry/PanelBackdropView,
 │               PanelOutsideClickMonitor
 ├── Views/      MenuBarView (screen switch), DevicePickerMenu, RemotePadView,
-│               TVTextFieldView, PairingView, SettingsScreen, FooterMenus
+│               TVTextFieldView, PairingView, SettingsScreen, ActionMenus
 ├── Stores/     RemoteController (all UI-facing state), CredentialStore,
 │               IdentityStore, UpdateController (Sparkle)
 ├── Services/   DeviceBrowser (NWBrowser) and Companion/* (OPACK, TLV8,
@@ -110,6 +110,8 @@ robinebers/openusage:
   clicks, except clicks on the status button, inside the panel, in menu or
   popover windows, or while `panel.attachedSheet != nil`.
 - Right-click on the status item: Settings…, Check for Updates… and Quit.
+- Footer holds Apps, the update button, and Settings; power moved up beside
+  the clickpad.
 - SwiftUI `.popover` and `.alert` both work inside the panel (device picker
   and the Forget confirmation use them).
 
@@ -128,6 +130,13 @@ robinebers/openusage:
   callout, primary text). Quit lives there; Check for Updates belongs there too.
 - Remote buttons send HID down on press and up on release (`HoldButton`), so
   Siri hold works. Commands are serialized in `RemoteController.perform`.
+- Clickpad arrows are primary-colored glyphs drawn directly on the flat ring.
+  Feedback is on the glyph only: grow on hover, shrink and dim while held
+  (`RemotePressStyle.Feedback.glyph`). A hover disc behind the arrow was tried
+  and rejected as ugly. Only the center Select is glass.
+- Power is a 32pt round glass `Menu` floating at the top right of the clickpad
+  (Siri Remote placement). It needs `.menuStyle(.button)` plus a plain button
+  style and `.fixedSize()`; `.borderlessButton` ignores the label frame.
 - Device picker is a full-width control with a popover list; system `Menu`
   cannot show subtitles, which is why it is custom.
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".

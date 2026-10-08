@@ -10,7 +10,13 @@ struct RemotePadView: View {
     var body: some View {
         SurfaceContainer(spacing: 10) {
             VStack(spacing: 16) {
-                ClickpadView(controller: controller)
+                // Power floats at the top right of the clickpad, where it sits
+                // on the Siri Remote. Sized so it clears the ring.
+                ZStack(alignment: .topTrailing) {
+                    ClickpadView(controller: controller)
+                        .frame(maxWidth: .infinity)
+                    PowerMenu(controller: controller)
+                }
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     HoldRemoteButton(command: .menu, controller: controller)
                     HoldRemoteButton(command: .home, controller: controller)
@@ -27,6 +33,7 @@ struct RemotePadView: View {
 
 enum RemoteMetrics {
     static let buttonHeight: CGFloat = 44
+    static let powerButtonDiameter: CGFloat = 32
 }
 
 private struct ClickpadView: View {
@@ -40,12 +47,13 @@ private struct ClickpadView: View {
         ZStack {
             Circle()
                 .fill(.quaternary)
+                .overlay(Circle().strokeBorder(.separator.opacity(0.6), lineWidth: 1))
                 .frame(width: diameter, height: diameter)
 
-            directionButton(.up).offset(y: -markOffset)
-            directionButton(.down).offset(y: markOffset)
-            directionButton(.left).offset(x: -markOffset)
-            directionButton(.right).offset(x: markOffset)
+            DirectionButton(controller: controller, command: .up).offset(y: -markOffset)
+            DirectionButton(controller: controller, command: .down).offset(y: markOffset)
+            DirectionButton(controller: controller, command: .left).offset(x: -markOffset)
+            DirectionButton(controller: controller, command: .right).offset(x: markOffset)
 
             HoldButton(controller: controller, command: .select) {
                 Circle()
@@ -61,14 +69,25 @@ private struct ClickpadView: View {
         .accessibilityLabel("Clickpad")
     }
 
-    private func directionButton(_ command: HIDCommand) -> some View {
-        HoldButton(controller: controller, command: command) {
+}
+
+/// One direction on the clickpad. The arrow sits directly on the ring; hover
+/// and press feedback are on the glyph only.
+private struct DirectionButton: View {
+    let controller: RemoteController
+    let command: HIDCommand
+    @State private var isHovered = false
+
+    var body: some View {
+        HoldButton(controller: controller, command: command, feedback: .glyph(isHovered: isHovered)) {
             Image(systemName: command.systemImage)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.secondary)
-                .frame(width: 48, height: 48)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 52, height: 52)
                 .contentShape(Circle())
         }
+        .onHover { isHovered = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
         .help(command.title)
     }
 }
@@ -161,6 +180,7 @@ private struct RemoteGlyph: View {
 private struct HoldButton<Label: View>: View {
     let controller: RemoteController
     let command: HIDCommand
+    var feedback: RemotePressStyle.Feedback = .dim
     @ViewBuilder let label: () -> Label
 
     var body: some View {
@@ -168,7 +188,7 @@ private struct HoldButton<Label: View>: View {
             label()
         }
         .buttonStyle(
-            RemotePressStyle { pressed in
+            RemotePressStyle(feedback: feedback) { pressed in
                 if pressed {
                     controller.buttonDown(command)
                 } else {
@@ -181,16 +201,38 @@ private struct HoldButton<Label: View>: View {
 }
 
 private struct RemotePressStyle: ButtonStyle {
+    enum Feedback {
+        /// Glass buttons: shrink and dim slightly while held.
+        case dim
+        /// Glyphs drawn directly on a surface: grow a little on hover, shrink
+        /// and dim while held. No shape, so nothing fights the ring.
+        case glyph(isHovered: Bool)
+    }
+
+    var feedback: Feedback = .dim
     var onPressChanged: ((Bool) -> Void)?
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .opacity(configuration.isPressed ? 0.75 : 1)
+        styled(configuration)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 onPressChanged?(pressed)
             }
+    }
+
+    @ViewBuilder
+    private func styled(_ configuration: Configuration) -> some View {
+        switch feedback {
+        case .dim:
+            configuration.label
+                .scaleEffect(configuration.isPressed ? 0.94 : 1)
+                .opacity(configuration.isPressed ? 0.75 : 1)
+        case .glyph(let isHovered):
+            let scale: CGFloat = configuration.isPressed ? 0.85 : (isHovered ? 1.15 : 1)
+            configuration.label
+                .scaleEffect(scale)
+                .opacity(configuration.isPressed ? 0.6 : 1)
+        }
     }
 }
 

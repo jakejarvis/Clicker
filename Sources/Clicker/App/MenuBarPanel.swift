@@ -14,6 +14,8 @@ enum PanelMetrics {
     static let cornerRadius: CGFloat = 14
     static let innerCornerRadius: CGFloat = 10
     static let horizontalPadding: CGFloat = 14
+    /// Height of the device picker.
+    static let headerControlHeight: CGFloat = 46
 }
 
 /// Pure panel geometry, separate from the window so it can be unit tested.
