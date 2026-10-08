@@ -55,7 +55,7 @@ struct MenuBarView: View {
             content
                 .frame(maxWidth: .infinity)
                 .padding(14)
-                .animation(.snappy(duration: 0.25), value: controller.keyboardSession == nil)
+                .animation(.snappy(duration: 0.25), value: controller.isTextFieldShown)
 
             Divider()
                 .padding(.horizontal, 14)
@@ -101,7 +101,7 @@ struct MenuBarView: View {
                 }
             // Below the remote, so the panel grows downward from its anchored
             // top and no button moves when the TV shows or hides a keyboard.
-            if isLive, controller.keyboardSession != nil {
+            if isLive, controller.isTextFieldShown {
                 TVTextFieldView(controller: controller)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -150,6 +150,7 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack(spacing: 2) {
+            keyboardButton
             Spacer()
             if let version = updates.pendingUpdateVersion {
                 Button {
@@ -171,6 +172,31 @@ struct MenuBarView: View {
         )
         .menuStyle(.button)
         .foregroundStyle(.secondary)
+    }
+}
+
+extension MenuBarView {
+    /// Hides or re-shows the TV text field. Enabled only while the TV has a
+    /// field focused; otherwise there is nothing to type into. The tooltip
+    /// sits on a wrapper because a disabled button takes no hover.
+    fileprivate var keyboardButton: some View {
+        let canType = overlay == nil && controller.keyboardSession != nil
+        let help =
+            !canType
+            ? "Available when the Apple TV shows a keyboard"
+            : controller.isTextFieldShown ? "Hide the Apple TV text field" : "Type on the Apple TV"
+        return Button {
+            controller.toggleTextField()
+        } label: {
+            Image(systemName: "keyboard")
+                // Accent while the field is showing, like the update button.
+                .foregroundStyle(controller.isTextFieldShown ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                .frame(width: 28, height: 24)
+        }
+        .disabled(!canType)
+        .accessibilityLabel(controller.isTextFieldShown ? "Hide Apple TV text field" : "Show Apple TV text field")
+        .contentShape(Rectangle())
+        .help(help)
     }
 }
 

@@ -13,7 +13,8 @@ no third-party service involved.
   rocker, and press-and-hold Siri. Buttons send real press/release events, so
   holds work. Mute remembers the level and sets the TV's volume to zero.
 - When the Apple TV shows its on-screen keyboard, a text field slides into the
-  panel and types straight into the TV.
+  panel and types straight into the TV. The keyboard button in the footer
+  hides it and brings it back.
 - Keyboard control while the panel is open: arrows, Return, Delete for Back,
   Space, H, M, + and −. Esc closes the panel.
 - Launch any installed app from the Apps menu; Wake, Sleep, Screen Saver and

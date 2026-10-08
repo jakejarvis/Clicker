@@ -50,6 +50,10 @@ final class RemoteController {
     private(set) var keyboardSession: TextInputArchive.Session?
     /// Our mirror of the text in the TV's focused field.
     private(set) var tvText = ""
+    /// Whether the panel shows the TV text field. Set when the TV reports a
+    /// focused field and cleared when it loses one; the footer's keyboard
+    /// button toggles it by hand in between.
+    private(set) var isTextFieldShown = false
     /// Software mute: the volume is set to zero and restored on unmute.
     private(set) var isMuted = false
     var screen: PanelScreen = .remote
@@ -250,8 +254,7 @@ final class RemoteController {
                     self.powerState = state
                 }
                 if let session = try? await client.startTextInput() {
-                    self.keyboardSession = session
-                    self.tvText = session.currentText
+                    self.adoptKeyboardSession(session)
                 }
                 self.refreshApps()
             } catch {
@@ -283,8 +286,7 @@ final class RemoteController {
         powerState = demo.powerState
         apps = DemoScenario.apps
         if let session = demo.keyboardSession {
-            keyboardSession = session
-            tvText = session.currentText
+            adoptKeyboardSession(session)
         }
     }
 
@@ -307,6 +309,7 @@ final class RemoteController {
         powerState = .unknown
         keyboardSession = nil
         tvText = ""
+        isTextFieldShown = false
         isMuted = false
     }
 
@@ -344,12 +347,12 @@ final class RemoteController {
                     if let payload = event.content["_tiD"]?.dataValue,
                         let session = TextInputArchive.session(from: payload)
                     {
-                        self.keyboardSession = session
-                        self.tvText = session.currentText
+                        self.adoptKeyboardSession(session)
                     }
                 case "_tiStopped":
                     self.keyboardSession = nil
                     self.tvText = ""
+                    self.isTextFieldShown = false
                 default:
                     break
                 }
@@ -398,6 +401,20 @@ final class RemoteController {
     func buttonUp(_ command: HIDCommand) {
         Log.remote.info("Up \(command.title, privacy: .public)")
         perform { try await $0.buttonUp(command) }
+    }
+
+    private func adoptKeyboardSession(_ session: TextInputArchive.Session) {
+        keyboardSession = session
+        tvText = session.currentText
+        isTextFieldShown = true
+    }
+
+    /// The footer's keyboard button: hides or re-shows the text field while
+    /// the TV has a field focused. Without a session there is nothing to type
+    /// into, so the button is disabled and this does nothing.
+    func toggleTextField() {
+        guard keyboardSession != nil else { return }
+        isTextFieldShown.toggle()
     }
 
     /// Mirrors an edit in the panel's text field to the TV. Appending sends

@@ -146,8 +146,13 @@ robinebers/openusage:
   Clicker and Quit. The footer gear is a SwiftUI `Menu` (`AppMenu`) with the
   same items; About opens the standard About panel (`AboutPanel`), which
   hides the panel first via `RemoteController.dismissPanel`.
-- Footer holds the update button and the gear menu (its future is open).
-  Apps and Power are round menus at the clickpad's top corners. Quit is only
+- Footer: a keyboard button on the left (hides or re-shows the TV text
+  field; accent-tinted while the field is showing, enabled only while the TV
+  reports a focused field, since without a session there is nothing to type
+  into; its `.help` sits outside `.disabled` with a `contentShape`, since a
+  disabled button takes no hover and would lose its tooltip; no footer
+  tooltip shows while the text field has focus), the update button and the
+  gear menu on the right. Apps and Power are round menus at the clickpad's top corners. Quit is only
   in menus, never a button in Settings.
 - SwiftUI `.popover` and `.alert` both work inside the panel (device picker
   and the Forget confirmation use them).
@@ -218,9 +223,12 @@ robinebers/openusage:
   the non-activating panel, so typing went nowhere.
 - The TV text field (`TVTextFieldView`) appears below the button grid, not
   above the clickpad: the panel is anchored at its top and grows downward,
-  so a keyboard appearing on the TV never moves a button. A card over the
+  so a keyboard appearing on the TV never moves a button. It shows itself
+  when the TV reports a focused field (`RemoteController.isTextFieldShown`)
+  and the footer's keyboard button toggles it in between. A card over the
   pad (like pairing) was considered and set aside because the pad may still
-  be needed to finish typing on the TV.
+  be needed to finish typing on the TV. An always-available keyboard button
+  that opened an inert field without a session was tried and rejected.
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".
 - Keyboard: arrows, Return=Select, Delete=Back, Space=Play/Pause, H=TV,
   M=Mute, +/−=Volume, Esc=close. These are in tooltips, not listed in Settings.
