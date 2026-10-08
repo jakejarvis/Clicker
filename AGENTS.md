@@ -217,6 +217,17 @@ robinebers/openusage:
   the label frame.
 - Device picker is a full-width control with a popover list; system `Menu`
   cannot show subtitles, which is why it is custom.
+  ⌥-clicking the control opens the same popover in details mode, like the
+  Wi-Fi menu: the mode is read in the button action from the click event's
+  own flags (`NSApp.currentEvent`, which synthetic clicks carry) unioned
+  with `NSEvent.modifierFlags` (decided at click time, not live). The popover
+  is `.popover(item:)` with the mode on the item: an `isPresented` popover
+  whose content read a second `@State` set in the same action rendered with
+  the stale value every time. Each row is followed by caption
+  `Label: value` lines (Model, ID, Bluetooth, Version, Flags, Interface, and
+  for the connected TV Address, Session, Power; `DeviceDetailsView`), the
+  list widens to `PanelMetrics.width + 56` so a UUID fits, and a Rescan row
+  sits at the bottom. Rescan appears nowhere else; demo mode hides it.
 - Apps picker (`AppPickerView`) is a popover too: a search field over the
   app list with a Recent group (last five launched bundle IDs per TV,
   persisted under `recentAppIDsByDevice` keyed by device id, following
@@ -307,6 +318,15 @@ robinebers/openusage:
   untested against a real TV.
 - A connection attempt right after another session drops often times out
   once; `connectIfNeeded` retries once quietly.
+- Discovery: one `NWBrowser` runs for the app's life and already reports
+  additions, removals and TXT changes live, following network path changes.
+  `AppleTVDevice` keeps the whole TXT record and the interfaces it was seen
+  on (`DeviceBrowser.merge` unions them across per-interface results).
+  `DeviceBrowser.restart()` re-issues the query for the picker's Rescan but
+  keeps the current list through a 2s grace (removals held back) so a partial
+  first callback cannot drop the selected TV and make `devicesDidChange`
+  reselect another. It cannot flush mDNSResponder's cache: a TV that vanished
+  without a Bonjour goodbye lingers until its records expire either way.
 
 ## Unverified / open
 

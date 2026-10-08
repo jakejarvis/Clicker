@@ -12,6 +12,13 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
     var endpoint: NWEndpoint?
     var pairingDisabled: Bool
     var isOnline: Bool
+    /// Raw `rpFl` bits.
+    var flags: UInt64 = 0
+    /// The whole TXT record as advertised, keys in their original case, for
+    /// the picker's details view.
+    var txtRecord: [String: String] = [:]
+    /// Interfaces the service was seen on, as `en0 (Wi‑Fi)`, sorted and unique.
+    var interfaces: [String] = []
 
     var modelDisplayName: String {
         guard let model else { return "Apple TV" }
@@ -39,13 +46,52 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
     static let pairingDisabledFlag: UInt64 = 0x04
     static let pairingWithPINFlag: UInt64 = 0x4000
 
-    init(id: String, name: String, model: String?, endpoint: NWEndpoint?, pairingDisabled: Bool) {
+    // MARK: - TXT record accessors
+
+    /// Case-insensitive TXT lookup; tvOS advertises mixed-case keys.
+    func txt(_ key: String) -> String? {
+        if let value = txtRecord[key] { return value }
+        let wanted = key.lowercased()
+        return txtRecord.first { $0.key.lowercased() == wanted }?.value
+    }
+
+    /// `rpBA`: the Bluetooth address, which rotates.
+    var bluetoothAddress: String? { txt("rpBA") }
+
+    /// `rpVr`: the Companion (Rapport) protocol version.
+    var companionVersion: String? { txt("rpVr") }
+
+    var flagsHex: String { "0x" + String(flags, radix: 16, uppercase: true) }
+
+    /// The flag bits pyatv knows, spelled out.
+    var flagDescriptions: [String] {
+        var names: [String] = []
+        if flags & Self.pairingDisabledFlag != 0 { names.append("Pairing disabled") }
+        if flags & Self.pairingWithPINFlag != 0 { names.append("PIN pairing") }
+        return names
+    }
+
+    // MARK: - Initializers
+
+    init(
+        id: String,
+        name: String,
+        model: String?,
+        endpoint: NWEndpoint?,
+        pairingDisabled: Bool,
+        flags: UInt64 = 0,
+        txtRecord: [String: String] = [:],
+        interfaces: [String] = []
+    ) {
         self.id = id
         self.name = name
         self.model = model
         self.endpoint = endpoint
         self.pairingDisabled = pairingDisabled
         self.isOnline = endpoint != nil
+        self.flags = flags
+        self.txtRecord = txtRecord
+        self.interfaces = interfaces
     }
 
     /// Builds a device from a `_companion-link._tcp` browse result, or `nil`
@@ -54,9 +100,15 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
     init?(result: NWBrowser.Result) {
         guard case .service(let name, _, _, _) = result.endpoint else { return nil }
         guard case .bonjour(let record) = result.metadata else { return nil }
+        let interfaces = result.interfaces.map { "\($0.name) (\(Self.describe($0.type)))" }
+        self.init(name: name, txt: record.dictionary, endpoint: result.endpoint, interfaces: interfaces)
+    }
 
+    /// The parsing half of `init?(result:)`, separated so tests can feed a
+    /// TXT dictionary without an `NWBrowser.Result`.
+    init?(name: String, txt record: [String: String], endpoint: NWEndpoint?, interfaces: [String]) {
         var txt: [String: String] = [:]
-        for (key, value) in record.dictionary { txt[key.lowercased()] = value }
+        for (key, value) in record { txt[key.lowercased()] = value }
 
         guard let model = txt["rpmd"], model.hasPrefix("AppleTV") else { return nil }
 
@@ -70,8 +122,11 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
             id: txt["rpmrtid"]?.uppercased() ?? txt["rpba"] ?? name,
             name: name,
             model: model,
-            endpoint: result.endpoint,
-            pairingDisabled: flags & Self.pairingDisabledFlag != 0
+            endpoint: endpoint,
+            pairingDisabled: flags & Self.pairingDisabledFlag != 0,
+            flags: flags,
+            txtRecord: record,
+            interfaces: Array(Set(interfaces)).sorted()
         )
     }
 
@@ -83,5 +138,15 @@ struct AppleTVDevice: Identifiable, Hashable, Sendable {
             endpoint: nil,
             pairingDisabled: false
         )
+    }
+
+    private static func describe(_ type: NWInterface.InterfaceType) -> String {
+        switch type {
+        case .wifi: return "Wi‑Fi"
+        case .wiredEthernet: return "Ethernet"
+        case .cellular: return "Cellular"
+        case .loopback: return "Loopback"
+        default: return "Other"
+        }
     }
 }

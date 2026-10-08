@@ -22,6 +22,10 @@ actor CompanionClient {
         get async { await connection.isConnected }
     }
 
+    var remoteEndpoint: NWEndpoint? {
+        get async { await connection.remoteEndpoint }
+    }
+
     func connect() async throws {
         try await connection.connect()
         try await CompanionPairing.verify(on: connection, credentials: credentials)

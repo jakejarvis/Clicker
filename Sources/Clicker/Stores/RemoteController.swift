@@ -1,4 +1,5 @@
 import Foundation
+import Network
 import Observation
 import SwiftUI
 
@@ -22,6 +23,35 @@ enum PairingState: Equatable, Sendable {
     case failed(String)
 }
 
+/// Where the live Companion session landed: the resolved address and the
+/// session id the TV handed back.
+struct ConnectionInfo: Hashable, Sendable {
+    var address: String
+    var port: UInt16
+    var sessionID: UInt64
+
+    init(address: String, port: UInt16, sessionID: UInt64) {
+        self.address = address
+        self.port = port
+        self.sessionID = sessionID
+    }
+
+    /// `nil` when the connection has no resolved host/port endpoint.
+    init?(endpoint: NWEndpoint?, sessionID: UInt64) {
+        guard case .hostPort(let host, let port)? = endpoint else { return nil }
+        // IPv6 link-local addresses carry a `%en0` scope; the interface is
+        // listed separately.
+        let address = String(describing: host).split(separator: "%", maxSplits: 1).first.map(String.init) ?? ""
+        self.init(address: address, port: port.rawValue, sessionID: sessionID)
+    }
+
+    var addressDescription: String {
+        address.contains(":") ? "[\(address)]:\(port)" : "\(address):\(port)"
+    }
+
+    var sessionDescription: String { "0x" + String(sessionID, radix: 16, uppercase: true) }
+}
+
 /// Which page the menu bar panel is showing. Settings replaces the remote in
 /// place; there is no separate window.
 enum PanelScreen: Hashable, Sendable {
@@ -42,6 +72,8 @@ final class RemoteController {
     private(set) var selectedDeviceID: String?
     private(set) var connectionState: ConnectionState = .disconnected
     private(set) var powerState: PowerState = .unknown
+    /// Where the live session landed, for the picker's details view.
+    private(set) var connectionInfo: ConnectionInfo?
     private(set) var pairingState: PairingState = .idle
     private(set) var apps: [AppleTVApp] = []
     private(set) var isLoadingApps = false
@@ -162,6 +194,12 @@ final class RemoteController {
         connectIfNeeded()
     }
 
+    /// Re-issues the Bonjour query (the picker's ⌥-click Rescan).
+    func rescan() {
+        guard demo == nil else { return }
+        browser.restart()
+    }
+
     func select(_ device: AppleTVDevice) {
         guard device.id != selectedDeviceID else {
             connectIfNeeded()
@@ -269,6 +307,8 @@ final class RemoteController {
                     return
                 }
                 self.connectionState = .connected
+                self.connectionInfo = ConnectionInfo(
+                    endpoint: await client.remoteEndpoint, sessionID: await client.sessionID)
                 self.listenForEvents(from: client)
                 if let state = try? await client.fetchPowerState() {
                     self.powerState = state
@@ -304,6 +344,7 @@ final class RemoteController {
         }
         connectionState = .connected
         powerState = demo.powerState
+        connectionInfo = ConnectionInfo(address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B)
         apps = DemoScenario.apps
         if let session = demo.keyboardSession {
             adoptKeyboardSession(session)
@@ -327,6 +368,7 @@ final class RemoteController {
         clientDeviceID = nil
         connectionState = .disconnected
         powerState = .unknown
+        connectionInfo = nil
         keyboardSession = nil
         tvText = ""
         isTextFieldShown = false

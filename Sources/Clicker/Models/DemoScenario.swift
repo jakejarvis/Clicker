@@ -41,9 +41,15 @@ enum DemoScenario: String, CaseIterable, Sendable {
 
     // MARK: - Devices
 
-    static let livingRoom = device(name: "Living Room", model: "AppleTV14,1")
-    static let bedroom = device(name: "Bedroom", model: "AppleTV11,1")
-    static let office = device(name: "Office", model: "AppleTV6,2")
+    static let livingRoom = device(
+        name: "Living Room", model: "AppleTV14,1", address: "A4:83:E7:2C:91:0D",
+        uuid: "7B1E4C2A-5D3F-4E8B-9A6C-1F2D3E4A5B6C")
+    static let bedroom = device(
+        name: "Bedroom", model: "AppleTV11,1", address: "A4:83:E7:58:C3:7E",
+        uuid: "C9D8E7F6-A5B4-4C3D-8E2F-1A0B9C8D7E6F")
+    static let office = device(
+        name: "Office", model: "AppleTV6,2", address: "A4:83:E7:B1:04:A2",
+        uuid: "3F2E1D0C-9B8A-4756-8341-2A1B0C9D8E7F")
 
     /// Apple TVs on the "network".
     var onlineDevices: [AppleTVDevice] {
@@ -137,14 +143,26 @@ enum DemoScenario: String, CaseIterable, Sendable {
         )
     }
 
-    /// Demo devices have no endpoint, so they are marked online by hand.
-    private static func device(name: String, model: String) -> AppleTVDevice {
+    /// Demo devices have no endpoint, so they are marked online by hand. The
+    /// TXT record is made up so the picker's ⌥-click details have something
+    /// to show.
+    private static func device(name: String, model: String, address: String, uuid: String) -> AppleTVDevice {
+        let txt: [String: String] = [
+            "rpMRtID": uuid,
+            "rpBA": address,
+            "rpVr": "550.1",
+            "rpFl": "0x36782",
+            "rpMd": model,
+        ]
         var device = AppleTVDevice(
             id: "demo-\(name.lowercased().replacingOccurrences(of: " ", with: "-"))",
             name: name,
             model: model,
             endpoint: nil,
-            pairingDisabled: false
+            pairingDisabled: false,
+            flags: 0x36782,
+            txtRecord: txt,
+            interfaces: ["en0 (Wi‑Fi)"]
         )
         device.isOnline = true
         return device

@@ -37,6 +37,11 @@ actor CompanionConnection {
         connection != nil && !isClosed
     }
 
+    /// The resolved address the TCP connection ended up on, once ready.
+    var remoteEndpoint: NWEndpoint? {
+        connection?.currentPath?.remoteEndpoint
+    }
+
     // MARK: - Lifecycle
 
     func connect(timeout: TimeInterval = 10) async throws {

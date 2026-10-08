@@ -1,18 +1,39 @@
+import AppKit
 import SwiftUI
 
 /// The device selector: a full-width control showing the current Apple TV's
 /// icon, name, model and state. Clicking it drops down a list of every known
 /// device in the same style, with a checkmark on the current one. A custom
 /// popover is used because system menus cannot show subtitles.
+///
+/// ⌥-clicking the control opens the same list in details mode, like the Wi-Fi
+/// menu: each row is followed by its Bonjour TXT record and, for the connected
+/// TV, where the session landed, with a Rescan action at the bottom. The mode
+/// is decided when the control is clicked and stays until the popover closes.
 struct DevicePickerMenu: View {
     let controller: RemoteController
-    @State private var isPresented = false
+    /// Non-nil while the popover is open. The mode rides on the item because
+    /// an `isPresented` popover rendered the content with the previous
+    /// `showsDetails` value when both changed in the same click.
+    @State private var presentation: Presentation?
+
+    private struct Presentation: Identifiable {
+        let showsDetails: Bool
+        var id: Bool { showsDetails }
+    }
 
     private let shape = RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous)
 
     var body: some View {
         Button {
-            isPresented.toggle()
+            if presentation != nil {
+                presentation = nil
+                return
+            }
+            // The click's own flags cover synthetic events; the class property
+            // covers a key held before the panel took the event.
+            let flags = (NSApp.currentEvent?.modifierFlags ?? []).union(NSEvent.modifierFlags)
+            presentation = Presentation(showsDetails: flags.contains(.option))
         } label: {
             HStack(spacing: 10) {
                 DeviceIcon(device: controller.selectedDevice, isConnected: controller.connectionState == .connected)
@@ -36,13 +57,13 @@ struct DevicePickerMenu: View {
         }
         .buttonStyle(SurfaceButtonStyle(shape: shape, pressScale: 0.98))
         .disabled(controller.devices.isEmpty)
-        .help("Choose an Apple TV")
+        .help("Choose an Apple TV. ⌥-click for details.")
         .accessibilityLabel("Apple TV: \(controller.selectedDevice?.name ?? "none selected")")
         .accessibilityHint("Opens the list of Apple TVs")
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            DeviceListView(controller: controller) { device in
+        .popover(item: $presentation, arrowEdge: .bottom) { presentation in
+            DeviceListView(controller: controller, showsDetails: presentation.showsDetails) { device in
                 controller.select(device)
-                isPresented = false
+                self.presentation = nil
             }
         }
     }
@@ -88,24 +109,44 @@ struct DeviceIcon: View {
 
 private struct DeviceListView: View {
     let controller: RemoteController
+    let showsDetails: Bool
     let onSelect: (AppleTVDevice) -> Void
+
+    /// Details mode is wider so a UUID fits on one caption line.
+    static let detailsWidth: CGFloat = PanelMetrics.width + 56
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(controller.devices) { device in
+                let isSelected = device.id == controller.selectedDeviceID
+                let isConnected = isSelected && controller.connectionState == .connected
                 DeviceRow(
                     device: device,
                     subtitle: subtitle(for: device),
-                    isSelected: device.id == controller.selectedDeviceID,
-                    isConnected: device.id == controller.selectedDeviceID && controller.connectionState == .connected,
+                    isSelected: isSelected,
+                    isConnected: isConnected,
                     isPaired: controller.isPaired(device)
                 ) {
                     onSelect(device)
                 }
+                if showsDetails {
+                    DeviceDetailsView(
+                        device: device,
+                        connectionInfo: isConnected ? controller.connectionInfo : nil,
+                        powerState: isConnected ? controller.powerState : nil
+                    )
+                }
+            }
+            if showsDetails, controller.demo == nil {
+                Divider()
+                    .padding(.vertical, 2)
+                RescanRow(isRescanning: controller.browser.isRescanning) {
+                    controller.rescan()
+                }
             }
         }
         .padding(6)
-        .frame(width: MenuBarView.panelWidth - 28)
+        .frame(width: showsDetails ? Self.detailsWidth : MenuBarView.panelWidth - 28)
     }
 
     private func subtitle(for device: AppleTVDevice) -> String {
@@ -115,6 +156,26 @@ private struct DeviceListView: View {
         if !device.isOnline { return "\(device.shortModelName) · Offline" }
         // Unpaired rows carry a Pair badge, which already says it.
         return controller.isPaired(device) ? device.modelDisplayName : device.shortModelName
+    }
+}
+
+/// Hover wash shared by the device rows and the Rescan row: the selection
+/// fill with white content, like a menu item.
+private struct PickerRowStyle: ViewModifier {
+    let isHovered: Bool
+    var verticalPadding: CGFloat = 7
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 8)
+            .padding(.vertical, verticalPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous)
+                    .fill(isHovered ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
+            )
+            .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
     }
 }
 
@@ -154,15 +215,7 @@ private struct DeviceRow: View {
                         .background(.quaternary, in: Capsule())
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
-            .background(
-                RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous)
-                    .fill(isHovered ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
-            )
-            .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            .modifier(PickerRowStyle(isHovered: isHovered))
         }
         .buttonStyle(.plain)
         .focusEffectDisabled()
@@ -170,5 +223,88 @@ private struct DeviceRow: View {
         .onHover { isHovered = $0 }
         .accessibilityLabel("\(device.name), \(subtitle)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// The ⌥-click lines under a device row: one `Label: value` caption per
+/// known fact, middle-truncated with the full value as a tooltip.
+private struct DeviceDetailsView: View {
+    let device: AppleTVDevice
+    let connectionInfo: ConnectionInfo?
+    let powerState: PowerState?
+
+    /// Lines up with the row's text: 8pt row padding, 30pt icon, 10pt gap.
+    static let leadingInset: CGFloat = 48
+
+    private var lines: [(label: String, value: String)] {
+        var lines: [(String, String)] = []
+        if let model = device.model { lines.append(("Model", model)) }
+        if let id = device.txt("rpMRtID") { lines.append(("ID", id)) }
+        if let address = device.bluetoothAddress { lines.append(("Bluetooth", address)) }
+        if let version = device.companionVersion { lines.append(("Version", version)) }
+        if device.txt("rpFl") != nil {
+            let names = device.flagDescriptions
+            lines.append(
+                ("Flags", names.isEmpty ? device.flagsHex : "\(device.flagsHex) (\(names.joined(separator: ", ")))"))
+        }
+        if !device.interfaces.isEmpty { lines.append(("Interface", device.interfaces.joined(separator: ", "))) }
+        if let connectionInfo {
+            lines.append(("Address", connectionInfo.addressDescription))
+            lines.append(("Session", connectionInfo.sessionDescription))
+        }
+        if let powerState { lines.append(("Power", "\(powerState.title) (\(powerState.rawValue))")) }
+        return lines
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(lines, id: \.label) { line in
+                (Text("\(line.label): ").foregroundStyle(.secondary) + Text(line.value))
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(line.value)
+            }
+        }
+        .padding(.leading, Self.leadingInset)
+        .padding(.trailing, 8)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(device.isOnline ? 1 : 0.6)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Restarts Bonjour browsing; only shown in details mode. Sized like a
+/// plain menu item rather than a device row.
+private struct RescanRow: View {
+    let isRescanning: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Group {
+                    if isRescanning {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .frame(width: 16, height: 16)
+                Text(isRescanning ? "Rescanning…" : "Rescan Network")
+                    .font(.callout)
+            }
+            .modifier(PickerRowStyle(isHovered: isHovered && !isRescanning, verticalPadding: 3))
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .disabled(isRescanning)
+        .onHover { isHovered = $0 }
+        .help("Ask the network again for Apple TVs")
     }
 }
