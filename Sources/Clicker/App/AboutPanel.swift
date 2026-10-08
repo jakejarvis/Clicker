@@ -11,8 +11,13 @@ enum AboutPanel {
     @MainActor
     static func present() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
+        // An empty copyright hides the line; the bundle's copyright string
+        // stays in Info.plist for Finder and the installer.
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits, copyrightKey: ""])
     }
+
+    /// Documented option key for the copyright line; AppKit has no Swift constant for it.
+    private static let copyrightKey = NSApplication.AboutPanelOptionKey(rawValue: "Copyright")
 
     private static var credits: NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
