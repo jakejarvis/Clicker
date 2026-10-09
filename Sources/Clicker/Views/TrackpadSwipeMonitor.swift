@@ -31,7 +31,12 @@ private struct TrackpadSwipeMonitor: ViewModifier {
             // was installed, so the flag is kept where the closure reads it.
             .onChange(of: isEnabled, initial: true) {
                 tracking.isEnabled = isEnabled
-                if !isEnabled { cancel() }
+                if !isEnabled {
+                    cancel()
+                    // An inert pad takes no hit tests, so no exit event
+                    // follows; the hover state would otherwise stay stale.
+                    tracking.isHovered = false
+                }
             }
             .onAppear(perform: install)
             .onDisappear(perform: remove)

@@ -487,13 +487,21 @@ final class RemoteController {
         mediaControlFlags = []
         muteConfirmationTask?.cancel()
         muteConfirmationTask = nil
+        // The session is gone, so a release could only trigger a reconnect;
+        // the hold flag is left alone because its queued task still runs its
+        // completion.
         touchPosition = nil
-        touchHoldQueued = false
     }
 
     /// Called when the menu bar panel closes.
     func panelDidDisappear() {
         screen = .remote
+        // A swipe in progress loses its end event with the panel (the pad
+        // stays loaded, so the monitor never sees it disappear), so lift the
+        // TV's finger here rather than leave it down until the next swipe.
+        if let point = touchPosition {
+            handleTrackpadSwipe(.touchUp(point))
+        }
         // The popover goes with the panel; the flag must follow it or the
         // clickpad stays unfocused the next time the panel opens.
         isAppPickerPresented = false
@@ -604,12 +612,20 @@ final class RemoteController {
     func handleTrackpadSwipe(_ action: TrackpadSwipe.Action) {
         switch action {
         case .touchDown(let point):
+            // A press still outstanding means the previous swipe's end was
+            // lost; lift it first so the TV never sees two fingers.
+            if let previous = touchPosition {
+                handleTrackpadSwipe(.touchUp(previous))
+            }
             Log.remote.info("Touch down at \(Int(point.x), privacy: .public),\(Int(point.y), privacy: .public)")
             touchPosition = point
             touchHolds = 0
             touchGesture += 1
             perform { try await $0.touch(x: point.x, y: point.y, phase: .press) }
         case .touchMove(let point):
+            // Moves and releases only mean something while a press is out;
+            // after a disconnect or a release the TV has no finger to move.
+            guard touchPosition != nil else { return }
             touchPosition = point
             guard !touchHoldQueued else { return }
             touchHoldQueued = true
@@ -622,6 +638,7 @@ final class RemoteController {
                 self?.touchHoldQueued = false
             }
         case .touchUp(let point):
+            guard touchPosition != nil else { return }
             Log.remote.info(
                 "Touch up at \(Int(point.x), privacy: .public),\(Int(point.y), privacy: .public) after \(self.touchHolds, privacy: .public) holds"
             )
