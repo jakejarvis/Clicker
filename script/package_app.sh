@@ -65,7 +65,13 @@ fi
 rm -rf "$APP_BUNDLE"
 mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources" "$CONTENTS/Frameworks"
 cp "$BUILD_BINARY" "$APP_BINARY"
-cp "$ROOT_DIR/Resources/AppIcon.icns" "$CONTENTS/Resources/AppIcon.icns"
+# The app icon is an Icon Composer document. actool compiles it into Assets.car
+# (the Liquid Glass icon macOS 26+ renders live) plus AppIcon.icns for macOS 15.
+xcrun actool "$ROOT_DIR/Resources/AppIcon.icon" --compile "$CONTENTS/Resources" \
+  --app-icon AppIcon --include-all-app-icons \
+  --platform macosx --minimum-deployment-target 15.0 \
+  --output-partial-info-plist "$ROOT_DIR/dist/AppIcon-Info.plist" \
+  --output-format human-readable-text >/dev/null
 mkdir -p "$CONTENTS/Resources/StatusIcon"
 cp "$ROOT_DIR"/Resources/StatusIcon/*.pdf "$CONTENTS/Resources/StatusIcon/"
 

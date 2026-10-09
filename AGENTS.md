@@ -30,11 +30,15 @@ Sources/Clicker
                 PowerState, ClientIdentity), DemoScenario (--demo)
 Tests/ClickerTests   codecs, crypto + SRP, text-input archive, panel and clickpad geometry,
                      device TXT parsing, credential store, demo scenarios
-script/              build_and_run.sh, package_app.sh (bundle assembly + signing),
-                     release.sh (notarize, DMG/zip, appcast), make_icon.sh/.swift,
+script/              build_and_run.sh, package_app.sh (bundle assembly + signing,
+                     compiles the icon with actool), release.sh (notarize, DMG/zip, appcast),
+                     render_icon.sh (ictool previews + site icon PNGs),
                      make_status_icons.swift, screenshots.sh (VMPal VM captures)
 Resources/           Info.plist, Clicker.entitlements + Clicker.provisionprofile (keychain,
-                     real identities only), AppIcon.icns (generated; regenerate with script/make_icon.sh),
+                     real identities only), AppIcon.icon (Icon Composer document: icon.json +
+                     SVG layers; actool turns it into Assets.car for the Liquid Glass icon on
+                     macOS 26+ and AppIcon.icns for 15; kept to Icon Composer 1.x keys so
+                     CI's Xcode 26 actool accepts it),
                      StatusIcon/ menu bar glyph SVGs + generated PDFs
                      (regenerate with swift script/make_status_icons.swift)
 .github/workflows/   ci.yml (test + package), release.yml (on v* tags)

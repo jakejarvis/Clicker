@@ -16,10 +16,12 @@ The script kills a running copy and calls `script/package_app.sh`, which builds 
 ./script/build_and_run.sh --verify      # launch and confirm the process exists
 ./script/build_and_run.sh --release     # optimized build (pairing math is much faster)
 ./script/build_and_run.sh --install     # copy to /Applications and launch from there
-./script/make_icon.sh                   # regenerate Resources/AppIcon.icns
+./script/render_icon.sh                 # preview Resources/AppIcon.icon and refresh the site's icon PNGs
 swift script/make_status_icons.swift   # regenerate menu bar PDFs from Resources/StatusIcon/*.svg
 swift test                              # codec, crypto, SRP and text-input tests
 ```
+
+The app icon is `Resources/AppIcon.icon`, an Icon Composer document: `icon.json` plus the SVG layers in `Assets/` (a silver remote over dark controls on a graphite gradient). Open it in Icon Composer to adjust the glass, or edit the SVGs directly; `package_app.sh` compiles it with `actool` into `Assets.car` (the Liquid Glass icon macOS 26 and later render live, with the system's dark, clear and tinted variants) and an `AppIcon.icns` fallback for macOS 15. `script/render_icon.sh` renders the document with Icon Composer's `ictool` so you can look at every appearance without installing the app.
 
 Launching the binary with `--regular` shows a Dock icon, which some tooling needs in order to see the process.
 
