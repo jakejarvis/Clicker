@@ -27,6 +27,14 @@ import Testing
         #expect(controller.favoriteApps.map(\.name) == ["Music", "Netflix"])
     }
 
+    @Test @MainActor func clearingRecentsLeavesFavorites() {
+        let controller = RemoteController(demo: .ready)
+        controller.start()
+        controller.clearRecents()
+        #expect(controller.recentApps.isEmpty)
+        #expect(controller.favoriteApps.map(\.name) == ["Plex", "Music"])
+    }
+
     @Test @MainActor func forgettingATVDropsItsFavorites() {
         let controller = RemoteController(demo: .ready)
         controller.start()

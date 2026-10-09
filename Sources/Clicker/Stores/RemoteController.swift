@@ -805,6 +805,12 @@ final class RemoteController {
         rememberRecents()
     }
 
+    /// Empties the current TV's Recent group.
+    func clearRecents() {
+        guard let selectedDeviceID, recentAppIDsByDevice.removeValue(forKey: selectedDeviceID) != nil else { return }
+        rememberRecents()
+    }
+
     private func rememberRecents() {
         guard demo == nil else { return }
         UserDefaults.standard.set(recentAppIDsByDevice, forKey: Self.recentAppsKey)

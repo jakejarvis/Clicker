@@ -81,7 +81,7 @@ struct AppPickerView: View {
             Row(id: "favorite.\(app.id)", app: app, header: index == 0 ? "Favorites" : nil)
         }
         rows += recents.enumerated().map { index, app in
-            Row(id: "recent.\(app.id)", app: app, header: index == 0 ? "Recent" : nil)
+            Row(id: "recent.\(app.id)", app: app, header: index == 0 ? "Recents" : nil)
         }
         let pinned = !favorites.isEmpty || !recents.isEmpty
         rows += controller.apps.enumerated().map { index, app in
@@ -136,12 +136,25 @@ struct AppPickerView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     ForEach(rows) { row in
                         if let header = row.header {
-                            Text(header)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 8)
-                                .padding(.top, row.id == rows.first?.id ? 4 : 8)
-                                .padding(.bottom, 2)
+                            HStack {
+                                Text(header)
+                                if header == "Recents" {
+                                    Spacer()
+                                    Button("Clear") {
+                                        highlightedRowID = nil
+                                        controller.clearRecents()
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(.tertiary)
+                                    .help("Forget the recently opened apps")
+                                    .accessibilityLabel("Clear recent apps")
+                                }
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.top, row.id == rows.first?.id ? 4 : 8)
+                            .padding(.bottom, 2)
                         }
                         AppRow(
                             app: row.app,
