@@ -142,9 +142,11 @@ final class RemoteController {
     /// The finger on the TV's touch surface during a trackpad swipe, in
     /// touchpad units; nil between swipes.
     @ObservationIgnored private var touchPosition: CGPoint?
-    /// Whether a hold event is already waiting in the command queue. Trackpads
-    /// report at up to 120 Hz, so holds are coalesced: the queued one sends
-    /// whatever position is current when it runs.
+    /// Whether a hold event of the current swipe is already waiting in the
+    /// command queue. Trackpads report at up to 120 Hz, so holds are
+    /// coalesced: the queued one sends whatever position is current when it
+    /// runs. The flag belongs to one swipe: a new press clears it and a
+    /// previous swipe's hold leaves it alone when it drains.
     @ObservationIgnored private var touchHoldQueued = false
     /// Holds sent for the current swipe, for the release log line.
     @ObservationIgnored private var touchHolds = 0
@@ -488,8 +490,7 @@ final class RemoteController {
         muteConfirmationTask?.cancel()
         muteConfirmationTask = nil
         // The session is gone, so a release could only trigger a reconnect;
-        // the hold flag is left alone because its queued task still runs its
-        // completion.
+        // the hold flag is the next press's to clear.
         touchPosition = nil
     }
 
@@ -621,6 +622,7 @@ final class RemoteController {
             touchPosition = point
             touchHolds = 0
             touchGesture += 1
+            touchHoldQueued = false
             perform { try await $0.touch(x: point.x, y: point.y, phase: .press) }
         case .touchMove(let point):
             // Moves and releases only mean something while a press is out;
@@ -635,7 +637,8 @@ final class RemoteController {
                 guard let self, self.touchGesture == gesture, let point = self.touchPosition else { return }
                 try await client.touch(x: point.x, y: point.y, phase: .hold)
             } completion: { [weak self] in
-                self?.touchHoldQueued = false
+                guard let self, self.touchGesture == gesture else { return }
+                self.touchHoldQueued = false
             }
         case .touchUp(let point):
             guard touchPosition != nil else { return }
