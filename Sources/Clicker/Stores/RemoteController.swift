@@ -139,6 +139,14 @@ final class RemoteController {
     @ObservationIgnored private var pairingDeviceID: String?
     @ObservationIgnored private var commandQueue: Task<Void, Never>?
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
+    /// The finger on the TV's touch surface during a trackpad swipe, in
+    /// touchpad units; nil between swipes.
+    @ObservationIgnored private var touchPosition: CGPoint?
+    /// Whether a hold event is already waiting in the command queue. Trackpads
+    /// report at up to 120 Hz, so holds are coalesced: the queued one sends
+    /// whatever position is current when it runs.
+    @ObservationIgnored private var touchHoldQueued = false
+    @ObservationIgnored private var touchHolds = 0
     /// Hides the menu bar panel; installed by `StatusItemController`. Used
     /// before presenting windows the panel would otherwise float above.
     @ObservationIgnored var dismissPanel: () -> Void = {}
@@ -474,6 +482,8 @@ final class RemoteController {
         mediaControlFlags = []
         muteConfirmationTask?.cancel()
         muteConfirmationTask = nil
+        touchPosition = nil
+        touchHoldQueued = false
     }
 
     /// Called when the menu bar panel closes.
@@ -580,6 +590,37 @@ final class RemoteController {
             "Swipe \(start.x, privacy: .public),\(start.y, privacy: .public) to \(end.x, privacy: .public),\(end.y, privacy: .public)"
         )
         perform { try await $0.swipe(from: start, to: end, duration: duration) }
+    }
+
+    /// A two-finger scroll over the clickpad, already translated into a touch
+    /// on the TV's surface by `TrackpadSwipe`. Press and release go out as
+    /// they come; holds are coalesced to one in flight at a time so a long
+    /// swipe neither floods the TV nor holds up a click behind it.
+    func handleTrackpadSwipe(_ action: TrackpadSwipe.Action) {
+        switch action {
+        case .touchDown(let point):
+            Log.remote.info("Touch down at \(Int(point.x), privacy: .public),\(Int(point.y), privacy: .public)")
+            touchPosition = point
+            touchHolds = 0
+            perform { try await $0.touch(x: point.x, y: point.y, phase: .press) }
+        case .touchMove(let point):
+            touchPosition = point
+            touchHolds += 1
+            guard !touchHoldQueued else { return }
+            touchHoldQueued = true
+            perform { [weak self] client in
+                guard let point = self?.touchPosition else { return }
+                try await client.touch(x: point.x, y: point.y, phase: .hold)
+            } completion: { [weak self] in
+                self?.touchHoldQueued = false
+            }
+        case .touchUp(let point):
+            Log.remote.info(
+                "Touch up at \(Int(point.x), privacy: .public),\(Int(point.y), privacy: .public) after \(self.touchHolds, privacy: .public) holds"
+            )
+            touchPosition = nil
+            perform { try await $0.touch(x: point.x, y: point.y, phase: .release) }
+        }
     }
 
     /// Mutes by remembering the current volume and setting it to zero, since

@@ -25,7 +25,7 @@ struct RemotePadView: View {
                 // Apps and Power sit above the clickpad's top corners (Power
                 // is there on the Siri Remote), with the ring's top edge
                 // level with their centers.
-                ClickpadView(controller: controller)
+                ClickpadView(controller: controller, isInteractive: isInteractive)
                     .padding(.top, RemoteMetrics.clickpadTopInset)
                     .frame(maxWidth: .infinity)
                     .overlay(alignment: .topLeading) { AppsMenu(controller: controller) }
@@ -58,6 +58,8 @@ enum RemoteMetrics {
 
 private struct ClickpadView: View {
     let controller: RemoteController
+    /// False while the remote is ghosted: no swipes from the trackpad either.
+    let isInteractive: Bool
 
     var body: some View {
         // One ring of glass with Select in its hole, like the volume rocker. The
@@ -74,6 +76,9 @@ private struct ClickpadView: View {
                 .help("Select (Return)")
             }
             .frame(width: ClickpadGeometry.diameter, height: ClickpadGeometry.diameter)
+            // The pad is also the touch surface: a two-finger scroll over it
+            // is a swipe on the Siri Remote.
+            .trackpadSwipes(controller: controller, isEnabled: isInteractive)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Clickpad")

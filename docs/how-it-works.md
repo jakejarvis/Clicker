@@ -7,7 +7,7 @@ Clicker speaks Apple's Companion protocol directly (the same one the iPhone Remo
 ```
 Sources/Clicker
 ├── App/            @main app, status item, the custom glass NSPanel and its geometry
-├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, RemoteOverlayCards, PINCodeField, SettingsScreen, AppPickerView
+├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, RemoteOverlayCards, PINCodeField, SettingsScreen, AppPickerView, TrackpadSwipeMonitor
 ├── Stores/         RemoteController (app state), CredentialStore, IdentityStore, UpdateController
 ├── Services/
 │   ├── DeviceBrowser.swift            NWBrowser for _companion-link._tcp
@@ -32,6 +32,8 @@ Discovery filters `_companion-link._tcp` results by the `rpMd` TXT record so onl
 Pairing follows the HomeKit pattern over Companion frames: pair-setup (SRP with the PIN, then an Ed25519 key exchange encrypted with ChaCha20-Poly1305) produces long-term keys; every later connection runs pair-verify (X25519 + Ed25519 signatures) and derives per-direction session keys. After that, frames are encrypted with a counter nonce and the frame header as additional data, and the app registers a `com.apple.tvremoteservices` session before sending `_hidC` button events. The session stays open while the panel is closed, with an empty NoOp frame every 30 seconds so the link carries some traffic between button presses.
 
 Buttons send real press and release events, so holds (Siri) work. The HID set has no mute, so Mute remembers the volume and sets it to zero.
+
+A two-finger scroll over the clickpad becomes a finger on the TV's touch surface: `_touchStart` opens a 1000×1000 virtual pad and `_hidT` events carry press, hold and release with coordinates and a timestamp. The finger presses at the center when the gesture begins, follows the trackpad deltas, and lifts when the fingers do; the Mac's momentum events are dropped so tvOS applies its own flick physics from the release velocity, as it does for the real remote.
 
 ## Text entry
 
