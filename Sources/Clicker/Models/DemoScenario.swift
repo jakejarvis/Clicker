@@ -166,6 +166,9 @@ enum DemoScenario: String, CaseIterable, Sendable {
     /// Recently launched apps shown at the top of the picker.
     static let recentAppIDs = ["com.netflix.Netflix", "com.apple.TVWatchList", "com.google.ios.youtube"]
 
+    /// Starred apps pinned above the recents in the picker.
+    static let favoriteAppIDs = ["com.plexapp.plex", "com.apple.TVMusic"]
+
     /// Name shown in Settings in place of this Mac's.
     static let clientName = "MacBook Pro"
 

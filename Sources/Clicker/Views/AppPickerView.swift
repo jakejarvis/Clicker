@@ -1,7 +1,9 @@
 import SwiftUI
 
 /// Popover content for the Apps button: a search field over the Apple TV's
-/// app list, with the last few launched apps on top. A system `Menu` cannot
+/// app list, with the starred apps and the last few launched ones on top.
+/// Every row has a star to pin it (shown while hovered, kept while starred);
+/// the row's context menu offers the same. A system `Menu` cannot
 /// search or group forty apps comfortably, so the list is custom, in the
 /// same style as the device picker. Arrow keys move the highlight, Return
 /// launches it, and typing filters; while a query is typed the top match is
@@ -61,9 +63,10 @@ struct AppPickerView: View {
         !query.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    /// The visible rows in order: matches while searching, otherwise Recent
-    /// then every app. An app can appear in both sections, so row ids carry
-    /// the section.
+    /// The visible rows in order: matches while searching, otherwise
+    /// Favorites, then Recent (without the starred ones, so a pinned app is
+    /// not twice at the top), then every app. An app can appear in more
+    /// than one section, so row ids carry the section.
     private var rows: [Row] {
         if isSearching {
             let needle = query.trimmingCharacters(in: .whitespaces)
@@ -72,12 +75,17 @@ struct AppPickerView: View {
             let rest = matches.filter { !$0.name.localizedCaseInsensitiveStartsWith(needle) }
             return (prefixed + rest).map { Row(id: "match.\($0.id)", app: $0, header: nil) }
         }
-        let recents = controller.recentApps
-        var rows = recents.enumerated().map { index, app in
+        let favorites = controller.favoriteApps
+        let recents = controller.recentApps.filter { !favorites.contains($0) }
+        var rows = favorites.enumerated().map { index, app in
+            Row(id: "favorite.\(app.id)", app: app, header: index == 0 ? "Favorites" : nil)
+        }
+        rows += recents.enumerated().map { index, app in
             Row(id: "recent.\(app.id)", app: app, header: index == 0 ? "Recent" : nil)
         }
+        let pinned = !favorites.isEmpty || !recents.isEmpty
         rows += controller.apps.enumerated().map { index, app in
-            Row(id: "all.\(app.id)", app: app, header: index == 0 && !recents.isEmpty ? "All Apps" : nil)
+            Row(id: "all.\(app.id)", app: app, header: index == 0 && pinned ? "All Apps" : nil)
         }
         return rows
     }
@@ -135,8 +143,14 @@ struct AppPickerView: View {
                                 .padding(.top, row.id == rows.first?.id ? 4 : 8)
                                 .padding(.bottom, 2)
                         }
-                        AppRow(app: row.app, isHighlighted: row.id == highlightedRowID) {
+                        AppRow(
+                            app: row.app,
+                            isHighlighted: row.id == highlightedRowID,
+                            isFavorite: controller.isFavorite(row.app)
+                        ) {
                             launch(row.app)
+                        } onToggleFavorite: {
+                            controller.toggleFavorite(row.app)
                         } onHover: { hovering in
                             if hovering {
                                 highlightedRowID = row.id
@@ -209,29 +223,59 @@ struct AppPickerView: View {
     }
 }
 
+/// One app: the name launches it, the star at the trailing edge pins it.
+/// The star is a sibling of the launch button, not nested in it, so a
+/// click on it never launches the app.
 private struct AppRow: View {
     let app: AppleTVApp
     let isHighlighted: Bool
+    let isFavorite: Bool
     let action: () -> Void
+    let onToggleFavorite: () -> Void
     let onHover: (Bool) -> Void
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius - 4, style: .continuous)
-        Button(action: action) {
-            Text(app.name)
-                .font(.callout)
-                .lineLimit(1)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(shape)
-                .background(shape.fill(isHighlighted ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear)))
-                .foregroundStyle(isHighlighted ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+        HStack(spacing: 0) {
+            Button(action: action) {
+                Text(app.name)
+                    .font(.callout)
+                    .lineLimit(1)
+                    .padding(.leading, 8)
+                    .padding(.vertical, 5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(app.name)
+            Button(action: onToggleFavorite) {
+                Image(systemName: isFavorite ? "star.fill" : "star")
+                    .font(.caption)
+                    .foregroundStyle(starStyle)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .opacity(isFavorite || isHighlighted ? 1 : 0)
+            .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            .accessibilityLabel(isFavorite ? "Remove \(app.name) from Favorites" : "Add \(app.name) to Favorites")
         }
-        .buttonStyle(.plain)
+        .padding(.trailing, 2)
+        .background(shape.fill(isHighlighted ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear)))
+        .foregroundStyle(isHighlighted ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
         .focusEffectDisabled()
+        .contentShape(shape)
         .onHover(perform: onHover)
-        .accessibilityLabel(app.name)
+        .contextMenu {
+            Button(isFavorite ? "Remove from Favorites" : "Add to Favorites", action: onToggleFavorite)
+        }
+    }
+
+    /// A starred app's star is yellow until its row is highlighted, where
+    /// everything is white on the selection fill.
+    private var starStyle: AnyShapeStyle {
+        if isHighlighted { return AnyShapeStyle(.white) }
+        return isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary)
     }
 }
 

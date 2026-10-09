@@ -90,6 +90,9 @@ final class RemoteController {
     /// first, keyed by device id. Follows the pairing when a TV's id changes
     /// and goes with it when the pairing is forgotten.
     private(set) var recentAppIDsByDevice: [String: [String]] = [:]
+    /// Bundle identifiers of the starred apps per TV, in the order they
+    /// were starred, keyed by device id. Kept like the recents.
+    private(set) var favoriteAppIDsByDevice: [String: [String]] = [:]
     private(set) var lastActionError: String?
     /// Shown when a mute never took effect (HDMI output, see `confirmMute`).
     nonisolated static let muteUnavailableMessage = "This audio output can't be muted."
@@ -160,6 +163,7 @@ final class RemoteController {
 
     private static let selectedDeviceKey = "selectedDeviceID"
     private static let recentAppsKey = "recentAppIDsByDevice"
+    private static let favoriteAppsKey = "favoriteAppIDsByDevice"
     private static let lastAddressesKey = "lastAddressByDevice"
     private static let recentAppLimit = 5
 
@@ -177,12 +181,15 @@ final class RemoteController {
             screen = demo.screen
             if let selected = demo.selectedDeviceID {
                 recentAppIDsByDevice = [selected: DemoScenario.recentAppIDs]
+                favoriteAppIDsByDevice = [selected: DemoScenario.favoriteAppIDs]
             }
         } else {
             credentialStore = CredentialStore()
             selectedDeviceID = UserDefaults.standard.string(forKey: Self.selectedDeviceKey)
             recentAppIDsByDevice =
                 UserDefaults.standard.dictionary(forKey: Self.recentAppsKey) as? [String: [String]] ?? [:]
+            favoriteAppIDsByDevice =
+                UserDefaults.standard.dictionary(forKey: Self.favoriteAppsKey) as? [String: [String]] ?? [:]
         }
         browser.onUpdate = { [weak self] devices in
             self?.devicesDidChange(devices)
@@ -307,6 +314,7 @@ final class RemoteController {
         }
         credentialStore.remove(deviceID: device.id)
         if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
+        if favoriteAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberFavorites() }
         lastAddressByDevice[device.id] = nil
         pairingNotice = nil
         if selectedDeviceID == device.id, !device.isOnline {
@@ -322,6 +330,7 @@ final class RemoteController {
         Log.pairing.info("Identity of \(device.name, privacy: .public) changed; dropping its pairing")
         credentialStore.remove(deviceID: device.id)
         if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
+        if favoriteAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberFavorites() }
         pairingNotice = CompanionError.identityChanged.localizedDescription
         connectionState = .disconnected
     }
@@ -357,6 +366,10 @@ final class RemoteController {
             if let recents = recentAppIDsByDevice.removeValue(forKey: orphan.deviceID) {
                 recentAppIDsByDevice[device.id] = recents
                 rememberRecents()
+            }
+            if let favorites = favoriteAppIDsByDevice.removeValue(forKey: orphan.deviceID) {
+                favoriteAppIDsByDevice[device.id] = favorites
+                rememberFavorites()
             }
             if selectedDeviceID == orphan.deviceID {
                 selectedDeviceID = device.id
@@ -795,6 +808,36 @@ final class RemoteController {
     private func rememberRecents() {
         guard demo == nil else { return }
         UserDefaults.standard.set(recentAppIDsByDevice, forKey: Self.recentAppsKey)
+    }
+
+    /// The current TV's starred apps, in the order they were starred; an
+    /// app it no longer has is skipped.
+    var favoriteApps: [AppleTVApp] {
+        guard let selectedDeviceID, let ids = favoriteAppIDsByDevice[selectedDeviceID] else { return [] }
+        return ids.compactMap { id in apps.first { $0.id == id } }
+    }
+
+    func isFavorite(_ app: AppleTVApp) -> Bool {
+        guard let selectedDeviceID else { return false }
+        return favoriteAppIDsByDevice[selectedDeviceID]?.contains(app.id) ?? false
+    }
+
+    /// Stars or unstars an app on the current TV.
+    func toggleFavorite(_ app: AppleTVApp) {
+        guard let selectedDeviceID else { return }
+        var ids = favoriteAppIDsByDevice[selectedDeviceID] ?? []
+        if let index = ids.firstIndex(of: app.id) {
+            ids.remove(at: index)
+        } else {
+            ids.append(app.id)
+        }
+        favoriteAppIDsByDevice[selectedDeviceID] = ids.isEmpty ? nil : ids
+        rememberFavorites()
+    }
+
+    private func rememberFavorites() {
+        guard demo == nil else { return }
+        UserDefaults.standard.set(favoriteAppIDsByDevice, forKey: Self.favoriteAppsKey)
     }
 
     func refreshApps() {
