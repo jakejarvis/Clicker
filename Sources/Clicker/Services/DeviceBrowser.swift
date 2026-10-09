@@ -64,7 +64,12 @@ final class DeviceBrowser {
             }
         }
 
-        browser.browseResultsChangedHandler = { [weak self] results, _ in
+        browser.browseResultsChangedHandler = { [weak self] results, changes in
+            // The browser re-reports its results unchanged whenever the
+            // network path is re-evaluated (several times a minute on a busy
+            // Mac); there is nothing to parse or merge for those.
+            guard changes.contains(where: { if case .identical = $0 { return false } else { return true } })
+            else { return }
             let found = results.compactMap(AppleTVDevice.init(result:))
             Task { @MainActor in
                 self?.update(with: found)

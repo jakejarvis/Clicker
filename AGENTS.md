@@ -166,6 +166,19 @@ Checked with a Developer ID debug build and a temporary distributed-notification
 - Text input: see the protocol gotcha above.
 - Launch at Login: see "Unverified / open".
 
+## Resource usage (measured 2026-10-09, release build, macOS 27, M-series)
+
+Checked before the first release with the Living Room TV on the network; the sampler scripts were throwaway (launch the binary from a script so the PID is known, then `top -l 1 -pid P -stats cpu,threads,idlew,csw`, `footprint P`, `vmmap -summary P`, `leaks P` with `MallocStackLogging=1` on launch, `nettop -p P`, `/usr/bin/log stream --level debug --predicate 'processID == P'`). Numbers to compare against when something changes:
+
+- Launch: `applicationDidFinishLaunching` about 80 ms after exec, browsing started at 125 ms, the TV found at 200 ms, pair-verify done about 2 s later (the TCP connect to the link-local address is the slow part). Total CPU for launch plus the first connection: about 0.3 s.
+- Idle, panel closed, session up: 36 MB footprint, 5 threads, no measurable CPU (about 0.04 s per minute), 1 to 2 idle wakeups per minute, one 4-byte NoOp frame every 30 s. Idle with the panel open (`--demo ready`, and `--demo searching` with its spinner): 33 MB, zero CPU growth over 50 s; the spinner animates in the window server.
+- A Developer ID build with Sparkle started and the keychain backend, idle for 60 s: 36 MB, 5 threads, 0.01 s of CPU per minute, no Sparkle activity logged (its scheduled check did not run in that window, as noted under "Unverified / open").
+- The 170 MB `phys_footprint_peak` every launch shows is "owned unmapped (graphics)" GPU memory the driver attributes to the process at the first Metal context, present 150 ms after exec (before the panel is shown) and paged out over about 3 s. Control Center, Notification Center and 1Password show peaks of 230 to 310 MB on the same machine; nothing of ours allocates it.
+- `leaks` reports 416 leaked allocations (26 KB) in every launch, all three `NSXPCConnection` cycles from AppIntents failing to register (`Error registering app with intents framework` in the launch log); no Clicker frame appears in any stack. Not ours.
+- Context switches with a session up run at about 11 per second on this Mac, all inside Network.framework: the machine's NECP path agents update several times a second (OpenUsage, Cursor, mDNSResponder and others see the same), and each update makes the connection and the browser re-evaluate their paths. The browser used to re-report identical results through `browseResultsChangedHandler` on every one; it now skips callbacks whose changes are all `.identical`. The status glyphs are loaded once (`StatusItemController.statusIcons`) instead of re-reading and re-rasterizing the PDF on every connection change.
+- `lsof -i` shows no socket for a live session: Network.framework uses user-space channel flows. Use `nettop` to see it.
+- Two real copies running at once share the client identity, and the TV drops the earlier session when the second connects; measure one at a time.
+
 ## Updates and releases
 
 - Sparkle 2 via SwiftPM. `script/package_app.sh` copies Sparkle.framework from `.build/artifacts/sparkle/...` with `ditto`, drops its XPC services (only for sandboxed apps), replaces SwiftPM's `.build`/toolchain rpaths with `@executable_path/../Frameworks`, and signs inside out without `--deep`.

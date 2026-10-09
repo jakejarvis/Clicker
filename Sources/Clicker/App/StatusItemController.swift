@@ -121,17 +121,26 @@ final class StatusItemController: NSObject {
         statusItem.button?.image = Self.statusImage(glyph, badged: hasUpdate)
     }
 
-    /// PDF glyphs from Resources/StatusIcon (see script/make_status_icons.swift).
-    /// Falls back to an SF Symbol when run outside the app bundle.
+    /// PDF glyphs from Resources/StatusIcon (see script/make_status_icons.swift),
+    /// loaded once each: an `NSImage` caches its rasterization, so re-reading
+    /// the PDF on every connection change would rasterize it again. Falls back
+    /// to an SF Symbol when run outside the app bundle.
+    private static var statusIcons: [String: NSImage] = [:]
+
     private static func statusIcon(named name: String) -> NSImage? {
+        if let cached = statusIcons[name] { return cached }
+        let image: NSImage?
         if let url = Bundle.main.url(forResource: name, withExtension: "pdf", subdirectory: "StatusIcon"),
-            let image = NSImage(contentsOf: url)
+            let pdf = NSImage(contentsOf: url)
         {
-            image.accessibilityDescription = "Clicker"
-            return image
+            pdf.accessibilityDescription = "Clicker"
+            image = pdf
+        } else {
+            let symbol = name == "Connected" ? "appletvremote.gen4.fill" : "appletvremote.gen4"
+            image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Clicker")
         }
-        let symbol = name == "Connected" ? "appletvremote.gen4.fill" : "appletvremote.gen4"
-        return NSImage(systemSymbolName: symbol, accessibilityDescription: "Clicker")
+        statusIcons[name] = image
+        return image
     }
 
     /// The glyph centered with side padding (the remote is narrow, so it would
