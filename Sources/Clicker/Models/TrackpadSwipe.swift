@@ -23,9 +23,6 @@ struct TrackpadSwipe: Sendable {
         }
 
         var phase: Phase
-        /// Set on the coasting events a trackpad or Magic Mouse sends after
-        /// the fingers lift.
-        var isMomentum = false
         /// Scroll deltas in points, as AppKit reports them: already flipped
         /// for Natural scrolling when `isDirectionInverted` is set.
         var deltaX: CGFloat = 0
@@ -58,13 +55,15 @@ struct TrackpadSwipe: Sendable {
     var isActive: Bool { position != nil }
 
     /// The touch to send for one event, or nil when the event changes nothing.
+    /// The coasting events a trackpad or Magic Mouse sends after the fingers
+    /// lift carry a momentum phase and no finger phase, so they land in
+    /// `.none`; a finger phase always wins, so a release is never lost.
     mutating func translate(_ event: Event) -> Action? {
-        guard !event.isMomentum else { return nil }
         switch event.phase {
         case .none, .mayBegin:
-            // A legacy wheel notch, or two fingers resting before they move:
-            // pressing on the latter and then cancelling would reach the TV
-            // as a tap.
+            // Momentum, a legacy wheel notch, or two fingers resting before
+            // they move: pressing on the last and then cancelling would reach
+            // the TV as a tap.
             return nil
         case .began:
             let center = CGPoint(x: Self.surfaceSize / 2, y: Self.surfaceSize / 2)

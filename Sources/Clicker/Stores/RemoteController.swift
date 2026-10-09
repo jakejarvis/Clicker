@@ -146,7 +146,12 @@ final class RemoteController {
     /// report at up to 120 Hz, so holds are coalesced: the queued one sends
     /// whatever position is current when it runs.
     @ObservationIgnored private var touchHoldQueued = false
+    /// Holds sent for the current swipe, for the release log line.
     @ObservationIgnored private var touchHolds = 0
+    /// Bumped by each press. A queued hold reads the position when it runs,
+    /// which may be after the next swipe has begun; it checks this first so
+    /// it never sends another gesture's position.
+    @ObservationIgnored private var touchGesture = 0
     /// Hides the menu bar panel; installed by `StatusItemController`. Used
     /// before presenting windows the panel would otherwise float above.
     @ObservationIgnored var dismissPanel: () -> Void = {}
@@ -602,14 +607,16 @@ final class RemoteController {
             Log.remote.info("Touch down at \(Int(point.x), privacy: .public),\(Int(point.y), privacy: .public)")
             touchPosition = point
             touchHolds = 0
+            touchGesture += 1
             perform { try await $0.touch(x: point.x, y: point.y, phase: .press) }
         case .touchMove(let point):
             touchPosition = point
-            touchHolds += 1
             guard !touchHoldQueued else { return }
             touchHoldQueued = true
+            touchHolds += 1
+            let gesture = touchGesture
             perform { [weak self] client in
-                guard let point = self?.touchPosition else { return }
+                guard let self, self.touchGesture == gesture, let point = self.touchPosition else { return }
                 try await client.touch(x: point.x, y: point.y, phase: .hold)
             } completion: { [weak self] in
                 self?.touchHoldQueued = false

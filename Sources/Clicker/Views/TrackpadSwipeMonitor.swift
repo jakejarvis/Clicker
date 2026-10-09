@@ -29,9 +29,20 @@ private struct TrackpadSwipeMonitor: ViewModifier {
             .onHover { tracking.isHovered = $0 }
             // The monitor's closure holds the modifier as it was when it
             // was installed, so the flag is kept where the closure reads it.
-            .onChange(of: isEnabled, initial: true) { tracking.isEnabled = isEnabled }
+            .onChange(of: isEnabled, initial: true) {
+                tracking.isEnabled = isEnabled
+                if !isEnabled { cancel() }
+            }
             .onAppear(perform: install)
             .onDisappear(perform: remove)
+    }
+
+    /// Lifts a finger the pad can no longer follow (the pad went inert or
+    /// off screen mid-gesture), so the TV is not left with it held down.
+    private func cancel() {
+        if let action = tracking.swipe.translate(.init(phase: .cancelled)) {
+            controller.handleTrackpadSwipe(action)
+        }
     }
 
     private func install() {
@@ -43,6 +54,7 @@ private struct TrackpadSwipeMonitor: ViewModifier {
     }
 
     private func remove() {
+        cancel()
         if let monitor = tracking.monitor { NSEvent.removeMonitor(monitor) }
         tracking.monitor = nil
     }
@@ -76,7 +88,6 @@ extension TrackpadSwipe.Event {
     fileprivate init(_ event: NSEvent) {
         self.init(
             phase: Phase(event.phase),
-            isMomentum: event.momentumPhase != [],
             deltaX: event.scrollingDeltaX,
             deltaY: event.scrollingDeltaY,
             isDirectionInverted: event.isDirectionInvertedFromDevice)
@@ -84,6 +95,8 @@ extension TrackpadSwipe.Event {
 }
 
 extension TrackpadSwipe.Event.Phase {
+    /// Momentum events have a `phase` of none (their `momentumPhase` is set
+    /// instead), so they map to `.none` without being looked at.
     fileprivate init(_ phase: NSEvent.Phase) {
         if phase.contains(.began) {
             self = .began

@@ -70,10 +70,11 @@ import Testing
         var swipe = TrackpadSwipe()
         _ = swipe.translate(Event(phase: .began))
         _ = swipe.translate(Event(phase: .ended))
-        // The Mac keeps coasting after the fingers lift; tvOS already does
-        // its own, from the release velocity.
-        #expect(swipe.translate(Event(phase: .none, isMomentum: true, deltaY: 30)) == nil)
-        #expect(swipe.translate(Event(phase: .none, isMomentum: true, deltaY: 0)) == nil)
+        // The Mac keeps coasting after the fingers lift (momentum events,
+        // which carry no finger phase); tvOS already does its own, from the
+        // release velocity.
+        #expect(swipe.translate(Event(phase: .none, deltaY: 30)) == nil)
+        #expect(swipe.translate(Event(phase: .none, deltaY: 0)) == nil)
         #expect(swipe.isActive == false)
     }
 
