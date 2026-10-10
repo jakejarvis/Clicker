@@ -80,8 +80,7 @@ struct DevicePickerMenu: View {
             }
         } else if controller.devices.isEmpty {
             HStack(spacing: 5) {
-                ProgressView()
-                    .controlSize(.mini)
+                Spinner(size: 11)
                 Text("Searching…")
             }
         } else {
@@ -323,8 +322,7 @@ private struct RescanRow: View {
             HStack(spacing: 6) {
                 Group {
                     if isRescanning {
-                        ProgressView()
-                            .controlSize(.mini)
+                        Spinner(size: 11)
                     } else {
                         Image(systemName: "arrow.clockwise")
                             .font(.caption.weight(.semibold))

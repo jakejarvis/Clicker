@@ -102,8 +102,7 @@ struct AppPickerView: View {
                 .focused($isSearchFocused)
                 .onSubmit(launchHighlighted)
             if controller.isLoadingApps {
-                ProgressView()
-                    .controlSize(.mini)
+                Spinner(size: 11)
             } else {
                 Button {
                     controller.refreshApps()

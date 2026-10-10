@@ -18,7 +18,7 @@ Sources/Clicker
 ├── Views/      MenuBarView (screen switch), DevicePickerMenu, RemotePadView,
 │               TVTextFieldView, RemoteOverlayCards (pairing, offline,
 │               searching cards), PINCodeField, SettingsScreen, ActionMenus,
-│               AppPickerView (searchable Apps popover with favorites and recents),
+│               AppPickerView (searchable Apps popover with favorites and recents), Spinner,
 │               ClickpadGeometry, TrackpadSwipeMonitor (two-finger scroll → touch)
 ├── Stores/     RemoteController (all UI-facing state), CredentialStore,
 │               IdentityStore, UpdateController (Sparkle)
@@ -123,6 +123,7 @@ ImageRenderer and offscreen `cacheDisplay` snapshots are useless here (they drop
 - The TV text field (`TVTextFieldView`) appears below the button grid, not above the clickpad: the panel is anchored at its top and grows downward, so a keyboard appearing on the TV never moves a button. It shows itself when the TV reports a focused field (`RemoteController.isTextFieldShown`) and the footer's keyboard button toggles it in between. A card over the pad (like pairing) was considered and set aside because the pad may still be needed to finish typing on the TV. An always-available keyboard button that opened an inert field without a session was tried and rejected. The field itself is an `NSTextField` wrapped in `CommittedTextField`, not a SwiftUI `TextField`: it forwards text only when the field editor has no marked range, so input-method composition (CJK, dead keys such as ⌥E) reaches the TV once, as the committed text, instead of a replace event per keystroke. Verified in `--demo typing`: ⌥E then E logs one insert, a backspace one replace. It takes focus in `viewDidMoveToWindow`, Return goes through `insertNewline:` and Esc through `cancelOperation:` in the delegate, which resigns first responder so the pad's keys work again.
 - State wording: connected + TV on = "Ready"; connected + off = "Asleep".
 - Keyboard: arrows, Return=Select, Delete=Back, Space=Play/Pause, H=TV, M=Mute, +/−=Volume, Esc=close. These are in tooltips, not listed in Settings.
+- Spinners: every loading indicator is `Spinner` (the `progress.indicator` symbol with an iterative, hide-inactive variable-color effect, 16pt in cards and 11pt inline), never `ProgressView`. The system spinner is a mid gray whose tail fades out, so on the dark panel's materials it nearly disappeared, and it can't be tinted. It takes the surrounding foreground style (secondary in the device control's subtitle).
 - Siri button: the `siri` SF Symbol (2025 catalog, macOS 26 only) in the same primary color and font as every other glyph; macOS 15 falls back to `mic`. A pink → purple → blue gradient fill was shipped and then removed (no SF Symbol has a colored Siri), and `apple.intelligence` was considered and rejected for the fallback. Don't bring either back.
 
 ## Keychain (measured on macOS 27, 2026-10)

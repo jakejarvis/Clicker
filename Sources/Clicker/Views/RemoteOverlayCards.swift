@@ -71,8 +71,7 @@ struct PairingCard: View {
         case .starting:
             CardTitle("Pair with \(device.name)")
             HStack(spacing: 6) {
-                ProgressView()
-                    .controlSize(.small)
+                Spinner()
                 CardCaption("Waiting for \(device.name)…")
             }
             Button("Cancel") { controller.cancelPairing() }
@@ -83,8 +82,7 @@ struct PairingCard: View {
                 controller.submitPIN(code)
             }
             if controller.pairingState == .finishing {
-                ProgressView()
-                    .controlSize(.small)
+                Spinner()
                     .frame(height: 22)
             } else {
                 Button("Cancel") { cancel() }
@@ -136,8 +134,7 @@ struct SearchingCard: View {
 
     var body: some View {
         OverlayCard {
-            ProgressView()
-                .controlSize(.small)
+            Spinner()
             CardTitle("Looking for Apple TVs…")
             CardCaption(message ?? "Make sure the Apple TV is on the same network as this Mac.")
         }
