@@ -26,7 +26,10 @@ try {
 }
 ---
 
-<Layout title="Changelog — Clicker" description="Clicker release notes and downloads.">
+<Layout
+  title="Changelog — Clicker"
+  description="Clicker release notes and downloads."
+>
   <div class="changelog">
     <h1>Changelog</h1>
 
@@ -85,7 +88,9 @@ try {
                 )}
               </div>
 
-              {release.body_html && <div class="release-body" set:html={release.body_html} />}
+              {release.body_html && (
+                <div class="release-body" set:html={release.body_html} />
+              )}
             </article>
           ))}
         </div>

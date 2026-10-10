@@ -4,57 +4,189 @@ import Layout from "../layouts/Layout.astro";
 const repo = "https://github.com/jakejarvis/Clicker";
 ---
 
-<Layout title="Privacy — Clicker" description="What Clicker and this website do with your data.">
+<Layout
+  title="Privacy — Clicker"
+  description="What Clicker and this website do with your data."
+>
   <article class="prose">
     <h1>Privacy Policy</h1>
     <p class="muted">Last updated October 8, 2026</p>
 
-    <p>Clicker is a free, open-source Apple TV remote for macOS, made by Jake Jarvis. This policy covers the Clicker app and this website, clicker.jarv.is. The short version: the app has no accounts, no analytics and no server of its own. Everything it knows stays on your Mac, and the only thing it sends to the internet is a check for updates.</p>
+    <p>
+      Clicker is a free, open-source Apple TV remote for macOS, made by Jake
+      Jarvis. This policy covers the Clicker app and this website,
+      clicker.jarv.is. The short version: the app has no accounts, no analytics
+      and no server of its own. Everything it knows stays on your Mac, and the
+      only thing it sends to the internet is a check for updates.
+    </p>
 
     <h2>What the app sends over your network</h2>
-    <p>Clicker finds Apple TVs with Bonjour on your local network and talks to them directly using Apple's Companion protocol, the same one the Apple TV Remote on an iPhone uses. After pairing, that connection is encrypted end to end between your Mac and the Apple TV. Button presses, text you type into the TV's search and password fields, volume changes and app launches go only to the Apple TV you're controlling. They never pass through a server run by Clicker or anyone else.</p>
-    <p>To wake an Apple TV that's asleep, Clicker briefly opens and closes a few connections to that Apple TV's address without sending anything. This also stays on your local network.</p>
+    <p>
+      Clicker finds Apple TVs with Bonjour on your local network and talks to
+      them directly using Apple's Companion protocol, the same one the Apple TV
+      Remote on an iPhone uses. After pairing, that connection is encrypted end
+      to end between your Mac and the Apple TV. Button presses, text you type
+      into the TV's search and password fields, volume changes and app launches
+      go only to the Apple TV you're controlling. They never pass through a
+      server run by Clicker or anyone else.
+    </p>
+    <p>
+      To wake an Apple TV that's asleep, Clicker briefly opens and closes a few
+      connections to that Apple TV's address without sending anything. This also
+      stays on your local network.
+    </p>
 
     <h2>Update checks</h2>
-    <p>Clicker uses the open-source <a href="https://sparkle-project.org">Sparkle</a> framework to check for updates once a day, and whenever you choose <strong>Check for Updates…</strong>. A check downloads the update feed from <code>clicker.jarv.is/appcast.xml</code>. Like any web request, it reveals your IP address to the server, and its user agent names the app, its version and Sparkle's version (for example, <code>Clicker/1.0 Sparkle/2.10.0</code>). Sparkle's optional system profiling, which would send details about your Mac, is turned off, so nothing else is sent.</p>
-    <p>The feed is served through Vercel, which passes the request on to GitHub Pages, where the feed file is stored. If you install an update, the update itself is downloaded from GitHub Releases. Vercel and GitHub may log these requests as described in their own policies (see <a href="#services">Services this relies on</a>).</p>
-    <p>You can turn this off with <strong>Check Automatically</strong> in Settings. Clicker never installs an update without asking you first.</p>
+    <p>
+      Clicker uses the open-source <a href="https://sparkle-project.org"
+        >Sparkle</a
+      > framework to check for updates once a day, and whenever you choose <strong
+        >Check for Updates…</strong
+      >. A check downloads the update feed from <code
+        >clicker.jarv.is/appcast.xml</code
+      >. Like any web request, it reveals your IP address to the server, and its
+      user agent names the app, its version and Sparkle's version (for example, <code
+        >Clicker/1.0 Sparkle/2.10.0</code
+      >). Sparkle's optional system profiling, which would send details about
+      your Mac, is turned off, so nothing else is sent.
+    </p>
+    <p>
+      The feed is served through Vercel, which passes the request on to GitHub
+      Pages, where the feed file is stored. If you install an update, the update
+      itself is downloaded from GitHub Releases. Vercel and GitHub may log these
+      requests as described in their own policies (see <a href="#services"
+        >Services this relies on</a
+      >).
+    </p>
+    <p>
+      You can turn this off with <strong>Check Automatically</strong> in Settings.
+      Clicker never installs an update without asking you first.
+    </p>
 
     <h2>What the app stores on your Mac</h2>
     <ul>
-      <li><strong>Pairing keys</strong> for each Apple TV you pair with. Release builds keep them in your Mac's keychain, where only Clicker can read them. Builds you compile yourself without signing keep them in a file in <code>~/Library/Application Support/Clicker</code> instead.</li>
-      <li><strong>Preferences</strong>, in <code>~/Library/Preferences/com.jakejarvis.Clicker.plist</code>: the name this Mac shows on your Apple TV (your Mac's name unless you change it), a random identifier the Apple TV uses to recognize this Mac, which Apple TV you last used, each Apple TV's last known network address, the apps you recently opened on each Apple TV, and your update settings.</li>
-      <li><strong>Diagnostic logs</strong> in macOS's own system log, which record things like the names and addresses of Apple TVs, which buttons were pressed and any connection errors. The text you type isn't logged, only how many characters it has. These logs stay on your Mac unless you share them yourself, for example when you report a bug.</li>
+      <li>
+        <strong>Pairing keys</strong> for each Apple TV you pair with. Release builds
+        keep them in your Mac's keychain, where only Clicker can read them. Builds
+        you compile yourself without signing keep them in a file in <code
+          >~/Library/Application Support/Clicker</code
+        > instead.
+      </li>
+      <li>
+        <strong>Preferences</strong>, in <code
+          >~/Library/Preferences/com.jakejarvis.Clicker.plist</code
+        >: the name this Mac shows on your Apple TV (your Mac's name unless you
+        change it), a random identifier the Apple TV uses to recognize this Mac,
+        which Apple TV you last used, each Apple TV's last known network
+        address, the apps you recently opened on each Apple TV, and your update
+        settings.
+      </li>
+      <li>
+        <strong>Diagnostic logs</strong> in macOS's own system log, which record things
+        like the names and addresses of Apple TVs, which buttons were pressed and
+        any connection errors. The text you type isn't logged, only how many characters
+        it has. These logs stay on your Mac unless you share them yourself, for example
+        when you report a bug.
+      </li>
     </ul>
-    <p><strong>Forget</strong> in Settings deletes an Apple TV's pairing keys, recent apps and saved address. Your Apple TV keeps its own record of the pairing, which you can remove under <strong>Settings › Remotes and Devices › Remote App and Devices</strong> on the TV. To remove everything, forget each Apple TV, quit Clicker, then delete the app and the preferences file listed above.</p>
+    <p>
+      <strong>Forget</strong> in Settings deletes an Apple TV's pairing keys, recent
+      apps and saved address. Your Apple TV keeps its own record of the pairing, which
+      you can remove under <strong
+        >Settings › Remotes and Devices › Remote App and Devices</strong
+      > on the TV. To remove everything, forget each Apple TV, quit Clicker, then
+      delete the app and the preferences file listed above.
+    </p>
 
     <h2>Permissions</h2>
-    <p>The first time it runs, macOS asks whether Clicker may find devices on your local network. Clicker needs this to see your Apple TVs and uses it for nothing else. If you turn on <strong>Launch at Login</strong>, Clicker registers itself with macOS as a login item, which you can also manage in System Settings.</p>
+    <p>
+      The first time it runs, macOS asks whether Clicker may find devices on
+      your local network. Clicker needs this to see your Apple TVs and uses it
+      for nothing else. If you turn on <strong>Launch at Login</strong>, Clicker
+      registers itself with macOS as a login item, which you can also manage in
+      System Settings.
+    </p>
 
     <h2>This website</h2>
-    <p>This site is hosted on Vercel and uses Vercel Web Analytics to count visits. Web Analytics doesn't use cookies. It records the page you viewed, the referring site, your approximate location (country, region and city), and your browser, operating system and device type. To tell visits apart, Vercel uses a hash created from your request, which is discarded after 24 hours, and the statistics Clicker sees are anonymous and aggregated. Vercel's <a href="https://vercel.com/docs/analytics/privacy-policy">Web Analytics privacy page</a> has the details.</p>
-    <p>Like any web host, Vercel receives your IP address and request details when you load a page. The changelog and download links point to GitHub, which applies its own policies when you follow them. This site sets no cookies and has no forms, accounts or mailing list.</p>
+    <p>
+      This site is hosted on Vercel and uses Vercel Web Analytics to count
+      visits. Web Analytics doesn't use cookies. It records the page you viewed,
+      the referring site, your approximate location (country, region and city),
+      and your browser, operating system and device type. To tell visits apart,
+      Vercel uses a hash created from your request, which is discarded after 24
+      hours, and the statistics Clicker sees are anonymous and aggregated.
+      Vercel's <a href="https://vercel.com/docs/analytics/privacy-policy"
+        >Web Analytics privacy page</a
+      > has the details.
+    </p>
+    <p>
+      Like any web host, Vercel receives your IP address and request details
+      when you load a page. The changelog and download links point to GitHub,
+      which applies its own policies when you follow them. This site sets no
+      cookies and has no forms, accounts or mailing list.
+    </p>
 
     <h2 id="services">Services this relies on</h2>
     <ul>
-      <li><strong>Vercel</strong> hosts this website, serves the update feed and provides Web Analytics. See the <a href="https://vercel.com/legal/privacy-policy">Vercel Privacy Policy</a>.</li>
-      <li><strong>GitHub</strong> hosts the source code, stores the update feed (on GitHub Pages) and hosts the downloads (on GitHub Releases). See the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub General Privacy Statement</a>.</li>
-      <li><strong>Apple</strong>: macOS itself may contact Apple, for example to check the app's notarization the first time you open it. That happens under <a href="https://www.apple.com/legal/privacy/">Apple's privacy policy</a>, not because of anything Clicker does.</li>
+      <li>
+        <strong>Vercel</strong> hosts this website, serves the update feed and provides
+        Web Analytics. See the <a href="https://vercel.com/legal/privacy-policy"
+          >Vercel Privacy Policy</a
+        >.
+      </li>
+      <li>
+        <strong>GitHub</strong> hosts the source code, stores the update feed (on
+        GitHub Pages) and hosts the downloads (on GitHub Releases). See the <a
+          href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
+          >GitHub General Privacy Statement</a
+        >.
+      </li>
+      <li>
+        <strong>Apple</strong>: macOS itself may contact Apple, for example to
+        check the app's notarization the first time you open it. That happens
+        under <a href="https://www.apple.com/legal/privacy/"
+          >Apple's privacy policy</a
+        >, not because of anything Clicker does.
+      </li>
     </ul>
 
     <h2>What Clicker doesn't do</h2>
-    <p>Clicker doesn't sell, rent or share personal information, because it doesn't collect any beyond the aggregate site statistics above. There's no advertising, no tracking across apps or websites, and no data used to train AI models.</p>
+    <p>
+      Clicker doesn't sell, rent or share personal information, because it
+      doesn't collect any beyond the aggregate site statistics above. There's no
+      advertising, no tracking across apps or websites, and no data used to
+      train AI models.
+    </p>
 
     <h2>Children</h2>
-    <p>Clicker and this site aren't directed at children and don't knowingly collect information from anyone, including children under 13.</p>
+    <p>
+      Clicker and this site aren't directed at children and don't knowingly
+      collect information from anyone, including children under 13.
+    </p>
 
     <h2>Your rights</h2>
-    <p>Because the app keeps your data on your Mac, you can see and delete all of it yourself, as described above. Depending on where you live, you may have rights over data that Vercel or GitHub hold about your visits and downloads. Those requests go to them directly, since Clicker can't access their logs of individual visitors.</p>
+    <p>
+      Because the app keeps your data on your Mac, you can see and delete all of
+      it yourself, as described above. Depending on where you live, you may have
+      rights over data that Vercel or GitHub hold about your visits and
+      downloads. Those requests go to them directly, since Clicker can't access
+      their logs of individual visitors.
+    </p>
 
     <h2>Changes</h2>
-    <p>If this policy changes, the new version will be posted on this page with a new date. The history of every change is public in the <a href={`${repo}/commits/main/site/src/pages/privacy.astro`}>site's source code</a>.</p>
+    <p>
+      If this policy changes, the new version will be posted on this page with a
+      new date. The history of every change is public in the <a
+        href={`${repo}/commits/main/site/src/pages/privacy.astro`}
+        >site's source code</a
+      >.
+    </p>
 
     <h2>Contact</h2>
-    <p>Questions about privacy? Open an issue on <a href={`${repo}/issues`}>GitHub</a>.</p>
+    <p>
+      Questions about privacy? Open an issue on <a href={`${repo}/issues`}
+        >GitHub</a
+      >.
+    </p>
   </article>
 </Layout>

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Interactive surfaces use Liquid Glass on macOS 26 and system materials on
+/// Interactive surfaces use Liquid Glass on macOS 26 and a flat fill on
 /// macOS 15, so the rest of the UI never branches on OS version.
 extension View {
     func surface<S: InsettableShape>(

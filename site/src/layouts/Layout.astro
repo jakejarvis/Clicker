@@ -28,7 +28,12 @@ const {
     <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icon.png" />
-    <link rel="alternate" type="application/rss+xml" title="Clicker updates" href="/appcast.xml" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="Clicker updates"
+      href="/appcast.xml"
+    />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL("/icon.png", Astro.site)} />
@@ -38,13 +43,26 @@ const {
     <div class="page">
       <header>
         <a class="brand" href="/">
-          <Image src={icon} alt="" width={24} height={24} densities={[1, 2]} priority />
+          <Image
+            src={icon}
+            alt=""
+            width={30}
+            height={30}
+            densities={[1, 2]}
+            priority
+          />
           <span class="name">Clicker</span>
         </a>
         <nav>
           <a class="nav-link" href="/changelog">Changelog</a>
           <span class="separator" aria-hidden="true"></span>
-          <a class="nav-icon" href={repo} target="_blank" rel="noopener" aria-label="GitHub">
+          <a
+            class="nav-icon"
+            href={repo}
+            target="_blank"
+            rel="noopener"
+            aria-label="GitHub"
+          >
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path
                 fill="currentColor"
@@ -63,7 +81,12 @@ const {
         <div class="footer-row">
           <p>
             Created by{" "}
-            <a class="footer-credit" href="https://jarv.is" target="_blank" rel="noopener">
+            <a
+              class="footer-credit"
+              href="https://jarv.is"
+              target="_blank"
+              rel="noopener"
+            >
               <span>@jakejarvis</span><svg
                 viewBox="0 0 24 24"
                 width="14"
@@ -73,7 +96,8 @@ const {
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg
+                aria-hidden="true"
+                ><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg
               >
             </a>
           </p>
@@ -84,8 +108,8 @@ const {
           </nav>
         </div>
         <p class="disclaimer">
-          Clicker is an independent project, not affiliated with or endorsed by Apple Inc. Apple TV,
-          macOS, and Siri are trademarks of Apple Inc.
+          Clicker is an independent project, not affiliated with or endorsed by
+          Apple Inc. Apple TV, macOS, and Siri are trademarks of Apple Inc.
         </p>
       </footer>
     </div>

@@ -63,8 +63,8 @@ header {
 }
 
 .brand img {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 0.375rem;
 }
 
@@ -113,11 +113,15 @@ header nav a:hover {
   color: rgb(237 237 237 / 90%);
 }
 
-.lede a,
-.prose a {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 1px;
+.apple-tv {
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.apple-tv svg {
+  margin-right: 0.125em;
+  vertical-align: -0.075em;
 }
 
 .muted {
@@ -156,6 +160,12 @@ header nav a:hover {
 
 .prose p {
   margin: 0 0 1rem;
+}
+
+.prose a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 1px;
 }
 
 .prose ul {
