@@ -62,7 +62,7 @@ for (let i = 0; i < list.count; i++) {
 frame && [frame, $.CGDisplayPixelsWide($.CGMainDisplayID()), $.NSScreen.mainScreen.backingScaleFactor].join(" ")'
 
 if [[ "$INSTALL" == 1 ]]; then
-  "$ROOT_DIR/script/package_app.sh" --release
+  "$ROOT_DIR/script/package_app.sh" --release --with-demo
   # A zip keeps Sparkle.framework's symlinks intact on the way in.
   zip_dir="$(mktemp -d)"
   ditto -c -k --keepParent "$ROOT_DIR/dist/Clicker.app" "$zip_dir/Clicker.zip"

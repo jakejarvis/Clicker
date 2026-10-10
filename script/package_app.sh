@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build Clicker and assemble a signed dist/Clicker.app with Sparkle embedded.
-# Usage: script/package_app.sh [--release] [--universal] [--sign <identity>] [--version X.Y.Z]
-#   --release    optimized build
+# Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z]
+#   --release    optimized build; leaves out --demo unless --with-demo is also given
+#   --with-demo  compile the --demo scenarios in (debug builds always have them)
 #   --universal  arm64 + x86_64
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
@@ -12,17 +13,19 @@
 set -euo pipefail
 
 CONFIGURATION="debug"
+WITH_DEMO=0
 UNIVERSAL=0
 IDENTITY="-"
 VERSION="${CLICKER_VERSION:-0.1.0}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --release) CONFIGURATION="release" ;;
+    --with-demo) WITH_DEMO=1 ;;
     --universal) UNIVERSAL=1 ;;
     --sign) IDENTITY="$2"; shift ;;
     --version) VERSION="$2"; shift ;;
     *)
-      echo "usage: $0 [--release] [--universal] [--sign <identity>] [--version X.Y.Z]" >&2
+      echo "usage: $0 [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z]" >&2
       exit 2
       ;;
   esac
@@ -49,6 +52,10 @@ ENTITLEMENTS="$ROOT_DIR/Resources/Clicker.entitlements"
 PROFILE="$ROOT_DIR/Resources/Clicker.provisionprofile"
 
 BUILD_FLAGS=(-c "$CONFIGURATION")
+if [[ "$WITH_DEMO" == 1 && "$CONFIGURATION" == "release" ]]; then
+  # Package.swift already defines DEMO for debug builds; this adds it to release ones.
+  BUILD_FLAGS+=(-Xswiftc -DDEMO)
+fi
 if [[ "$UNIVERSAL" == 1 ]]; then
   BUILD_FLAGS+=(--arch arm64 --arch x86_64)
 fi

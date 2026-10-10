@@ -69,8 +69,6 @@ enum PanelScreen: Hashable, Sendable {
 final class RemoteController {
     let browser = DeviceBrowser()
     let credentialStore: CredentialStore
-    /// Canned state for screenshots (`--demo`); see `DemoScenario`.
-    let demo: DemoScenario?
 
     private(set) var selectedDeviceID: String?
     private(set) var connectionState: ConnectionState = .disconnected
@@ -167,40 +165,67 @@ final class RemoteController {
     private static let lastAddressesKey = "lastAddressByDevice"
     private static let recentAppLimit = 5
 
-    init(demo: DemoScenario? = DemoScenario.current) {
-        self.demo = demo
-        if let demo {
-            Log.remote.info("Demo mode: \(demo.rawValue, privacy: .public)")
-            DemoScenario.overrideDefaults()
-            let paired = demo.pairedDevices.map(DemoScenario.credentials(for:))
-            credentialStore = CredentialStore(backend: DemoCredentialBackend(initial: paired))
-            selectedDeviceID = demo.selectedDeviceID
-            pairingState = demo.pairingState
-            if demo.pairingState != .idle { pairingDeviceID = demo.selectedDeviceID }
-            pairingNotice = demo.pairingNotice
-            screen = demo.screen
-            if let selected = demo.selectedDeviceID {
-                recentAppIDsByDevice = [selected: DemoScenario.recentAppIDs]
-                favoriteAppIDsByDevice = [selected: DemoScenario.favoriteAppIDs]
+    #if DEMO
+        /// Canned state for screenshots (`--demo`); see `DemoScenario`. Debug
+        /// builds compile it in; release builds only with `--with-demo`.
+        let demo: DemoScenario?
+        var isDemo: Bool { demo != nil }
+
+        init(demo: DemoScenario? = DemoScenario.current) {
+            self.demo = demo
+            if let demo {
+                Log.remote.info("Demo mode: \(demo.rawValue, privacy: .public)")
+                DemoScenario.overrideDefaults()
+                let paired = demo.pairedDevices.map(DemoScenario.credentials(for:))
+                credentialStore = CredentialStore(backend: DemoCredentialBackend(initial: paired))
+                selectedDeviceID = demo.selectedDeviceID
+                pairingState = demo.pairingState
+                if demo.pairingState != .idle { pairingDeviceID = demo.selectedDeviceID }
+                pairingNotice = demo.pairingNotice
+                screen = demo.screen
+                if let selected = demo.selectedDeviceID {
+                    recentAppIDsByDevice = [selected: DemoScenario.recentAppIDs]
+                    favoriteAppIDsByDevice = [selected: DemoScenario.favoriteAppIDs]
+                }
+            } else {
+                credentialStore = CredentialStore()
+                restoreSavedState()
             }
-        } else {
+            browser.onUpdate = { [weak self] devices in
+                self?.devicesDidChange(devices)
+            }
+        }
+    #else
+        /// Release builds have no demo mode.
+        var isDemo: Bool { false }
+
+        init() {
             credentialStore = CredentialStore()
-            selectedDeviceID = UserDefaults.standard.string(forKey: Self.selectedDeviceKey)
-            recentAppIDsByDevice =
-                UserDefaults.standard.dictionary(forKey: Self.recentAppsKey) as? [String: [String]] ?? [:]
-            favoriteAppIDsByDevice =
-                UserDefaults.standard.dictionary(forKey: Self.favoriteAppsKey) as? [String: [String]] ?? [:]
+            restoreSavedState()
+            browser.onUpdate = { [weak self] devices in
+                self?.devicesDidChange(devices)
+            }
         }
-        browser.onUpdate = { [weak self] devices in
-            self?.devicesDidChange(devices)
-        }
+    #endif
+
+    /// The selection and per-TV app lists from the last launch.
+    private func restoreSavedState() {
+        selectedDeviceID = UserDefaults.standard.string(forKey: Self.selectedDeviceKey)
+        recentAppIDsByDevice =
+            UserDefaults.standard.dictionary(forKey: Self.recentAppsKey) as? [String: [String]] ?? [:]
+        favoriteAppIDsByDevice =
+            UserDefaults.standard.dictionary(forKey: Self.favoriteAppsKey) as? [String: [String]] ?? [:]
     }
 
     // MARK: - Devices
 
     /// Online devices merged with paired devices that are not currently visible, in picker order.
     var devices: [AppleTVDevice] {
-        var result = demo?.onlineDevices ?? browser.devices
+        #if DEMO
+            var result = demo?.onlineDevices ?? browser.devices
+        #else
+            var result = browser.devices
+        #endif
         let onlineIDs = Set(result.map(\.id))
         for credentials in credentialStore.credentials where !onlineIDs.contains(credentials.deviceID) {
             result.append(AppleTVDevice(offline: credentials))
@@ -264,7 +289,7 @@ final class RemoteController {
     }
 
     func start() {
-        if demo == nil { browser.start() }
+        if !isDemo { browser.start() }
         connectIfNeeded()
     }
 
@@ -272,7 +297,7 @@ final class RemoteController {
     /// on the selected TV's last known address, in case it is asleep behind a
     /// Bonjour sleep proxy that wakes it when one of its ports is touched.
     func rescan() {
-        guard demo == nil else { return }
+        guard !isDemo else { return }
         if let selectedDeviceID, let host = lastAddressByDevice[selectedDeviceID] {
             PortKnocker.knock(host: host)
         }
@@ -287,7 +312,7 @@ final class RemoteController {
     }
 
     private func rememberAddress(of endpoint: NWEndpoint?, for deviceID: String) {
-        guard demo == nil, case .hostPort(let host, _)? = endpoint else { return }
+        guard !isDemo, case .hostPort(let host, _)? = endpoint else { return }
         lastAddressByDevice[deviceID] = String(describing: host)
     }
 
@@ -380,7 +405,7 @@ final class RemoteController {
 
     /// Keeps the selection for the next launch; demo runs leave it alone.
     private func rememberSelection(_ deviceID: String?) {
-        guard demo == nil else { return }
+        guard !isDemo else { return }
         UserDefaults.standard.set(deviceID, forKey: Self.selectedDeviceKey)
     }
 
@@ -388,17 +413,19 @@ final class RemoteController {
 
     /// Called when the menu bar panel opens.
     func panelDidAppear() {
-        if demo == nil { browser.start() }
+        if !isDemo { browser.start() }
         lastActionError = nil
         panelAppearances += 1
         connectIfNeeded()
     }
 
     func connectIfNeeded(isRetry: Bool = false) {
-        if let demo {
-            connectDemo(demo)
-            return
-        }
+        #if DEMO
+            if let demo {
+                connectDemo(demo)
+                return
+            }
+        #endif
         guard connectTask == nil else { return }
         guard let device = selectedDevice, let endpoint = device.endpoint,
             let credentials = credentialStore.credentials(for: device.id)
@@ -455,25 +482,6 @@ final class RemoteController {
                 }
                 self.connectionState = .failed(Self.describe(error))
             }
-        }
-    }
-
-    /// Stands in for a connection in demo mode: a paired, online TV is ready
-    /// at once, with the scenario's power state, apps and text field.
-    private func connectDemo(_ demo: DemoScenario) {
-        guard let device = selectedDevice, device.isOnline, isPaired(device) else { return }
-        // Re-applied on every panel open, which clears the notice first.
-        lastActionError = demo.actionError
-        guard connectionState != .connected else { return }
-        connectionState = demo.connectionState
-        guard connectionState == .connected else { return }
-        powerState = demo.powerState
-        mediaControlFlags = demo.mediaControlFlags
-        connectionInfo = ConnectionInfo(
-            address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B, osVersion: "26.0.1")
-        apps = DemoScenario.apps
-        if let session = demo.keyboardSession {
-            adoptKeyboardSession(session)
         }
     }
 
@@ -693,7 +701,7 @@ final class RemoteController {
     /// after the timeout the mute is undone and withheld like an output that
     /// never claimed it. A later `_iMC` with the volume bit re-enables it.
     private func confirmMute(updatesSince: Int) {
-        guard demo == nil, isMuted, lastActionError == nil else { return }
+        guard !isDemo, isMuted, lastActionError == nil else { return }
         muteConfirmationTask?.cancel()
         muteConfirmationTask = Task { [weak self] in
             try? await Task.sleep(for: Self.muteConfirmationTimeout)
@@ -812,7 +820,7 @@ final class RemoteController {
     }
 
     private func rememberRecents() {
-        guard demo == nil else { return }
+        guard !isDemo else { return }
         UserDefaults.standard.set(recentAppIDsByDevice, forKey: Self.recentAppsKey)
     }
 
@@ -842,7 +850,7 @@ final class RemoteController {
     }
 
     private func rememberFavorites() {
-        guard demo == nil else { return }
+        guard !isDemo else { return }
         UserDefaults.standard.set(favoriteAppIDsByDevice, forKey: Self.favoriteAppsKey)
     }
 
@@ -912,10 +920,12 @@ final class RemoteController {
     // MARK: - Pairing
 
     func beginPairing() {
-        if demo != nil {
-            beginDemoPairing()
-            return
-        }
+        #if DEMO
+            if isDemo {
+                beginDemoPairing()
+                return
+            }
+        #endif
         guard let device = selectedDevice, let endpoint = device.endpoint else { return }
         guard !device.pairingDisabled else {
             pairingState = .failed(CompanionError.pairingDisabled.localizedDescription)
@@ -946,10 +956,12 @@ final class RemoteController {
     }
 
     func submitPIN(_ pin: String) {
-        if demo != nil {
-            submitDemoPIN()
-            return
-        }
+        #if DEMO
+            if isDemo {
+                submitDemoPIN()
+                return
+            }
+        #endif
         guard let session = pairingSession, let device = selectedDevice, device.id == pairingDeviceID else {
             Log.pairing.info("Ignoring PIN: no pairing in progress for the selected device")
             return
@@ -992,34 +1004,6 @@ final class RemoteController {
         pairingState = .idle
     }
 
-    /// Demo pairing: the TV "shows a code" after a second.
-    private func beginDemoPairing() {
-        guard let device = selectedDevice else { return }
-        pairingDeviceID = device.id
-        pairingState = .starting
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1))
-            guard let self, self.pairingState == .starting, self.pairingDeviceID == device.id else { return }
-            self.pairingState = .awaitingPIN
-        }
-    }
-
-    /// Demo pairing: any code is accepted, then the usual check and connect.
-    private func submitDemoPIN() {
-        guard let device = selectedDevice, pairingState == .awaitingPIN else { return }
-        pairingState = .finishing
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1))
-            guard let self, self.pairingState == .finishing else { return }
-            self.credentialStore.save(DemoScenario.credentials(for: device))
-            self.pairingDeviceID = nil
-            self.pairingState = .succeeded
-            self.connectIfNeeded()
-            try? await Task.sleep(for: .seconds(1.2))
-            if self.pairingState == .succeeded { self.pairingState = .idle }
-        }
-    }
-
     private static func describe(_ error: Error) -> String {
         if let companionError = error as? CompanionError {
             return companionError.localizedDescription
@@ -1027,3 +1011,58 @@ final class RemoteController {
         return error.localizedDescription
     }
 }
+
+#if DEMO
+    // MARK: - Demo
+
+    extension RemoteController {
+        /// Stands in for a connection in demo mode: a paired, online TV is ready
+        /// at once, with the scenario's power state, apps and text field.
+        private func connectDemo(_ demo: DemoScenario) {
+            guard let device = selectedDevice, device.isOnline, isPaired(device) else { return }
+            // Re-applied on every panel open, which clears the notice first.
+            lastActionError = demo.actionError
+            guard connectionState != .connected else { return }
+            connectionState = demo.connectionState
+            guard connectionState == .connected else { return }
+            powerState = demo.powerState
+            mediaControlFlags = demo.mediaControlFlags
+            connectionInfo = ConnectionInfo(
+                address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B, osVersion: "26.0.1")
+            apps = DemoScenario.apps
+            if let session = demo.keyboardSession {
+                adoptKeyboardSession(session)
+            }
+        }
+
+        /// Demo pairing: the TV "shows a code" after a second.
+        private func beginDemoPairing() {
+            guard let device = selectedDevice else { return }
+            pairingDeviceID = device.id
+            pairingState = .starting
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard let self, self.pairingState == .starting, self.pairingDeviceID == device.id else {
+                    return
+                }
+                self.pairingState = .awaitingPIN
+            }
+        }
+
+        /// Demo pairing: any code is accepted, then the usual check and connect.
+        private func submitDemoPIN() {
+            guard let device = selectedDevice, pairingState == .awaitingPIN else { return }
+            pairingState = .finishing
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard let self, self.pairingState == .finishing else { return }
+                self.credentialStore.save(DemoScenario.credentials(for: device))
+                self.pairingDeviceID = nil
+                self.pairingState = .succeeded
+                self.connectIfNeeded()
+                try? await Task.sleep(for: .seconds(1.2))
+                if self.pairingState == .succeeded { self.pairingState = .idle }
+            }
+        }
+    }
+#endif
