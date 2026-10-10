@@ -48,11 +48,13 @@ final class UpdateController: NSObject {
         lastUpdateCheckDate = updaterController.updater.lastUpdateCheckDate
     }
 
-    /// Shows the gentle-reminder state (`--demo update`) without a feed:
-    /// the status item dot, the footer button and the "Update to" menu items.
-    func previewPendingUpdate(_ version: String) {
-        pendingUpdateVersion = version
-    }
+    #if DEMO
+        /// Shows the gentle-reminder state (`--demo update`) without a feed:
+        /// the status item dot, the footer button and the "Update to" menu items.
+        func previewPendingUpdate(_ version: String) {
+            pendingUpdateVersion = version
+        }
+    #endif
 
     /// User-initiated check. Also brings a pending update's alert forward.
     func checkForUpdates() {

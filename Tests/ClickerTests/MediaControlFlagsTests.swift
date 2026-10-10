@@ -21,20 +21,22 @@ import Testing
         #expect(flags?.contains(.volume) == false)
     }
 
-    @Test @MainActor func muteIsWithheldUntilTheTVReportsVolumeControl() {
-        let controller = RemoteController(demo: .ready)
-        #expect(controller.canMute == false)
-        controller.start()
-        #expect(controller.canMute)
-    }
+    #if DEMO
+        @Test @MainActor func muteIsWithheldUntilTheTVReportsVolumeControl() {
+            let controller = RemoteController(demo: .ready)
+            #expect(controller.canMute == false)
+            controller.start()
+            #expect(controller.canMute)
+        }
 
-    @Test @MainActor func anUnconfirmedMuteIsUndoneAndWithheld() {
-        let controller = RemoteController(demo: .ready)
-        controller.start()
-        controller.toggleMute()
-        #expect(controller.isMuted)
-        controller.abandonMute()
-        #expect(controller.isMuted == false)
-        #expect(controller.canMute == false)
-    }
+        @Test @MainActor func anUnconfirmedMuteIsUndoneAndWithheld() {
+            let controller = RemoteController(demo: .ready)
+            controller.start()
+            controller.toggleMute()
+            #expect(controller.isMuted)
+            controller.abandonMute()
+            #expect(controller.isMuted == false)
+            #expect(controller.canMute == false)
+        }
+    #endif
 }

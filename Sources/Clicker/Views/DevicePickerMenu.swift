@@ -149,7 +149,7 @@ private struct DeviceListView: View {
         .frame(width: showsDetails ? Self.detailsWidth : MenuBarView.panelWidth - 28)
     }
 
-    private var showsRescan: Bool { showsDetails && controller.demo == nil }
+    private var showsRescan: Bool { showsDetails && !controller.isDemo }
 
     @ViewBuilder
     private func row(for device: AppleTVDevice) -> some View {

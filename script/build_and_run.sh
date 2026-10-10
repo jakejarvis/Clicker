@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Kill, build, stage a .app bundle and launch Clicker.
 # Usage: script/build_and_run.sh [run|--debug|--logs|--telemetry|--verify] [--release] [--install]
-#   --release  optimized build
+#   --release  optimized build (still with --demo; only package_app.sh leaves it out)
 #   --install  copy the bundle to /Applications and launch it from there
 # Bundle assembly and signing live in script/package_app.sh.
 set -euo pipefail
@@ -26,7 +26,8 @@ APP_BINARY="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 
 # Builds, stages dist/Clicker.app with Sparkle embedded and signs it ad hoc.
-"$ROOT_DIR/script/package_app.sh" $RELEASE_FLAG
+# Dev builds keep the --demo scenarios whatever the configuration.
+"$ROOT_DIR/script/package_app.sh" $RELEASE_FLAG --with-demo
 
 if [[ "$INSTALL" == 1 ]]; then
   rm -rf "/Applications/$APP_NAME.app"
