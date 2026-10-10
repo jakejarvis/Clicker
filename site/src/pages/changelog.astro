@@ -1,8 +1,10 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { type Release, fetchReleases } from "../lib/releases";
+import { fetchReleases } from "../lib/releases";
 
-export const prerender = false;
+// Rendered at build time. A failed GitHub request throws and fails the build,
+// so a broken page is never deployed; redeploy (or push) to pick up a release.
+const releases = await fetchReleases();
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -10,20 +12,6 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   timeZone: "UTC",
 });
-
-let releases: Release[] | null;
-try {
-  releases = await fetchReleases();
-  // cache on Vercel's edge for 10 minutes
-  Astro.response.headers.set(
-    "Cache-Control",
-    "public, max-age=0, s-maxage=600, stale-while-revalidate=86400",
-  );
-} catch (error) {
-  console.error("Failed to load releases", error);
-  releases = null;
-  Astro.response.headers.set("Cache-Control", "no-store");
-}
 ---
 
 <Layout
@@ -34,23 +22,15 @@ try {
     <h1>Changelog</h1>
 
     {
-      releases === null ? (
-        <p class="muted">
-          Couldn't load releases right now. See them on{" "}
-          <a class="link" href="https://github.com/jakejarvis/Clicker/releases">
-            GitHub
-          </a>
-          .
-        </p>
-      ) : releases.length === 0 ? (
+      releases.length === 0 ? (
         <p class="muted">No releases yet.</p>
       ) : (
         <div class="releases">
           {releases.map((release) => (
             <article id={release.tag_name} class="release">
-              <a class="release-tag" href={`#${release.tag_name}`}>
-                {release.tag_name}
-              </a>
+              <h2 class="release-tag">
+                <a href={`#${release.tag_name}`}>{release.tag_name}</a>
+              </h2>
 
               <div class="release-meta">
                 {release.published_at && (

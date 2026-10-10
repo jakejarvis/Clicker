@@ -2,12 +2,13 @@
 import { defineConfig, fontProviders } from "astro/config";
 import vercel from "@astrojs/vercel";
 
+// Every page is prerendered, so the adapter only lays out the static build for
+// Vercel; there is no server function. /appcast.xml is a rewrite in vercel.json.
 // https://astro.build/config
 export default defineConfig({
   site: "https://clicker.jarv.is",
-  adapter: vercel({
-    imageService: true,
-  }),
+  trailingSlash: "never",
+  adapter: vercel(),
   build: {
     inlineStylesheets: "always",
   },

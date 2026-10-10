@@ -3,7 +3,6 @@
   --fg: #ededed;
   --muted: #8f8f8f;
   --faint: rgb(255 255 255 / 10%);
-  --dim: #5e5e5e;
   --button-bg: #ededed;
   --button-fg: #0a0a0a;
   --sans:
@@ -109,6 +108,8 @@ header nav a:hover {
 
 .lede {
   margin: 0 0 1.5rem;
+  font-size: inherit;
+  font-weight: 400;
   line-height: 1.625;
   color: rgb(237 237 237 / 90%);
 }
@@ -143,6 +144,11 @@ header nav a:hover {
 
 .download:hover {
   opacity: 0.85;
+}
+
+.requirements {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
 }
 
 .prose h1 {
@@ -227,7 +233,7 @@ footer a:hover {
 .disclaimer {
   margin-top: 1.25rem;
   line-height: 1.6;
-  color: var(--dim);
+  color: var(--muted);
   text-wrap: balance;
 }
 
@@ -268,12 +274,17 @@ footer a:hover {
 }
 
 .release-tag {
+  margin: 0;
   font-family: var(--mono);
+  font-size: inherit;
   font-weight: 500;
+}
+
+.release-tag a {
   transition: color 0.15s;
 }
 
-.release-tag:hover {
+.release-tag a:hover {
   color: rgb(237 237 237 / 80%);
 }
 
