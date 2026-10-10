@@ -108,7 +108,8 @@ done
 # runtime and point @rpath at Contents/Frameworks so the bundled Sparkle loads.
 # The linker's signature goes first; editing a signed binary only adds warnings.
 codesign --remove-signature "$APP_BINARY"
-otool -l "$APP_BINARY" | awk '/cmd LC_RPATH/ { getline; getline; print $2 }' | sort -u |
+otool -l "$APP_BINARY" |
+  awk '/cmd LC_RPATH/ { getline; getline; sub(/^ *path /, ""); sub(/ \(offset [0-9]+\)$/, ""); print }' | sort -u |
   while read -r rpath; do
     if [[ "$rpath" != "/usr/lib/swift" ]]; then
       install_name_tool -delete_rpath "$rpath" "$APP_BINARY"
@@ -139,6 +140,7 @@ codesign --verify --deep --strict "$APP_BUNDLE"
 if [[ "$IDENTITY" != "-" ]]; then
   CHECK_DIR="$(mktemp -d)"
   codesign -d --extract-certificates="$CHECK_DIR/cert" "$APP_BUNDLE" 2>/dev/null
+  [[ -f "$CHECK_DIR/cert0" ]] || { echo "could not read the signing certificate from $APP_BUNDLE" >&2; exit 1; }
   SIGNER="$(shasum "$CHECK_DIR/cert0" | awk '{print toupper($1)}')"
   security cms -D -i "$PROFILE" > "$CHECK_DIR/profile.plist"
   CERT_COUNT="$(plutil -extract DeveloperCertificates raw "$CHECK_DIR/profile.plist")"

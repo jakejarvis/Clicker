@@ -19,6 +19,7 @@ set -euo pipefail
 
 usage() {
   echo "usage: $0 --version X.Y.Z [--identity <name|SHA-1>]" >&2
+  echo "       --identity defaults to \$SIGNING_IDENTITY, which is unset" >&2
   exit 2
 }
 
@@ -101,22 +102,30 @@ grep -q "TeamIdentifier=$TEAM_ID" <<<"$SIGNATURE" || { echo "app is not signed b
 grep -q "flags=.*runtime" <<<"$SIGNATURE" || { echo "app is missing the hardened runtime" >&2; exit 1; }
 xcrun stapler validate "$APP"
 xcrun stapler validate "$DMG"
-syspolicy_check distribution "$APP"
+# notarytool's verdict is the one that counts: syspolicy_check has answered a
+# generic "Gatekeeper rejected this file" for an app notarytool accepted (see
+# AGENTS.md), so it only warns here.
+syspolicy_check distribution "$APP" || echo "warning: syspolicy_check rejected the app; trusting notarytool" >&2
 spctl --assess --type open --context context:primary-signature --verbose "$DMG"
 
 echo "==> Writing appcast"
+# The whole tag message, as written: %(contents:subject) would join the first
+# paragraph (usually a bullet list) into one line. A signed tag's signature
+# block is dropped.
 if [[ -n "${NOTES_FILE:-}" ]]; then
   cp "$NOTES_FILE" "$NOTES"
 elif [[ "$(git -C "$ROOT_DIR" cat-file -t "v$VERSION" 2>/dev/null)" == "tag" ]]; then
-  git -C "$ROOT_DIR" tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "v$VERSION" >"$NOTES"
+  git -C "$ROOT_DIR" tag -l --format='%(contents)' "v$VERSION" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d' >"$NOTES"
 else
   : >"$NOTES"
 fi
+if [[ ! -s "$NOTES" || -z "$(tr -d '[:space:]' <"$NOTES")" ]]; then
+  echo "no release notes: v$VERSION must be an annotated tag with a message, or set NOTES_FILE (see CONTRIBUTING.md)" >&2
+  exit 1
+fi
 FEED_DIR="$(mktemp -d)"
 cp "$ZIP" "$FEED_DIR/"
-if [[ -s "$NOTES" ]]; then
-  cp "$NOTES" "$FEED_DIR/Clicker-$VERSION.md"
-fi
+cp "$NOTES" "$FEED_DIR/Clicker-$VERSION.md"
 FEED_ARGS=(
   --download-url-prefix "$DOWNLOAD_URL_PREFIX"
   --embed-release-notes

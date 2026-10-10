@@ -10,11 +10,11 @@ Requires macOS 15 or later.
 
 1. Download `Clicker-X.Y.Z.dmg` from the [latest release](https://github.com/jakejarvis/Clicker/releases/latest).
 2. Open it and drag Clicker to your Applications folder.
-3. Open Clicker. Its icon appears in the menu bar; there is no Dock icon or window.
+3. Open Clicker. Its icon appears in the menu bar and the remote opens under it the first time; there is no Dock icon or window.
 
 The first time it runs, macOS asks whether Clicker may find devices on your local network. Allow it, or Clicker can't see your Apple TV.
 
-Clicker is signed and notarized by Apple, and keeps itself up to date (see [Updates](#updates)).
+Clicker is signed with a Developer ID, notarized by Apple, and keeps itself up to date (see [Updates](#updates)).
 
 ## Pair with your Apple TV
 
@@ -35,7 +35,7 @@ If the Apple TV won't pair, check **Settings › Remotes and Devices › Remote 
 - **Siri**: hold the button down, just like the real remote.
 - **Volume and Mute** (the bar along the bottom) control your TV or receiver if the Apple TV does (through HDMI-CEC or an IR remote it learned).
 - **Apps** (top-left corner of the clickpad): search your Apple TV's apps and open one. Star an app (hover a row, or right-click it) to pin it to a Favorites group at the top; the ones you opened most recently come next.
-- **Power** (top-right corner): Wake, Sleep, Screen Saver and Control Center.
+- **Power** (top-right corner): Wake, Sleep, Screen Saver, Control Center and Guide.
 - **Typing**: when a search box or password field is showing on the TV, a text field appears at the bottom of the panel. Type there and the text shows up on your TV. The keyboard button in the bottom corner hides it or brings it back.
 - **Switching TVs**: click the Apple TV's name at the top of the panel.
 
@@ -48,8 +48,8 @@ While the panel is open you can leave the mouse alone:
 | Arrow keys | Move |
 | Return | Select |
 | Delete | Back |
-| Space | Play/Pause |
-| H | TV (Home) |
+| Space or P | Play/Pause |
+| H or T | TV (Home) |
 | M | Mute |
 | + and − | Volume up and down |
 | ⌘, | Settings |
@@ -79,7 +79,8 @@ Clicker only talks to Apple TVs on your own network. It doesn't collect analytic
 - **Stuck on "Looking for Apple TVs…"**: make sure the Mac and Apple TV are on the same network, and that Clicker is allowed in **System Settings › Privacy & Security › Local Network**.
 - **"Not on this network right now"**: wake the Apple TV with its own remote and check that it's on the same network as your Mac. An Apple TV that was just plugged in can take a minute to show up.
 - **Pairing fails**: check the TV's **Remotes and Devices** settings (see above) and try again.
-- **A paired Apple TV stops responding**: forget it in Clicker's Settings and pair again. This is also needed if you removed Clicker from the TV's list of remotes.
+- **A paired Apple TV asks to pair again**: it was reset, or Clicker was removed from its list of remotes. Click **Pair…** and enter the new code.
+- **A paired Apple TV stops responding**: forget it in Clicker's Settings and pair again.
 
 ## Contributing
 
