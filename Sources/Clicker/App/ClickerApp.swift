@@ -11,6 +11,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var updates: UpdateController?
     private var statusItemController: StatusItemController?
 
+    /// Set once the panel has been opened for the user on the very first
+    /// launch. A menu bar app that starts with no window gives a new user
+    /// nothing to look at, so the first launch opens the panel itself,
+    /// where the Looking for Apple TVs card and the pair card live.
+    private static let firstLaunchKey = "hasCompletedFirstLaunch"
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // `--regular` shows a Dock icon, which makes the process visible to
         // tooling that only lists regular apps (useful during development).
@@ -31,12 +37,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let demo = controller.demo {
                 if let version = demo.pendingUpdateVersion { updates.previewPendingUpdate(version) }
                 // Demo runs open the panel themselves so a screenshot needs no click.
-                Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(500))
-                    self?.statusItemController?.togglePanel()
-                }
+                openPanelShortly()
+                return
             }
         #endif
+        if !UserDefaults.standard.bool(forKey: Self.firstLaunchKey) {
+            UserDefaults.standard.set(true, forKey: Self.firstLaunchKey)
+            openPanelShortly()
+        }
+    }
+
+    /// Opens the panel once the status item has been laid out. The Local
+    /// Network prompt may land at the same moment on a first launch; a click
+    /// on it closes the panel, which has still shown where the icon is.
+    private func openPanelShortly() {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            self?.statusItemController?.openPanelIfHidden()
+        }
     }
 }
 

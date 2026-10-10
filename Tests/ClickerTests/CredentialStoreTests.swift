@@ -31,8 +31,8 @@ import Testing
         let store = CredentialStore(backend: backend)
         #expect(store.credentials.isEmpty)
         let living = makeCredentials(id: "A")
-        store.save(living)
-        store.save(makeCredentials(id: "B", name: "Bedroom"))
+        try store.save(living)
+        try store.save(makeCredentials(id: "B", name: "Bedroom"))
         store.updateName("Den", model: "AppleTV11,1", for: "B")
 
         let reloaded = CredentialStore(backend: backend)
@@ -51,8 +51,8 @@ import Testing
         let backend = FileCredentialBackend(fileURL: url)
 
         let store = CredentialStore(backend: backend)
-        store.save(makeCredentials(id: "old"))
-        store.save(makeCredentials(id: "gone", name: "Kitchen"))
+        try store.save(makeCredentials(id: "old"))
+        try store.save(makeCredentials(id: "gone", name: "Kitchen"))
         store.rekey(from: "old", to: "new")
         store.remove(deviceID: "gone")
 

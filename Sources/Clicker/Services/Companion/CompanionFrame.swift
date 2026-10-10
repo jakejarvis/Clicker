@@ -63,6 +63,10 @@ enum CompanionError: Error, LocalizedError, Sendable {
     /// Pair-verify reached a TV whose pairing identifier is not the one we
     /// paired with: it was reset or re-paired, so our credentials are dead.
     case identityChanged
+    /// Pair-verify was refused outright: the TV no longer has our pairing
+    /// (Clicker was removed from Remotes and Devices), so our credentials
+    /// are dead just as after a reset.
+    case pairingLost
     case encryptionFailed
     case pairingDisabled
 
@@ -77,6 +81,7 @@ enum CompanionError: Error, LocalizedError, Sendable {
         case .pairingError(let message): return message
         case .authenticationFailed(let message): return message
         case .identityChanged: return "This Apple TV was reset, so it needs to be paired again."
+        case .pairingLost: return "This Apple TV no longer recognizes Clicker, so it needs to be paired again."
         case .encryptionFailed: return "Couldn't decrypt a message from the Apple TV."
         case .pairingDisabled:
             return

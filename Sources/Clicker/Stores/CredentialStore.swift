@@ -37,10 +37,18 @@ final class CredentialStore {
         credentials.first { $0.deviceID == deviceID }
     }
 
-    func save(_ newCredentials: PairingCredentials) {
+    /// Throws when the backend could not persist the pairing (a keychain
+    /// refusal, a read-only disk); the in-memory copy is kept either way so
+    /// the session that just paired still works.
+    func save(_ newCredentials: PairingCredentials) throws {
         credentials.removeAll { $0.deviceID == newCredentials.deviceID }
         credentials.append(newCredentials)
-        store(newCredentials)
+        do {
+            try backend.store(newCredentials)
+        } catch {
+            Log.storage.error("Could not save pairing: \(String(describing: error), privacy: .public)")
+            throw error
+        }
     }
 
     func updateName(_ name: String, model: String?, for deviceID: String) {
@@ -110,13 +118,19 @@ struct KeychainCredentialBackend: CredentialBackend {
         case failed(OSStatus)
     }
 
-    struct KeychainError: Error, CustomStringConvertible {
+    struct KeychainError: Error, CustomStringConvertible, LocalizedError {
         let operation: String
         let status: OSStatus
 
         var description: String {
             let message = SecCopyErrorMessageString(status, nil) as String? ?? "unknown"
             return "\(operation) failed: \(message) (\(status))"
+        }
+
+        /// Shown on the pair card when a save fails.
+        var errorDescription: String? {
+            let message = SecCopyErrorMessageString(status, nil) as String? ?? "unknown keychain error"
+            return "\(message) (\(status))"
         }
     }
 

@@ -72,7 +72,14 @@ enum CompanionPairing {
                 "_pd": .data(TLV8.encode([(.state, Data([0x03])), (.encryptedData, sealed)]))
             ])
         if finishResponse["_pd"] != nil {
-            _ = try pairingData(from: finishResponse)
+            do {
+                _ = try pairingData(from: finishResponse)
+            } catch CompanionError.pairingError {
+                // M4 carries an error TLV only when the TV rejected our
+                // identifier or signature: it has forgotten the pairing. The
+                // TLV's own wording is about PIN codes, which is wrong here.
+                throw CompanionError.pairingLost
+            }
         }
 
         let outputKey = HAPCrypto.deriveKey(salt: "", info: "ClientEncrypt-main", sharedSecret: shared)

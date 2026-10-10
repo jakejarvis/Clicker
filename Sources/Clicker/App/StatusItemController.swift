@@ -259,6 +259,11 @@ final class StatusItemController: NSObject {
         }
     }
 
+    /// Opens the panel unless it is already up (first launch, demo runs).
+    func openPanelIfHidden() {
+        if !panel.isVisible { showPanel() }
+    }
+
     private func showPanel() {
         guard let button = statusItem.button, let buttonWindow = button.window else { return }
         let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))

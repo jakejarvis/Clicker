@@ -348,15 +348,19 @@ final class RemoteController {
         }
     }
 
-    /// Pair-verify found a TV that no longer knows our pairing (a factory
-    /// reset, typically). Retrying would fail the same way, so the stale
-    /// credentials go and the pair card comes back with an explanation.
-    private func handleIdentityChange(for device: AppleTVDevice) {
-        Log.pairing.info("Identity of \(device.name, privacy: .public) changed; dropping its pairing")
+    /// Pair-verify found a TV that no longer knows our pairing: its identity
+    /// changed (a factory reset) or it refused our identifier (Clicker was
+    /// removed from Remotes and Devices). Retrying would fail the same way,
+    /// so the stale credentials go and the pair card comes back with the
+    /// error's explanation.
+    private func dropStalePairing(for device: AppleTVDevice, reason: CompanionError) {
+        Log.pairing.info(
+            "Pairing with \(device.name, privacy: .public) is stale (\(String(describing: reason), privacy: .public)); dropping it"
+        )
         credentialStore.remove(deviceID: device.id)
         if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
         if favoriteAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberFavorites() }
-        pairingNotice = CompanionError.identityChanged.localizedDescription
+        pairingNotice = reason.localizedDescription
         connectionState = .disconnected
     }
 
@@ -476,9 +480,14 @@ final class RemoteController {
                     self.connectIfNeeded(isRetry: true)
                     return
                 }
-                if case CompanionError.identityChanged = error {
-                    self.handleIdentityChange(for: device)
-                    return
+                if let reason = error as? CompanionError {
+                    switch reason {
+                    case .identityChanged, .pairingLost:
+                        self.dropStalePairing(for: device, reason: reason)
+                        return
+                    default:
+                        break
+                    }
                 }
                 self.connectionState = .failed(Self.describe(error))
             }
@@ -978,7 +987,19 @@ final class RemoteController {
             do {
                 let credentials = try await session.finish(pin: digits, clientName: clientName, device: device)
                 guard let self, self.pairingSession === session else { return }
-                self.credentialStore.save(credentials)
+                do {
+                    try self.credentialStore.save(credentials)
+                } catch {
+                    // The TV now trusts us but nothing survives a relaunch;
+                    // say so instead of showing a check that lies.
+                    Log.pairing.error("Paired but could not save: \(String(describing: error), privacy: .public)")
+                    await session.cancel()
+                    self.pairingSession = nil
+                    self.pairingDeviceID = nil
+                    self.pairingState = .failed(
+                        "Paired, but the pairing couldn't be saved: \(error.localizedDescription)")
+                    return
+                }
                 self.pairingSession = nil
                 self.pairingDeviceID = nil
                 self.pairingState = .succeeded
@@ -1056,7 +1077,7 @@ final class RemoteController {
             Task { [weak self] in
                 try? await Task.sleep(for: .seconds(1))
                 guard let self, self.pairingState == .finishing else { return }
-                self.credentialStore.save(DemoScenario.credentials(for: device))
+                try? self.credentialStore.save(DemoScenario.credentials(for: device))
                 self.pairingDeviceID = nil
                 self.pairingState = .succeeded
                 self.connectIfNeeded()

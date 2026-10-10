@@ -32,6 +32,8 @@ import Foundation
         case pairingdisabled
         /// Living Room was reset: the stale pairing was dropped with a notice.
         case reset
+        /// Living Room removed Clicker from Remotes and Devices: same, other notice.
+        case removed
         /// The wrong code was entered.
         case pairingfailed
         /// Living Room paired and online but the connection failed.
@@ -85,7 +87,7 @@ import Foundation
         var pairedDevices: [AppleTVDevice] {
             switch self {
             case .searching: return []
-            case .pair, .pin, .pairingdisabled, .reset, .pairingfailed: return [Self.bedroom]
+            case .pair, .pin, .pairingdisabled, .reset, .removed, .pairingfailed: return [Self.bedroom]
             default: return [Self.livingRoom, Self.bedroom]
             }
         }
@@ -106,9 +108,13 @@ import Foundation
             }
         }
 
-        /// Orange caption on the pair card, as after an identity change.
+        /// Orange caption on the pair card, as after a stale pairing was dropped.
         var pairingNotice: String? {
-            self == .reset ? CompanionError.identityChanged.localizedDescription : nil
+            switch self {
+            case .reset: return CompanionError.identityChanged.localizedDescription
+            case .removed: return CompanionError.pairingLost.localizedDescription
+            default: return nil
+            }
         }
 
         /// State the stand-in connection lands in.
