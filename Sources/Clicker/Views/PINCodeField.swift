@@ -8,6 +8,10 @@ import SwiftUI
 struct PINCodeField: View {
     @Binding var code: String
     var isEnabled = true
+    /// Changes whenever the panel opens (`RemoteController.panelAppearances`).
+    /// Showing the panel clears the window's first responder, so the field
+    /// takes focus back each time instead of waiting for a click.
+    var focusToken = 0
     let onComplete: (String) -> Void
 
     @FocusState private var isFocused: Bool
@@ -28,6 +32,9 @@ struct PINCodeField: View {
         .focused($isFocused)
         .onTapGesture { isFocused = true }
         .onAppear {
+            DispatchQueue.main.async { isFocused = true }
+        }
+        .onChange(of: focusToken) {
             DispatchQueue.main.async { isFocused = true }
         }
         .onKeyPress(characters: .decimalDigits, phases: .down) { press in
@@ -69,10 +76,11 @@ struct PINCodeField: View {
         return Text(digit)
             .font(.system(size: 22, weight: .medium, design: .rounded).monospacedDigit())
             .frame(width: cellWidth, height: cellHeight)
-            .background(.quaternary, in: shape)
+            // Plain quaternary all but vanished on the card's dark material.
+            .background(.primary.opacity(0.08), in: shape)
             .overlay(
                 shape.strokeBorder(
-                    isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.separator),
+                    isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary.opacity(0.2)),
                     lineWidth: isActive ? 2 : 1)
             )
             .opacity(isEnabled ? 1 : 0.6)

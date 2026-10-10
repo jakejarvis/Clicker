@@ -141,10 +141,18 @@ private struct ClickpadRingView: View {
                 }
         )
         .help(hovered?.command.title ?? "")
+        // Each child is laid out over its quadrant's bounds; without that the
+        // children stack as rows and VoiceOver outlines the wrong part of the pad.
         .accessibilityChildren {
-            ForEach(ClickpadGeometry.Direction.allCases, id: \.self) { direction in
-                Button(direction.command.title) { controller.press(direction.command) }
+            ZStack {
+                ForEach(ClickpadGeometry.Direction.allCases, id: \.self) { direction in
+                    let bounds = ClickpadGeometry.quadrantPath(for: direction, center: center).boundingRect
+                    Button(direction.command.title) { controller.press(direction.command) }
+                        .frame(width: bounds.width, height: bounds.height)
+                        .position(x: bounds.midX, y: bounds.midY)
+                }
             }
+            .frame(width: ClickpadGeometry.diameter, height: ClickpadGeometry.diameter)
         }
     }
 }

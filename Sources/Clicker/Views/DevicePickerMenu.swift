@@ -71,12 +71,16 @@ struct DevicePickerMenu: View {
     @ViewBuilder
     private var subtitle: some View {
         if let device = controller.selectedDevice {
-            HStack(spacing: 4) {
-                Text(device.shortModelName)
-                    .truncationMode(.tail)
-                Text("·")
+            // A long state ("Connection failed") would cut the model down to
+            // "Apple…"; drop the model instead of truncating it.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) {
+                    Text(device.shortModelName)
+                    Text("·")
+                    Text(controller.selectedStateDescription)
+                }
                 Text(controller.selectedStateDescription)
-                    .layoutPriority(1)
+                    .truncationMode(.tail)
             }
         } else if controller.devices.isEmpty {
             HStack(spacing: 5) {

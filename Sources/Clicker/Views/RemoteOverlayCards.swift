@@ -78,7 +78,10 @@ struct PairingCard: View {
 
         case .awaitingPIN, .finishing:
             CardTitle("Enter the code shown on \(device.name)")
-            PINCodeField(code: $pin, isEnabled: controller.pairingState == .awaitingPIN) { code in
+            PINCodeField(
+                code: $pin, isEnabled: controller.pairingState == .awaitingPIN,
+                focusToken: controller.panelAppearances
+            ) { code in
                 controller.submitPIN(code)
             }
             if controller.pairingState == .finishing {
