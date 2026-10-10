@@ -50,6 +50,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Opens the panel once the status item has been laid out. The Local
     /// Network prompt may land at the same moment on a first launch; a click
     /// on it closes the panel, which has still shown where the icon is.
+    /// Main-actor isolated like the delegate callback that calls it, so the
+    /// task may capture `self`.
+    @MainActor
     private func openPanelShortly() {
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
