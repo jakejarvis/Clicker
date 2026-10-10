@@ -7,12 +7,15 @@ import Analytics from "@vercel/analytics/astro";
 interface Props {
   title?: string;
   description?: string;
+  /** Error pages: no canonical or og:url (they would name a URL that 404s) and noindex. */
+  noindex?: boolean;
 }
 
 const repo = "https://github.com/jakejarvis/Clicker";
 const {
   title = "Clicker — Apple TV remote for your Mac",
   description = "A native macOS menu bar remote for Apple TV. Pairs once, speaks Apple's own protocol, and stays out of your way.",
+  noindex = false,
 } = Astro.props;
 
 // trailingSlash is "never", so the pathname is already the canonical form.
@@ -30,7 +33,7 @@ const ogImage = new URL("/og.png", Astro.site);
     <Font cssVariable="--font-geist-mono" />
     <meta name="description" content={description} />
     <meta name="color-scheme" content="dark" />
-    <link rel="canonical" href={canonical} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icon.png" />
@@ -42,7 +45,7 @@ const ogImage = new URL("/og.png", Astro.site);
     />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Clicker" />
-    <meta property="og:url" content={canonical} />
+    {!noindex && <meta property="og:url" content={canonical} />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />

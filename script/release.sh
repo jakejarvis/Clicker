@@ -2,11 +2,14 @@
 # Build, sign, notarize and package a Clicker release into dist/release/:
 # Clicker-X.Y.Z.dmg (first installs), Clicker-X.Y.Z.zip (Sparkle), appcast.xml
 # and notes.md. Runs the same way locally and in .github/workflows/release.yml.
-# Usage: script/release.sh --version X.Y.Z [--identity <name|SHA-1>]
+# Usage: script/release.sh --version X.Y.Z [--identity <name|SHA-1>] [--appcast-only]
 #
 #   --identity            Developer ID Application identity; defaults to
 #                         $SIGNING_IDENTITY. Locally, pass the certificate's SHA-1
 #                         when several certificates share a name.
+#   --appcast-only        Skip the build and notarization and only write the
+#                         notes and appcast for the zip already in dist/release
+#                         (a re-run whose release is already published).
 #   NOTARY_PROFILE        notarytool keychain profile (local runs), otherwise an
 #                         App Store Connect API key in ASC_KEY_PATH, ASC_KEY_ID
 #                         and ASC_ISSUER_ID (CI).
@@ -18,22 +21,25 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: $0 --version X.Y.Z [--identity <name|SHA-1>]" >&2
-  echo "       --identity defaults to \$SIGNING_IDENTITY, which is unset" >&2
+  echo "usage: $0 --version X.Y.Z [--identity <name|SHA-1>] [--appcast-only]" >&2
+  echo "       --identity defaults to \$SIGNING_IDENTITY" >&2
   exit 2
 }
 
 VERSION=""
 IDENTITY="${SIGNING_IDENTITY:-}"
+APPCAST_ONLY=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --version) VERSION="$2"; shift ;;
     --identity) IDENTITY="$2"; shift ;;
+    --appcast-only) APPCAST_ONLY=1 ;;
     *) usage ;;
   esac
   shift
 done
-[[ -n "$VERSION" && -n "$IDENTITY" ]] || usage
+[[ -n "$VERSION" ]] || usage
+[[ -n "$IDENTITY" || -n "$APPCAST_ONLY" ]] || usage
 
 TEAM_ID="B5ZWKBCUTU"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -45,14 +51,28 @@ NOTES="$OUT/notes.md"
 SPARKLE_BIN="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/bin"
 DOWNLOAD_URL_PREFIX="${DOWNLOAD_URL_PREFIX:-https://github.com/jakejarvis/Clicker/releases/download/v$VERSION/}"
 
-if [[ -n "${NOTARY_PROFILE:-}" ]]; then
-  NOTARY_AUTH=(--keychain-profile "$NOTARY_PROFILE")
+if [[ -n "$APPCAST_ONLY" ]]; then
+  [[ -f "$ZIP" ]] || { echo "--appcast-only needs $ZIP" >&2; exit 1; }
 else
-  NOTARY_AUTH=(
-    --key "${ASC_KEY_PATH:?set NOTARY_PROFILE, or ASC_KEY_PATH, ASC_KEY_ID and ASC_ISSUER_ID}"
-    --key-id "${ASC_KEY_ID:?}"
-    --issuer "${ASC_ISSUER_ID:?}"
-  )
+  rm -rf "$OUT"
+  mkdir -p "$OUT"
+fi
+
+# Notes first, so a lightweight tag or an empty message fails before the
+# build and the two notarizations, not after. The whole tag message, as
+# written: %(contents:subject) would join the first paragraph (usually a
+# bullet list) into one line. A signed tag's signature block is dropped.
+echo "==> Writing release notes"
+if [[ -n "${NOTES_FILE:-}" ]]; then
+  cp "$NOTES_FILE" "$NOTES"
+elif [[ "$(git -C "$ROOT_DIR" cat-file -t "v$VERSION" 2>/dev/null)" == "tag" ]]; then
+  git -C "$ROOT_DIR" tag -l --format='%(contents)' "v$VERSION" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d' >"$NOTES"
+else
+  : >"$NOTES"
+fi
+if [[ ! -s "$NOTES" || -z "$(tr -d '[:space:]' <"$NOTES")" ]]; then
+  echo "no release notes: v$VERSION must be an annotated tag with a message, or set NOTES_FILE (see CONTRIBUTING.md)" >&2
+  exit 1
 fi
 
 # Submits a file and waits. Apple's log is always saved next to the output, and
@@ -72,57 +92,58 @@ notarize() {
   fi
 }
 
-rm -rf "$OUT"
-mkdir -p "$OUT"
+build_sign_and_notarize() {
+  if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+    NOTARY_AUTH=(--keychain-profile "$NOTARY_PROFILE")
+  else
+    NOTARY_AUTH=(
+      --key "${ASC_KEY_PATH:?set NOTARY_PROFILE, or ASC_KEY_PATH, ASC_KEY_ID and ASC_ISSUER_ID}"
+      --key-id "${ASC_KEY_ID:?}"
+      --issuer "${ASC_ISSUER_ID:?}"
+    )
+  fi
 
-"$ROOT_DIR/script/package_app.sh" --release --universal --sign "$IDENTITY" --version "$VERSION"
+  "$ROOT_DIR/script/package_app.sh" --release --universal --sign "$IDENTITY" --version "$VERSION"
 
-# A zip can't be stapled, so notarize the app inside a throwaway zip, staple
-# the app itself, then archive the stapled app.
-ditto -c -k --keepParent "$APP" "$OUT/notarize.zip"
-notarize "$OUT/notarize.zip"
-rm "$OUT/notarize.zip"
-xcrun stapler staple "$APP"
-ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+  # A zip can't be stapled, so notarize the app inside a throwaway zip, staple
+  # the app itself, then archive the stapled app.
+  ditto -c -k --keepParent "$APP" "$OUT/notarize.zip"
+  notarize "$OUT/notarize.zip"
+  rm "$OUT/notarize.zip"
+  xcrun stapler staple "$APP"
+  ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
-echo "==> Building $(basename "$DMG")"
-STAGING="$(mktemp -d)"
-ditto "$APP" "$STAGING/Clicker.app"
-ln -s /Applications "$STAGING/Applications"
-hdiutil create -volname Clicker -srcfolder "$STAGING" -format UDZO -ov "$DMG" >/dev/null
-rm -rf "$STAGING"
-codesign --force --sign "$IDENTITY" --timestamp "$DMG"
-notarize "$DMG"
-xcrun stapler staple "$DMG"
+  echo "==> Building $(basename "$DMG")"
+  local staging
+  staging="$(mktemp -d)"
+  ditto "$APP" "$staging/Clicker.app"
+  ln -s /Applications "$staging/Applications"
+  hdiutil create -volname Clicker -srcfolder "$staging" -format UDZO -ov "$DMG" >/dev/null
+  rm -rf "$staging"
+  codesign --force --sign "$IDENTITY" --timestamp "$DMG"
+  notarize "$DMG"
+  xcrun stapler staple "$DMG"
 
-echo "==> Verifying"
-codesign --verify --deep --strict "$APP"
-SIGNATURE="$(codesign -dvv "$APP" 2>&1)"
-grep -q "TeamIdentifier=$TEAM_ID" <<<"$SIGNATURE" || { echo "app is not signed by team $TEAM_ID" >&2; exit 1; }
-grep -q "flags=.*runtime" <<<"$SIGNATURE" || { echo "app is missing the hardened runtime" >&2; exit 1; }
-xcrun stapler validate "$APP"
-xcrun stapler validate "$DMG"
-# notarytool's verdict is the one that counts: syspolicy_check has answered a
-# generic "Gatekeeper rejected this file" for an app notarytool accepted (see
-# AGENTS.md), so it only warns here.
-syspolicy_check distribution "$APP" || echo "warning: syspolicy_check rejected the app; trusting notarytool" >&2
-spctl --assess --type open --context context:primary-signature --verbose "$DMG"
+  echo "==> Verifying"
+  codesign --verify --deep --strict "$APP"
+  local signature
+  signature="$(codesign -dvv "$APP" 2>&1)"
+  grep -q "TeamIdentifier=$TEAM_ID" <<<"$signature" || { echo "app is not signed by team $TEAM_ID" >&2; exit 1; }
+  grep -q "flags=.*runtime" <<<"$signature" || { echo "app is missing the hardened runtime" >&2; exit 1; }
+  xcrun stapler validate "$APP"
+  xcrun stapler validate "$DMG"
+  # notarytool's verdict is the one that counts: syspolicy_check has answered a
+  # generic "Gatekeeper rejected this file" for an app notarytool accepted (see
+  # AGENTS.md), so it only warns here.
+  syspolicy_check distribution "$APP" || echo "warning: syspolicy_check rejected the app; trusting notarytool" >&2
+  spctl --assess --type open --context context:primary-signature --verbose "$DMG"
+}
+
+if [[ -z "$APPCAST_ONLY" ]]; then
+  build_sign_and_notarize
+fi
 
 echo "==> Writing appcast"
-# The whole tag message, as written: %(contents:subject) would join the first
-# paragraph (usually a bullet list) into one line. A signed tag's signature
-# block is dropped.
-if [[ -n "${NOTES_FILE:-}" ]]; then
-  cp "$NOTES_FILE" "$NOTES"
-elif [[ "$(git -C "$ROOT_DIR" cat-file -t "v$VERSION" 2>/dev/null)" == "tag" ]]; then
-  git -C "$ROOT_DIR" tag -l --format='%(contents)' "v$VERSION" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d' >"$NOTES"
-else
-  : >"$NOTES"
-fi
-if [[ ! -s "$NOTES" || -z "$(tr -d '[:space:]' <"$NOTES")" ]]; then
-  echo "no release notes: v$VERSION must be an annotated tag with a message, or set NOTES_FILE (see CONTRIBUTING.md)" >&2
-  exit 1
-fi
 FEED_DIR="$(mktemp -d)"
 cp "$ZIP" "$FEED_DIR/"
 cp "$NOTES" "$FEED_DIR/Clicker-$VERSION.md"
@@ -140,4 +161,8 @@ else
 fi
 rm -rf "$FEED_DIR"
 
-echo "Release $VERSION is in $OUT"
+if [[ -n "$APPCAST_ONLY" ]]; then
+  echo "Appcast for $VERSION is in $OUT"
+else
+  echo "Release $VERSION is in $OUT"
+fi

@@ -42,21 +42,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         #endif
         if !UserDefaults.standard.bool(forKey: Self.firstLaunchKey) {
-            UserDefaults.standard.set(true, forKey: Self.firstLaunchKey)
-            openPanelShortly()
+            openPanelShortly(recordingFirstLaunch: true)
         }
     }
 
     /// Opens the panel once the status item has been laid out. The Local
     /// Network prompt may land at the same moment on a first launch; a click
     /// on it closes the panel, which has still shown where the icon is.
+    /// The first-launch flag is recorded only once the panel is actually up,
+    /// so a launch where the status item was not ready gets another go.
     /// Main-actor isolated like the delegate callback that calls it, so the
     /// task may capture `self`.
     @MainActor
-    private func openPanelShortly() {
+    private func openPanelShortly(recordingFirstLaunch: Bool = false) {
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
-            self?.statusItemController?.openPanelIfHidden()
+            guard let self, self.statusItemController?.openPanelIfHidden() == true else { return }
+            if recordingFirstLaunch { UserDefaults.standard.set(true, forKey: Self.firstLaunchKey) }
         }
     }
 }

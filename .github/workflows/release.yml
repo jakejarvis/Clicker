@@ -82,16 +82,23 @@ jobs:
 
       # gh creates a draft, uploads, then publishes, which immutable releases
       # need. A release that is already published (a re-run after a later step
-      # failed) is left alone; a draft left by an interrupted upload is redone.
+      # failed) is kept, and the appcast is regenerated from its zip: the one
+      # this run built is signed differently, and an appcast describing it
+      # would make Sparkle reject the published download. A draft left by an
+      # interrupted upload is redone.
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           STATE="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null || echo missing)"
           case "$STATE" in
             false)
-              echo "Release $GITHUB_REF_NAME is already published; keeping it"
+              echo "Release $GITHUB_REF_NAME is already published; keeping it and describing its zip in the appcast"
+              gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+                --pattern "Clicker-$VERSION.zip" --dir dist/release --clobber
+              script/release.sh --version "$VERSION" --appcast-only
               exit 0
               ;;
             true)

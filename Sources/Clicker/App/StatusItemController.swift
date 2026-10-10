@@ -260,8 +260,12 @@ final class StatusItemController: NSObject {
     }
 
     /// Opens the panel unless it is already up (first launch, demo runs).
-    func openPanelIfHidden() {
+    /// Returns whether the panel is showing afterwards; `showPanel` does
+    /// nothing while the status item has no window yet.
+    @discardableResult
+    func openPanelIfHidden() -> Bool {
         if !panel.isVisible { showPanel() }
+        return panel.isVisible
     }
 
     private func showPanel() {
