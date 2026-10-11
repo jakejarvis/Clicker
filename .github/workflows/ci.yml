@@ -34,3 +34,15 @@ jobs:
 
       - name: Package a universal app
         run: script/package_app.sh --release --universal
+
+      # Zipped with ditto so Sparkle.framework's symlinks survive. AGENTS.md
+      # points at this when a control looks different locally and in CI.
+      - name: Zip the app
+        run: ditto -c -k --keepParent dist/Clicker.app dist/Clicker.app.zip
+
+      - name: Upload the app
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: Clicker.app
+          path: dist/Clicker.app.zip
+          retention-days: 14

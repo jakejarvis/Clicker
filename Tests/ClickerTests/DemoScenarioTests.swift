@@ -50,6 +50,11 @@ import Testing
             reset.start()
             #expect(reset.pairingNotice == CompanionError.identityChanged.localizedDescription)
 
+            let removed = RemoteController(demo: .removed)
+            removed.start()
+            #expect(removed.pairingNotice == CompanionError.pairingLost.localizedDescription)
+            #expect(removed.selectedStateDescription == "Not paired")
+
             let wrongCode = RemoteController(demo: .pairingfailed)
             wrongCode.start()
             #expect(wrongCode.pairingState == .failed(TLV8.ErrorCode.authentication.message))

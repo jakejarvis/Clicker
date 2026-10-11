@@ -38,7 +38,7 @@ Signed release builds keep pairing credentials in the data protection keychain (
 
 ## Demo mode and screenshots
 
-`--demo [scenario]` launches with made-up Apple TVs and opens the panel by itself. Nothing touches the network, and saved pairings and settings are left alone. It exists only in debug builds and in release builds made with `script/package_app.sh --release --with-demo` (the `DEMO` compilation condition; `build_and_run.sh` always passes `--with-demo`, `release.sh` and CI's package step never do), so a published Clicker.app ignores the argument. Scenarios: `ready` (the default), `asleep`, `typing`, `settings`, `pair`, `pin`, `paired`, `offline`, `searching` and `choose`, plus the trouble states `pairingdisabled`, `reset` (stale pairing dropped after a factory reset), `pairingfailed` (wrong code), `connectionfailed`, `disconnected`, `hdmi` (Mute just failed and is disabled) and `update` (a pending update: status item dot, footer button, Update to… menu items).
+`--demo [scenario]` launches with made-up Apple TVs and opens the panel by itself. Nothing touches the network, and saved pairings and settings are left alone. It exists only in debug builds and in release builds made with `script/package_app.sh --release --with-demo` (the `DEMO` compilation condition; `build_and_run.sh` always passes `--with-demo`, `release.sh` and CI's package step never do), so a published Clicker.app ignores the argument. Scenarios: `ready` (the default), `asleep`, `typing`, `settings`, `pair`, `pin`, `paired`, `offline`, `searching` and `choose`, plus the trouble states `pairingdisabled`, `reset` (stale pairing dropped after a factory reset), `removed` (stale pairing dropped after Clicker was removed from the TV's Remotes and Devices), `pairingfailed` (wrong code), `connectionfailed`, `disconnected`, `hdmi` (Mute just failed and is disabled) and `update` (a pending update: status item dot, footer button, Update to… menu items).
 
 ```bash
 open -n dist/Clicker.app --args --demo pin
@@ -48,14 +48,14 @@ open -n dist/Clicker.app --args --demo pin
 
 ## Releasing
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. It calls `script/release.sh`, which builds a universal app, signs it with the Developer ID certificate and the hardened runtime, notarizes and staples it, and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle `appcast.xml`. The workflow publishes the DMG and zip as a GitHub release, then commits the appcast to the `gh-pages` branch. `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) is a Vercel rewrite to that file (`site/vercel.json`).
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. It lints and tests first, then calls `script/release.sh`, which builds a universal app, signs it with the Developer ID certificate and the hardened runtime, notarizes and staples it, and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle `appcast.xml`. The workflow publishes the DMG and zip as a GitHub release, commits the appcast to the `gh-pages` branch, and asks Vercel to redeploy the site so its changelog (built from the GitHub releases API at deploy time) shows the release. `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) is a Vercel rewrite to that file (`site/vercel.json`). Every publish step is idempotent, so a run that failed partway can be re-run from the Actions tab (a release that is already published is kept, and the appcast is regenerated from its zip with `release.sh --appcast-only`); on failure the job keeps `dist/release` (notarytool's logs included) as an artifact.
 
 ```bash
-git tag -a v1.2.3 -m "Release notes in Markdown"
+git tag -a --cleanup=verbatim -F notes.md v1.2.3
 git push origin v1.2.3
 ```
 
-The tag message becomes the release notes on GitHub and in Sparkle's update window. `CFBundleVersion` is derived from the version (`1.2.3` → `10203`), so minor and patch numbers stay below 100.
+The tag message becomes the release notes on GitHub and in Sparkle's update window, so write it in Markdown in a file and pass it with `-F`: `--cleanup=verbatim` keeps it exactly as written, since `git tag -m` otherwise strips every line that starts with `#`. The release fails on a lightweight tag or an empty message. `CFBundleVersion` is derived from the version (`1.2.3` → `10203`), so minor and patch numbers stay below 100.
 
 The workflow reads these from the `release` environment (restricted to `v*` tags):
 
@@ -66,6 +66,9 @@ The workflow reads these from the `release` environment (restricted to `v*` tags
 | `ASC_API_KEY_P8` | App Store Connect team API key (Developer role), contents of the `.p8` |
 | `ASC_KEY_ID`, `ASC_ISSUER_ID` | That key's ID and issuer |
 | `SPARKLE_ED_PRIVATE_KEY` | Sparkle EdDSA key, from `generate_keys -x` |
+| `VERCEL_DEPLOY_HOOK_URL` | Optional. A deploy hook from the Vercel project's Git settings; without it the changelog refreshes on the next push to `main` |
+
+`SUPublicEDKey` in `Resources/Info.plist` must be the public half of `SPARKLE_ED_PRIVATE_KEY`: a mismatch does not break the first release but makes every later update fail its signature check. Before the first release, compare it with what `generate_keys -p` prints for the key the secret was exported from (or sign any file with `sign_update --ed-key-file` and the secret, then check it against the plist key with `sign_update --verify`).
 
 To dry-run a release locally with the keychain's certificate and a notarytool profile (`xcrun notarytool store-credentials clicker-notary`):
 

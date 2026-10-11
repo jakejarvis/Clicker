@@ -1,43 +1,13 @@
-# Astro Starter Kit: Minimal
+# clicker.jarv.is
+
+The download page for Clicker, built with [Astro](https://astro.build) and deployed to Vercel from this directory. Every page is prerendered; there is no server code.
 
 ```sh
-pnpm create astro@latest -- --template minimal
+npm install
+npm run dev      # http://localhost:4321
+npm run build    # writes dist/ and .vercel/output/
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+`/changelog` is rendered at build time from the GitHub releases API. Set `GITHUB_TOKEN` (a read-only token) as a build-time environment variable to lift the unauthenticated rate limit; without it the build works while the GitHub API is available. The page only changes when the site is redeployed, so a release needs a new deployment to show up.
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                | Action                                           |
-| :--------------------- | :----------------------------------------------- |
-| `pnpm install`         | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+`/appcast.xml` (the app's Sparkle feed) is not part of this build: `vercel.json` rewrites it to `appcast.xml` on the repository's `gh-pages` branch, which the release workflow updates.

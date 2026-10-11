@@ -71,7 +71,15 @@ enum CompanionPairing {
             [
                 "_pd": .data(TLV8.encode([(.state, Data([0x03])), (.encryptedData, sealed)]))
             ])
-        if finishResponse["_pd"] != nil {
+        if let data = finishResponse["_pd"]?.dataValue {
+            // An authentication error in M4 means the TV rejected our
+            // identifier or signature: it has forgotten the pairing. The
+            // TLV's own wording is about PIN codes, which is wrong here. Any
+            // other code (busy, backoff) is a passing condition and keeps
+            // the credentials.
+            if (try? TLV8.decode(data))?.errorCode == .authentication {
+                throw CompanionError.pairingLost
+            }
             _ = try pairingData(from: finishResponse)
         }
 
