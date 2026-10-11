@@ -6,10 +6,10 @@ import Testing
 @Suite struct PanelGeometryTests {
     let visible = NSRect(x: 0, y: 0, width: 1440, height: 875)
 
-    @Test func centersUnderTheStatusItem() {
+    @Test func hangsFromTheStatusItemsLeftEdge() {
         let button = NSRect(x: 700, y: 876, width: 30, height: 22)
         let topLeft = PanelGeometry.topLeft(below: button, width: 264, visibleFrame: visible)
-        #expect(topLeft.x == (715 - 132).rounded())
+        #expect(topLeft.x == 700)
         #expect(topLeft.y == 876 - PanelGeometry.topGap)
     }
 

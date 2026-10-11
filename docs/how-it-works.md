@@ -41,4 +41,4 @@ Text entry uses the TV's remote text input service: `_tiStart` reports whether a
 
 ## The panel
 
-The panel is a plain `NSStatusItem` plus a borderless, non-activating `NSPanel` that can become key (so keystrokes work without activating the app), backed by `NSGlassEffectView` on macOS 26 and behind-window vibrancy on macOS 15. SwiftUI reports its preferred height and the panel follows it; one corner radius is shared by the panel, the device control and the settings cards.
+The panel is a plain `NSStatusItem` plus a borderless, non-activating `NSPanel` that can become key (so keystrokes work without activating the app), backed by `NSGlassEffectView` on macOS 26 and behind-window vibrancy on macOS 15. SwiftUI drives the panel's height frame by frame through an animatable `GeometryEffect` (`PanelHeightBridge.swift`), so a screen switch resizes the window on the same curve as the content; one corner radius is shared by the panel, the device control and the settings cards.

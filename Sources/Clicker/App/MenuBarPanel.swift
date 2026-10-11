@@ -24,9 +24,10 @@ enum PanelGeometry {
     static let screenMargin: CGFloat = 8
     static let minimumHeight: CGFloat = 120
 
-    /// Centers the panel under the status item, kept inside the screen.
+    /// Hangs the panel from the status item's left edge, like a status item's
+    /// menu, kept inside the screen.
     static func topLeft(below buttonRect: NSRect, width: CGFloat, visibleFrame: NSRect?) -> NSPoint {
-        var x = buttonRect.midX - width / 2
+        var x = buttonRect.minX
         if let visibleFrame {
             x = min(max(x, visibleFrame.minX + screenMargin), visibleFrame.maxX - width - screenMargin)
         }

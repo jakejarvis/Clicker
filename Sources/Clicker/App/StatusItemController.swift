@@ -13,22 +13,27 @@ final class StatusItemController: NSObject {
     private let statusItem: NSStatusItem
     private let panel: MenuBarPanel
     private let hosting: NSHostingController<MenuBarView>
-    private let rootViewController = PanelRootViewController()
     private lazy var outsideClickMonitor = PanelOutsideClickMonitor(
         panel: panel,
         statusItem: statusItem,
         onDismiss: { [weak self] in self?.hidePanel() }
     )
     private var keyMonitor: Any?
+    /// Where the panel hangs from while it is open; nil while hidden, so a
+    /// height pushed for a hidden panel goes nowhere.
     private var anchorTopLeft: NSPoint?
     private var anchorScreen: NSScreen?
+    private var shadowSettleTask: Task<Void, Never>?
 
     init(controller: RemoteController, updates: UpdateController) {
         self.controller = controller
         self.updates = updates
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         hosting = NSHostingController(rootView: MenuBarView(controller: controller, updates: updates))
-        hosting.sizingOptions = [.preferredContentSize]
+        // No intrinsic size: with one, autolayout grows the window to fit the
+        // content the moment a taller screen mounts (its compression resistance
+        // outranks the window's own size), ahead of the animated frames.
+        hosting.sizingOptions = []
         panel = MenuBarPanel(
             contentRect: NSRect(x: 0, y: 0, width: PanelMetrics.width, height: 480),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
@@ -48,6 +53,10 @@ final class StatusItemController: NSObject {
         controller.dismissPanel = { [weak self] in
             guard let self, self.panel.isVisible else { return }
             self.hidePanel()
+        }
+        // The content's height, one frame at a time (see PanelHeightBridge).
+        PanelHeightBridge.apply = { [weak self] height in
+            self?.applyHeight(height)
         }
     }
 
@@ -93,11 +102,11 @@ final class StatusItemController: NSObject {
             host.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
+        // A plain container owns the backdrop; the hosting controller is its
+        // child so SwiftUI gets a proper view controller hierarchy.
+        let rootViewController = NSViewController()
         rootViewController.view = container
         rootViewController.addChild(hosting)
-        rootViewController.onPreferredHeightChange = { [weak self] height in
-            self?.applyHeight(height, animated: true)
-        }
         panel.contentViewController = rootViewController
     }
 
@@ -272,14 +281,20 @@ final class StatusItemController: NSObject {
         guard let button = statusItem.button, let buttonWindow = button.window else { return }
         let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
         let screen = NSScreen.screens.first { $0.frame.intersects(buttonRect) } ?? NSScreen.main
+        PanelHeightBridge.invalidate()
         anchorScreen = screen
         anchorTopLeft = PanelGeometry.topLeft(
             below: buttonRect, width: PanelMetrics.width, visibleFrame: screen?.visibleFrame)
 
         controller.panelDidAppear()
-        let fitting = hosting.sizeThatFits(in: NSSize(width: PanelMetrics.width, height: .greatestFiniteMagnitude))
-        applyHeight(fitting.height, animated: false)
+        // Open at the content's own height so the first frame needs no resize.
+        // A zero proposal asks for the smallest height, which is the natural one
+        // here; an unbounded one is answered unbounded, since the root view
+        // fills whatever height it is offered.
+        let fitting = hosting.sizeThatFits(in: NSSize(width: PanelMetrics.width, height: 0))
+        applyHeight(fitting.height)
         hosting.view.layoutSubtreeIfNeeded()
+        panel.invalidateShadow()
 
         panel.makeKeyAndOrderFront(nil)
         panel.makeFirstResponder(nil)
@@ -291,44 +306,36 @@ final class StatusItemController: NSObject {
         panel.orderOut(nil)
         outsideClickMonitor.stop()
         statusItem.button?.highlight(false)
+        anchorTopLeft = nil
+        anchorScreen = nil
+        shadowSettleTask?.cancel()
+        PanelHeightBridge.invalidate()
         controller.panelDidDisappear()
     }
 
-    private func applyHeight(_ rawHeight: CGFloat, animated: Bool) {
+    /// Sets one frame for the content's height, anchored at the top-left and
+    /// clamped to the screen. Never animated here: during a screen switch
+    /// SwiftUI calls this once per frame with its own interpolated height, so
+    /// the window and the content move on one curve.
+    private func applyHeight(_ rawHeight: CGFloat) {
         guard rawHeight > 1, let anchorTopLeft else { return }
         let visibleFrame = (anchorScreen ?? NSScreen.main)?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let maximum = PanelGeometry.maximumHeight(topLeft: anchorTopLeft, visibleFrame: visibleFrame)
         let height = PanelGeometry.clampedHeight(rawHeight, maximum: maximum)
         let frame = PanelGeometry.frame(topLeft: anchorTopLeft, width: PanelMetrics.width, height: height)
         guard abs(panel.frame.height - frame.height) > 0.5 || panel.frame.origin != frame.origin else { return }
+        panel.setFrame(frame, display: true)
+        scheduleShadowSettle()
+    }
 
-        if animated, panel.isVisible {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.25
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                panel.animator().setFrame(frame, display: true)
-            } completionHandler: { [weak self] in
-                // NSAnimationContext calls back on the main thread.
-                MainActor.assumeIsolated { self?.panel.invalidateShadow() }
-            }
-        } else {
-            panel.setFrame(frame, display: true)
-            panel.invalidateShadow()
+    /// Rebuilding the window shadow on every interpolated frame competes with
+    /// the content animation, so it is refreshed once the frames stop.
+    private func scheduleShadowSettle() {
+        shadowSettleTask?.cancel()
+        shadowSettleTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled, let self, self.panel.isVisible else { return }
+            self.panel.invalidateShadow()
         }
-    }
-}
-
-/// Container for the hosting controller that forwards SwiftUI's preferred
-/// content size so the panel can follow the content's height.
-private final class PanelRootViewController: NSViewController {
-    var onPreferredHeightChange: ((CGFloat) -> Void)?
-
-    override func loadView() {
-        view = NSView()
-    }
-
-    override func preferredContentSizeDidChange(for viewController: NSViewController) {
-        super.preferredContentSizeDidChange(for: viewController)
-        onPreferredHeightChange?(viewController.preferredContentSize.height)
     }
 }

@@ -34,7 +34,14 @@ struct MenuBarView: View {
                     .transition(.move(edge: .leading))
             case .settings:
                 SettingsScreen(controller: controller, updates: updates) { height in
-                    settingsHeight = height
+                    // The first measurement lands a frame after the switch
+                    // began, outside its transaction, so it gets the same
+                    // curve; later ones follow the content's own animation.
+                    if settingsHeight == nil {
+                        withAnimation(.snappy(duration: 0.3)) { settingsHeight = height }
+                    } else {
+                        settingsHeight = height
+                    }
                 }
                 .transition(.move(edge: .trailing))
             }
@@ -43,6 +50,8 @@ struct MenuBarView: View {
         .frame(height: targetHeight, alignment: .top)
         .clipped()
         .frame(maxHeight: .infinity, alignment: .top)
+        // The window follows this height frame by frame (PanelHeightBridge).
+        .drivesPanelHeight(targetHeight)
     }
 
     private var remoteScreen: some View {
