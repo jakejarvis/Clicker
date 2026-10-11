@@ -3,18 +3,19 @@
     <channel>
         <title>Clicker</title>
         <item>
-            <title>0.1.1</title>
-            <pubDate>Sun, 11 Oct 2026 17:30:06 +0000</pubDate>
+            <title>0.1.2</title>
+            <pubDate>Sun, 11 Oct 2026 17:37:22 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
-            <sparkle:version>101</sparkle:version>
-            <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
+            <sparkle:version>102</sparkle:version>
+            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <description sparkle:format="markdown"><![CDATA[Clicker 0.1.1
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.1.2
 
-First release.
+- Demo mode is compiled only into debug and --with-demo builds, so the released app no longer carries it.
+- Release workflow, site deployment and error handling improvements.
 
 ]]></description>
-            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.1.1/Clicker-0.1.1.zip" length="4465107" type="application/octet-stream" sparkle:edSignature="dX5Au3xvcSzvFGyiC56TyehMSB8bogR5WAcWoRmC1gMwePyT1C/UgrhvUfKHlhabhVk90X/FM7D1a5B/6suqAA=="/>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.1.2/Clicker-0.1.2.zip" length="4444729" type="application/octet-stream" sparkle:edSignature="wmI0tocv3z0lwVVeIqzQnhFJnBZrx3KyfCcdupj82gRz1NTL1Yq0aO/dU/Mv2cRqPCqgI62yRvE157qf35TdAw=="/>
         </item>
     </channel>
 </rss>
