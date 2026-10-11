@@ -3,22 +3,18 @@
     <channel>
         <title>Clicker</title>
         <item>
-            <title>0.2.0</title>
-            <pubDate>Sun, 11 Oct 2026 21:31:44 +0000</pubDate>
+            <title>0.2.1</title>
+            <pubDate>Sun, 11 Oct 2026 22:06:02 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
-            <sparkle:version>200</sparkle:version>
-            <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+            <sparkle:version>201</sparkle:version>
+            <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.0
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.1
 
-- A global keyboard shortcut opens or closes Clicker from any app. Record one in Settings › This Mac › Shortcut; it needs no Accessibility or Input Monitoring permission.
-- The panel hangs from the menu bar icon like a menu, and switching between the remote and Settings resizes it on one smooth curve.
-- Settings › This Mac explains the Name and Shortcut rows with info tooltips instead of a paragraph, and the login toggle is now called Open at Login, like System Settings.
-- Tooltips appear after a third of a second instead of about one second.
-- The homepage's download button links straight to the newest DMG.
+- The Name and Shortcut fields in Settings look alike again. 0.2.0 drew the shortcut recorder as a filled capsule next to a rounded-rect Name field; both now share one surface.
 
 ]]></description>
-            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.0/Clicker-0.2.0.zip" length="4700838" type="application/octet-stream" sparkle:edSignature="X7QaHpSIi14fN4jMw5odtttb/PvZG9DYA8Kx87c/cvODVRPZUGWy4GB59Rcmd39eoEORzU5tDBKNtNv5kVpbAA=="/>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.1/Clicker-0.2.1.zip" length="4706635" type="application/octet-stream" sparkle:edSignature="DA2k9pp3aT+J1lGeoMz7vzfA6RUXVdpgdq1oUH8tNdd+bkIMbaYG1ms1w3F4OzlGQyjterZAP8z3Mmhzyfw4CQ=="/>
         </item>
     </channel>
 </rss>
