@@ -7,7 +7,7 @@ import SwiftUI
 /// One rule set keeps it coherent: section headers are subheadline/secondary,
 /// row titles are body, secondary text is caption, every action is a small
 /// bordered button, every switch is a small toggle, and explanations live in
-/// section footers rather than inside rows.
+/// section footers or behind a row's info glyph rather than inline.
 struct SettingsScreen: View {
     let controller: RemoteController
     let updates: UpdateController
@@ -93,24 +93,14 @@ struct SettingsScreen: View {
     // MARK: - Sections
 
     private var thisMacSection: some View {
-        SettingsSection(
-            "This Mac",
-            footer: launchAtLoginError
-                ?? "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair. The shortcut opens or closes Clicker from any app."
-        ) {
-            SettingsRow("Name") {
+        let nameHelp =
+            "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair."
+        return SettingsSection("This Mac", footer: launchAtLoginError) {
+            SettingsRow("Name", help: nameHelp) {
                 TextField("Name", text: $clientName)
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.small)
                     .frame(maxWidth: 160)
-            }
-            SettingsDivider()
-            SettingsRow("Launch at Login") {
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .onChange(of: launchAtLogin) { _, enabled in updateLaunchAtLogin(enabled) }
             }
             SettingsDivider()
             // The recorder is the package's `NSSearchField` (see `ShortcutRecorder`
@@ -120,8 +110,16 @@ struct SettingsScreen: View {
             // is short on purpose: the field needs its full 130pt for the
             // "Record Shortcut" placeholder, which the package resets after
             // every recording, so a longer title truncates it.
-            SettingsRow("Shortcut") {
+            SettingsRow("Shortcut", help: "Opens or closes Clicker from any app.") {
                 ShortcutRecorder(name: .togglePanel)
+            }
+            SettingsDivider()
+            SettingsRow("Launch at Login") {
+                Toggle("Launch at Login", isOn: $launchAtLogin)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .onChange(of: launchAtLogin) { _, enabled in updateLaunchAtLogin(enabled) }
             }
         }
     }
@@ -343,20 +341,36 @@ struct SettingsDivider: View {
 struct SettingsRow<Control: View>: View {
     let title: String
     var subtitle: String?
+    /// Shown as a tooltip on a small info glyph after the title, for an
+    /// explanation that belongs to this row alone rather than the section.
+    var help: String?
     @ViewBuilder let control: () -> Control
 
-    init(_ title: String, subtitle: String? = nil, @ViewBuilder control: @escaping () -> Control) {
+    init(
+        _ title: String, subtitle: String? = nil, help: String? = nil,
+        @ViewBuilder control: @escaping () -> Control
+    ) {
         self.title = title
         self.subtitle = subtitle
+        self.help = help
         self.control = control
     }
 
     var body: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.body)
-                    .fixedSize()
+                HStack(spacing: 4) {
+                    Text(title)
+                        .font(.body)
+                        .fixedSize()
+                    if let help {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.tertiary)
+                            .help(help)
+                            .accessibilityLabel(help)
+                    }
+                }
                 if let subtitle {
                     Text(subtitle)
                         .font(.caption)
