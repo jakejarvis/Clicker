@@ -48,7 +48,7 @@ open -n dist/Clicker.app --args --demo pin
 
 ## Releasing
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. It lints and tests first, then calls `script/release.sh`, which builds a universal app, signs it with the Developer ID certificate and the hardened runtime, notarizes and staples it, and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle `appcast.xml`. The workflow publishes the DMG and zip as a GitHub release, commits the appcast to the `gh-pages` branch, and asks Vercel to redeploy the site so its changelog (built from the GitHub releases API at deploy time) shows the release. `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) is a Vercel rewrite to that file (`site/vercel.json`). Every publish step is idempotent, so a run that failed partway can be re-run from the Actions tab (a release that is already published is kept, and the appcast is regenerated from its zip with `release.sh --appcast-only`); on failure the job keeps `dist/release` (notarytool's logs included) as an artifact.
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. It lints and tests first, then calls `script/release.sh`, which builds a universal app, signs it with the Developer ID certificate and the hardened runtime, notarizes and staples it, and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle `appcast.xml`. The workflow publishes the DMG and zip as a GitHub release, commits the appcast to the `gh-pages` branch, and asks Vercel to redeploy the site so its homepage download button and changelog (both built from the GitHub releases API at deploy time) show the release. `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) is a Vercel rewrite to that file (`site/vercel.json`). Every publish step is idempotent, so a run that failed partway can be re-run from the Actions tab (a release that is already published is kept, and the appcast is regenerated from its zip with `release.sh --appcast-only`); on failure the job keeps `dist/release` (notarytool's logs included) as an artifact.
 
 ```bash
 git tag -a --cleanup=verbatim -F notes.md v1.2.3
@@ -66,7 +66,7 @@ The workflow reads these from the `release` environment (restricted to `v*` tags
 | `ASC_API_KEY_P8` | App Store Connect team API key (Developer role), contents of the `.p8` |
 | `ASC_KEY_ID`, `ASC_ISSUER_ID` | That key's ID and issuer |
 | `SPARKLE_ED_PRIVATE_KEY` | Sparkle EdDSA key, from `generate_keys -x` |
-| `VERCEL_DEPLOY_HOOK_URL` | Optional. A deploy hook from the Vercel project's Git settings; without it the changelog refreshes on the next push to `main` |
+| `VERCEL_DEPLOY_HOOK_URL` | Optional. A deploy hook from the Vercel project's Git settings; without it the download button and changelog refresh on the next push to `main` |
 
 `SUPublicEDKey` in `Resources/Info.plist` must be the public half of `SPARKLE_ED_PRIVATE_KEY`: a mismatch does not break the first release but makes every later update fail its signature check. Before the first release, compare it with what `generate_keys -p` prints for the key the secret was exported from (or sign any file with `sign_update --ed-key-file` and the secret, then check it against the plist key with `sign_update --verify`).
 

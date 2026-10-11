@@ -45,8 +45,9 @@ Resources/           Info.plist, Clicker.entitlements + Clicker.provisionprofile
                      (regenerate with swift script/make_status_icons.swift)
 .github/             workflows/ci.yml (test + package), workflows/release.yml (on v* tags),
                      dependabot.yml
-site/                Astro on Vercel for clicker.jarv.is, fully static: /changelog is
-                     built from the GitHub releases API at deploy time (optional
+site/                Astro on Vercel for clicker.jarv.is, fully static: /changelog and the
+                     homepage's download button (newest release's DMG) are built from
+                     the GitHub releases API at deploy time (optional
                      GITHUB_TOKEN build env var; the release workflow hits a Vercel
                      deploy hook when the VERCEL_DEPLOY_HOOK_URL secret is set, else
                      the next site deploy refreshes it); vercel.json rewrites

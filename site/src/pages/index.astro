@@ -1,7 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { fetchLatestDownload } from "../lib/releases";
 
 const repo = "https://github.com/jakejarvis/Clicker";
+
+// Rendered at build time, like the changelog: the button links straight to the
+// newest release's DMG, and the release workflow redeploys the site after each
+// release so it stays current. Without a DMG it falls back to the release page.
+const latest = await fetchLatestDownload();
+const downloadUrl = latest?.dmgUrl ?? `${repo}/releases/latest`;
 ---
 
 <Layout>
@@ -26,7 +33,7 @@ const repo = "https://github.com/jakejarvis/Clicker";
     apps, put the TV to sleep, and type with your Mac's keyboard.
   </h1>
 
-  <a class="download" href={`${repo}/releases/latest`}>
+  <a class="download" href={downloadUrl}>
     <svg
       viewBox="0 0 384 512"
       width="1em"

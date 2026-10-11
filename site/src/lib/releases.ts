@@ -17,8 +17,24 @@ export interface Release {
   downloads: ReleaseDownloads;
 }
 
-// Published, non-prerelease releases, newest first (GitHub's order).
-export async function fetchReleases(): Promise<Release[]> {
+// Published, non-prerelease releases, newest first (GitHub's order). One request
+// per build: the homepage (download button) and the changelog both read it.
+export function fetchReleases(): Promise<Release[]> {
+  releasesPromise ??= requestReleases();
+  return releasesPromise;
+}
+
+// The newest release that has a DMG, or null when none does yet.
+export async function fetchLatestDownload(): Promise<{ tag_name: string; dmgUrl: string } | null> {
+  for (const { tag_name, downloads } of await fetchReleases()) {
+    if (downloads.dmgUrl) return { tag_name, dmgUrl: downloads.dmgUrl };
+  }
+  return null;
+}
+
+let releasesPromise: Promise<Release[]> | undefined;
+
+async function requestReleases(): Promise<Release[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 

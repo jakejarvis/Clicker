@@ -2,7 +2,7 @@
 # Clicker, publishes the DMG and zip as a GitHub release, pushes the Sparkle
 # appcast to the gh-pages branch (served at clicker.jarv.is/appcast.xml
 # through the Vercel rewrite in site/vercel.json) and redeploys the site so
-# its changelog picks up the release. Notes come from the annotated tag's
+# its download button and changelog pick up the release. Notes come from the annotated tag's
 # message. The publish steps are idempotent, so a failed run can be re-run.
 name: Release
 
@@ -130,15 +130,15 @@ jobs:
             commit -m "Appcast for $GITHUB_REF_NAME"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
 
-      # The site's changelog is built from the GitHub releases API at deploy
-      # time, so a deploy hook (Vercel project settings › Git › Deploy Hooks)
-      # refreshes it. Optional: without the secret the next push to main does.
+      # The site's download button and changelog are built from the GitHub
+      # releases API at deploy time, so a deploy hook (Vercel project settings ›
+      # Git › Deploy Hooks) refreshes them. Optional: without the secret the next push to main does.
       - name: Redeploy the site
         env:
           VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
         run: |
           if [[ -z "$VERCEL_DEPLOY_HOOK_URL" ]]; then
-            echo "VERCEL_DEPLOY_HOOK_URL is not set; the changelog refreshes on the next site deploy"
+            echo "VERCEL_DEPLOY_HOOK_URL is not set; the site refreshes on the next deploy"
             exit 0
           fi
           curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL" >/dev/null
