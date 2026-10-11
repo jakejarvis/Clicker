@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Build Clicker and assemble a signed dist/Clicker.app with Sparkle embedded.
-# Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z]
+# Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--native] [--sign <identity>] [--version X.Y.Z]
 #   --release    optimized build; leaves out --demo unless --with-demo is also given
 #   --with-demo  compile the --demo scenarios in (debug builds always have them)
 #   --universal  arm64 + x86_64
+#   --native     SwiftPM's native build system, which links against the installed
+#                SDK like CI does; the default (Swift Build on 6.4) records sdk 15.0,
+#                under which AppKit draws some controls differently (see AGENTS.md)
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
 #                A real identity also embeds Resources/Clicker.provisionprofile and
@@ -15,6 +18,7 @@ set -euo pipefail
 CONFIGURATION="debug"
 WITH_DEMO=0
 UNIVERSAL=0
+NATIVE=0
 IDENTITY="-"
 VERSION="${CLICKER_VERSION:-0.1.0}"
 while [[ $# -gt 0 ]]; do
@@ -22,10 +26,11 @@ while [[ $# -gt 0 ]]; do
     --release) CONFIGURATION="release" ;;
     --with-demo) WITH_DEMO=1 ;;
     --universal) UNIVERSAL=1 ;;
+    --native) NATIVE=1 ;;
     --sign) IDENTITY="$2"; shift ;;
     --version) VERSION="$2"; shift ;;
     *)
-      echo "usage: $0 [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z]" >&2
+      echo "usage: $0 [--release] [--with-demo] [--universal] [--native] [--sign <identity>] [--version X.Y.Z]" >&2
       exit 2
       ;;
   esac
@@ -58,6 +63,9 @@ if [[ "$WITH_DEMO" == 1 && "$CONFIGURATION" == "release" ]]; then
 fi
 if [[ "$UNIVERSAL" == 1 ]]; then
   BUILD_FLAGS+=(--arch arm64 --arch x86_64)
+fi
+if [[ "$NATIVE" == 1 ]]; then
+  BUILD_FLAGS+=(--build-system native)
 fi
 
 cd "$ROOT_DIR"

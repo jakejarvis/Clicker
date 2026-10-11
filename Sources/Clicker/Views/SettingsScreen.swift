@@ -98,8 +98,9 @@ struct SettingsScreen: View {
         return SettingsSection("This Mac", footer: launchAtLoginError) {
             SettingsRow("Name", help: nameHelp) {
                 TextField("Name", text: $clientName)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
                     .controlSize(.small)
+                    .settingsField()
                     .frame(maxWidth: 160)
             }
             SettingsDivider()
@@ -112,6 +113,7 @@ struct SettingsScreen: View {
             // every recording, so a longer title truncates it.
             SettingsRow("Shortcut", help: "Opens or closes Clicker from any app.") {
                 ShortcutRecorder(name: .togglePanel)
+                    .settingsField()
             }
             SettingsDivider()
             SettingsRow("Open at Login") {
@@ -198,6 +200,8 @@ enum SettingsMetrics {
     static let rowHeight: CGFloat = 40
     static let rowHorizontalPadding: CGFloat = 12
     static let rowVerticalPadding: CGFloat = 8
+    /// Inner height of the Name and Shortcut fields (`settingsField`).
+    static let fieldHeight: CGFloat = 16
 }
 
 /// Title bar for a secondary panel screen.
@@ -387,6 +391,23 @@ struct SettingsRow<Control: View>: View {
 }
 
 extension View {
+    /// One look for the text fields in Settings, drawn here rather than by
+    /// the system. The Name field is SwiftUI and the shortcut recorder is an
+    /// `NSSearchField`, and their system bezels differ by linked SDK: under
+    /// the macOS 26 SDK (the CI build) the search field became a filled
+    /// capsule next to a rounded-rect text field, while local builds linked
+    /// against 15.0 showed two similar fields (0.2.0, 2026-10-12). Same
+    /// surface as the TV text field.
+    func settingsField() -> some View {
+        let shape = RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous)
+        // One fixed height, so the two fields (different control types) share
+        // a shape too: the same radius reads as a capsule on a shorter field.
+        return frame(height: SettingsMetrics.fieldHeight)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .surface(shape, interactive: false)
+    }
+
     func settingsRowPadding() -> some View {
         padding(.horizontal, SettingsMetrics.rowHorizontalPadding)
             .padding(.vertical, SettingsMetrics.rowVerticalPadding)

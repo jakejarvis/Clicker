@@ -16,6 +16,7 @@ The script kills a running copy and calls `script/package_app.sh`, which builds 
 ./script/build_and_run.sh --verify      # launch and confirm the process exists
 ./script/build_and_run.sh --release     # optimized build (pairing math is much faster)
 ./script/build_and_run.sh --install     # copy to /Applications and launch from there
+./script/build_and_run.sh --native      # SwiftPM's native build system: links the real SDK like CI, so controls look as released
 ./script/render_icon.sh                 # preview Resources/AppIcon.icon and refresh the site's icon PNGs
 swift script/make_status_icons.swift   # regenerate menu bar PDFs from Resources/StatusIcon/*.svg
 swift test                              # codec, crypto, SRP and text-input tests

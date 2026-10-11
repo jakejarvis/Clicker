@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 # Kill, build, stage a .app bundle and launch Clicker.
-# Usage: script/build_and_run.sh [run|--debug|--logs|--telemetry|--verify] [--release] [--install]
+# Usage: script/build_and_run.sh [run|--debug|--logs|--telemetry|--verify] [--release] [--native] [--install]
 #   --release  optimized build (still with --demo; only package_app.sh leaves it out)
+#   --native   build with SwiftPM's native build system (links the real SDK, like CI)
 #   --install  copy the bundle to /Applications and launch it from there
 # Bundle assembly and signing live in script/package_app.sh.
 set -euo pipefail
 
 MODE="run"
 RELEASE_FLAG=""
+NATIVE_FLAG=""
 INSTALL=0
 for arg in "$@"; do
   case "$arg" in
     --release) RELEASE_FLAG="--release" ;;
+    --native) NATIVE_FLAG="--native" ;;
     --install) INSTALL=1 ;;
     *) MODE="$arg" ;;
   esac
@@ -27,7 +30,7 @@ pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 
 # Builds, stages dist/Clicker.app with Sparkle embedded and signs it ad hoc.
 # Dev builds keep the --demo scenarios whatever the configuration.
-"$ROOT_DIR/script/package_app.sh" $RELEASE_FLAG --with-demo
+"$ROOT_DIR/script/package_app.sh" $RELEASE_FLAG $NATIVE_FLAG --with-demo
 
 if [[ "$INSTALL" == 1 ]]; then
   rm -rf "/Applications/$APP_NAME.app"

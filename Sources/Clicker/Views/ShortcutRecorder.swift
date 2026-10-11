@@ -26,9 +26,10 @@ import SwiftUI
 struct ShortcutRecorder: NSViewRepresentable {
     let name: KeyboardShortcuts.Name
     var naturalWidth: CGFloat = 130
-    /// The small search field's height; its `intrinsicContentSize` reports the
-    /// regular 22 even after `controlSize` is set.
-    private let height: CGFloat = 19
+    /// Used when nothing is proposed; `settingsField` proposes its own height.
+    /// The field's `intrinsicContentSize` reports the regular 22 even after
+    /// `controlSize` is set.
+    private let height: CGFloat = 16
 
     func makeCoordinator() -> Coordinator { Coordinator(name: name) }
 
@@ -36,6 +37,12 @@ struct ShortcutRecorder: NSViewRepresentable {
         let field = KeyboardShortcuts.RecorderCocoa(for: name)
         field.controlSize = .small
         field.font = .systemFont(ofSize: NSFont.systemFontSize(for: .small))
+        // The row draws the field's background (`settingsField`), so the
+        // system bezel goes: a capsule under the macOS 26 SDK, a rounded rect
+        // under 15, neither matching the Name field next to it.
+        field.isBezeled = false
+        field.drawsBackground = false
+        field.focusRingType = .none
         context.coordinator.watchCancelButton(of: field)
         return field
     }
@@ -52,7 +59,7 @@ struct ShortcutRecorder: NSViewRepresentable {
     func sizeThatFits(
         _ proposal: ProposedViewSize, nsView: KeyboardShortcuts.RecorderCocoa, context: Context
     ) -> CGSize? {
-        CGSize(width: min(proposal.width ?? naturalWidth, naturalWidth), height: height)
+        CGSize(width: min(proposal.width ?? naturalWidth, naturalWidth), height: proposal.height ?? height)
     }
 
     @MainActor
