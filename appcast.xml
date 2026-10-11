@@ -1,6 +1,20 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-  <channel>
-    <title>Clicker</title>
-  </channel>
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Clicker</title>
+        <item>
+            <title>0.1.1</title>
+            <pubDate>Sun, 11 Oct 2026 17:30:06 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>101</sparkle:version>
+            <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.1.1
+
+First release.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.1.1/Clicker-0.1.1.zip" length="4465107" type="application/octet-stream" sparkle:edSignature="dX5Au3xvcSzvFGyiC56TyehMSB8bogR5WAcWoRmC1gMwePyT1C/UgrhvUfKHlhabhVk90X/FM7D1a5B/6suqAA=="/>
+        </item>
+    </channel>
 </rss>
