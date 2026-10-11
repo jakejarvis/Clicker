@@ -114,8 +114,8 @@ struct SettingsScreen: View {
                 ShortcutRecorder(name: .togglePanel)
             }
             SettingsDivider()
-            SettingsRow("Launch at Login") {
-                Toggle("Launch at Login", isOn: $launchAtLogin)
+            SettingsRow("Open at Login") {
+                Toggle("Open at Login", isOn: $launchAtLogin)
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)
