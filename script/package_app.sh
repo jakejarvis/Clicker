@@ -62,7 +62,12 @@ fi
 
 cd "$ROOT_DIR"
 swift build "${BUILD_FLAGS[@]}"
-BUILD_BINARY="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)/$APP_NAME"
+BUILD_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
+BUILD_BINARY="$BUILD_DIR/$APP_NAME"
+# KeyboardShortcuts localizes its recorder from a SwiftPM resource bundle whose
+# generated accessor looks only in Contents/Resources and crashes without it.
+SHORTCUTS_BUNDLE="$BUILD_DIR/KeyboardShortcuts_KeyboardShortcuts.bundle"
+[[ -d "$SHORTCUTS_BUNDLE" ]] || { echo "missing $SHORTCUTS_BUNDLE" >&2; exit 1; }
 if [[ "$UNIVERSAL" == 1 ]]; then
   for arch in arm64 x86_64; do
     lipo "$BUILD_BINARY" -verify_arch "$arch" || { echo "missing $arch slice" >&2; exit 1; }
@@ -81,6 +86,7 @@ xcrun actool "$ROOT_DIR/Resources/AppIcon.icon" --compile "$CONTENTS/Resources" 
   --output-format human-readable-text >/dev/null
 mkdir -p "$CONTENTS/Resources/StatusIcon"
 cp "$ROOT_DIR"/Resources/StatusIcon/*.pdf "$CONTENTS/Resources/StatusIcon/"
+ditto "$SHORTCUTS_BUNDLE" "$CONTENTS/Resources/$(basename "$SHORTCUTS_BUNDLE")"
 
 cp "$ROOT_DIR/Resources/Info.plist" "$INFO_PLIST"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$INFO_PLIST"
@@ -124,7 +130,8 @@ SIGN_FLAGS=(--force --sign "$IDENTITY")
 if [[ "$IDENTITY" != "-" ]]; then
   SIGN_FLAGS+=(--options runtime --timestamp)
 fi
-for item in "$SPARKLE/Versions/B/Autoupdate" "$SPARKLE/Versions/B/Updater.app" "$SPARKLE"; do
+for item in "$SPARKLE/Versions/B/Autoupdate" "$SPARKLE/Versions/B/Updater.app" "$SPARKLE" \
+  "$CONTENTS/Resources/$(basename "$SHORTCUTS_BUNDLE")"; do
   codesign "${SIGN_FLAGS[@]}" "$item"
 done
 if [[ "$IDENTITY" != "-" ]]; then

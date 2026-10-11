@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import ServiceManagement
 import SwiftUI
 
@@ -95,7 +96,7 @@ struct SettingsScreen: View {
         SettingsSection(
             "This Mac",
             footer: launchAtLoginError
-                ?? "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair."
+                ?? "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair. The shortcut opens or closes Clicker from any app."
         ) {
             SettingsRow("Name") {
                 TextField("Name", text: $clientName)
@@ -110,6 +111,17 @@ struct SettingsScreen: View {
                     .toggleStyle(.switch)
                     .controlSize(.small)
                     .onChange(of: launchAtLogin) { _, enabled in updateLaunchAtLogin(enabled) }
+            }
+            SettingsDivider()
+            // The recorder is the package's `NSSearchField` (see `ShortcutRecorder`
+            // for why it is wrapped); it takes the panel's first responder on
+            // click like the TV text field does, pauses the shortcut while
+            // recording and clears on Delete or its own x button. The title
+            // is short on purpose: the field needs its full 130pt for the
+            // "Record Shortcut" placeholder, which the package resets after
+            // every recording, so a longer title truncates it.
+            SettingsRow("Shortcut") {
+                ShortcutRecorder(name: .togglePanel)
             }
         }
     }

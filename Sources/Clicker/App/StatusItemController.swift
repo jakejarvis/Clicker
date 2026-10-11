@@ -1,4 +1,5 @@
 import AppKit
+import KeyboardShortcuts
 import SwiftUI
 
 /// Owns the menu bar status item and the panel that hosts the remote.
@@ -45,6 +46,7 @@ final class StatusItemController: NSObject {
         configurePanel()
         configureStatusItem()
         installKeyMonitor()
+        installHotKey()
         updateStatusImage()
         updates.onWillPresent = { [weak self] in
             guard let self, self.panel.isVisible else { return }
@@ -190,6 +192,9 @@ final class StatusItemController: NSObject {
             let windowID = event.window.map(ObjectIdentifier.init)
             let consumed = MainActor.assumeIsolated { () -> Bool in
                 guard let self, self.panel.isVisible, windowID == ObjectIdentifier(self.panel) else { return false }
+                // The shortcut recorder in Settings takes every key it is given,
+                // so a chord recorded there must not also act here.
+                if self.isRecordingShortcut { return false }
                 switch (keyCode, modifiers) {
                 case (53, []):  // Escape
                     if self.panel.firstResponder is NSText { return false }
@@ -207,6 +212,22 @@ final class StatusItemController: NSObject {
                 }
             }
             return consumed ? nil : event
+        }
+    }
+
+    /// Whether the Settings shortcut recorder is taking a chord: its field
+    /// editor is the first responder and the recorder is its delegate.
+    private var isRecordingShortcut: Bool {
+        (panel.firstResponder as? NSText)?.delegate is KeyboardShortcuts.RecorderCocoa
+    }
+
+    /// The global shortcut goes through the same path as a click on the
+    /// status item, so the panel opens without activating Clicker and the
+    /// clickpad takes keyboard focus the same way. Carbon calls on the main
+    /// thread.
+    private func installHotKey() {
+        KeyboardShortcuts.onKeyDown(for: .togglePanel) { [weak self] in
+            MainActor.assumeIsolated { self?.togglePanel() }
         }
     }
 

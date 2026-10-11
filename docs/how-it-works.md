@@ -1,6 +1,6 @@
 # How Clicker works
 
-Clicker speaks Apple's Companion protocol directly (the same one the iPhone Remote uses), so there is no Python, no bridge process and no third-party service involved. The protocol details were checked against [pyatv](https://github.com/postlund/pyatv), whose Companion implementation is the reference for this format. The dependencies are [BigInt](https://github.com/attaswift/BigInt) for the SRP modular arithmetic and [Sparkle](https://sparkle-project.org) for updates; everything else is CryptoKit, Network and SwiftUI.
+Clicker speaks Apple's Companion protocol directly (the same one the iPhone Remote uses), so there is no Python, no bridge process and no third-party service involved. The protocol details were checked against [pyatv](https://github.com/postlund/pyatv), whose Companion implementation is the reference for this format. The dependencies are [BigInt](https://github.com/attaswift/BigInt) for the SRP modular arithmetic and [Sparkle](https://sparkle-project.org) for updates and [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) for the global shortcut that opens the panel (Carbon `RegisterEventHotKey` plus the recorder field in Settings); everything else is CryptoKit, Network and SwiftUI.
 
 ## Layout
 

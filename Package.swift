@@ -12,6 +12,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/attaswift/BigInt.git", from: "6.0.1"),
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.0"),
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "1.17.0"),
     ],
     targets: [
         .executableTarget(
@@ -19,6 +20,7 @@ let package = Package(
             dependencies: [
                 .product(name: "BigInt", package: "BigInt"),
                 .product(name: "Sparkle", package: "Sparkle"),
+                .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             path: "Sources/Clicker",
             swiftSettings: demoSettings
