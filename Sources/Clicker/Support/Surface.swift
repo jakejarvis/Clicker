@@ -95,10 +95,9 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
     let style: SurfaceButtonStyle<S>
 
     @State private var isHovered = false
-    /// Mirrors `configuration.isPressed`, so it can be cleared when a menu
-    /// swallows the release.
-    @State private var isPressed = false
     @Environment(\.isEnabled) private var isEnabled
+
+    private var isPressed: Bool { configuration.isPressed && isEnabled }
 
     private var highlight: SurfaceHighlight {
         guard isEnabled else { return .none }
@@ -121,20 +120,12 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
         .animation(.easeOut(duration: 0.1), value: isPressed)
         .animation(.easeOut(duration: 0.15), value: isHovered)
         .onHover { isHovered = $0 }
-        // A menu opened from the button (Power) opens on mouse down and takes
-        // the press and the pointer with it, so the button never sees a press
-        // at all, let alone its end. The menu that starts tracking while the
-        // pointer is on the button is the button's own: show it pressed for
-        // as long as the menu is up, then clear both states when it closes.
-        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
-            if isHovered, isEnabled { isPressed = true }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
-            isHovered = false
-            isPressed = false
-        }
+        // A menu drawn by this style (Power, the footer's •••) opens on mouse
+        // down and never reports a press, so it shows only its hover state
+        // while the menu is up. Following NSMenu's tracking notifications to
+        // fake the press was tried and removed: every button in the app
+        // subscribed and rewrote its state whenever any menu closed.
         .onChange(of: configuration.isPressed) { _, pressed in
-            isPressed = pressed && isEnabled
             style.onPressChanged?(pressed)
         }
     }
