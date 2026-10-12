@@ -3,18 +3,18 @@
     <channel>
         <title>Clicker</title>
         <item>
-            <title>0.2.3</title>
-            <pubDate>Mon, 12 Oct 2026 12:30:38 +0000</pubDate>
+            <title>0.2.4</title>
+            <pubDate>Mon, 12 Oct 2026 12:38:50 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
-            <sparkle:version>203</sparkle:version>
-            <sparkle:shortVersionString>0.2.3</sparkle:shortVersionString>
+            <sparkle:version>204</sparkle:version>
+            <sparkle:shortVersionString>0.2.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.3
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.4
 
-- Fixes the Back, TV, Play/Pause and Siri buttons blinking for a few frames when Settings was opened from the ••• menu.
+- Simplifies the panel's buttons: the Power and ••• menu buttons no longer follow the system's menu tracking, so the rest of the panel stops re-rendering every time a menu closes.
 
 ]]></description>
-            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.3/Clicker-0.2.3.zip" length="4724675" type="application/octet-stream" sparkle:edSignature="Dw3jOzA+YDvcdXY+pHK5CMYKjPYBr3LwjerQkQeQPw+UWcZW5NEjIX/Y73fO7AHUX8O1EvI4ZkXkl7dEALz6Bw=="/>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.4/Clicker-0.2.4.zip" length="4720188" type="application/octet-stream" sparkle:edSignature="JRm7WGkvV/Bn75CDfJtR5E4PoxTEFND1B04bq6NQ21SaYfHc+XzDaOY6W2SvW7UruEDPtJgOeJYMtdVI6FdICg=="/>
         </item>
     </channel>
 </rss>
