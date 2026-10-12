@@ -18,6 +18,9 @@
 #                         tag vX.Y.Z's message.
 #   DOWNLOAD_URL_PREFIX   where the appcast points for the zip; defaults to the
 #                         GitHub release (override for local update testing).
+#   BASE_APPCAST          the published appcast to extend: a path, or "none"
+#                         for a brand-new feed. Defaults to appcast.xml on
+#                         origin/gh-pages (fetch it first), and fails without one.
 set -euo pipefail
 
 usage() {
@@ -145,13 +148,28 @@ fi
 
 echo "==> Writing appcast"
 FEED_DIR="$(mktemp -d)"
+# Seed the feed directory with the published appcast: generate_appcast extends
+# an appcast it finds there, keeping every item whose archive is absent exactly
+# as it was (signature included) and writing the new version on top. Fed an
+# empty directory it starts over, which is how 0.1.1 through 0.2.4 each
+# shipped a one-item feed; --maximum-versions 0 keeps it from pruning either.
+if [[ "${BASE_APPCAST:-}" == "none" ]]; then
+  echo "BASE_APPCAST=none: starting a new feed"
+elif [[ -n "${BASE_APPCAST:-}" ]]; then
+  cp "$BASE_APPCAST" "$FEED_DIR/appcast.xml"
+elif git -C "$ROOT_DIR" rev-parse -q --verify origin/gh-pages >/dev/null; then
+  git -C "$ROOT_DIR" show origin/gh-pages:appcast.xml >"$FEED_DIR/appcast.xml"
+else
+  echo "no published appcast to extend: git fetch origin gh-pages, or set BASE_APPCAST to a path (or none for a first release)" >&2
+  exit 1
+fi
 cp "$ZIP" "$FEED_DIR/"
 cp "$NOTES" "$FEED_DIR/Clicker-$VERSION.md"
 FEED_ARGS=(
   --download-url-prefix "$DOWNLOAD_URL_PREFIX"
   --embed-release-notes
   --link "https://clicker.jarv.is"
-  -o "$OUT/appcast.xml"
+  --maximum-versions 0
   "$FEED_DIR"
 )
 if [[ -n "${SPARKLE_ED_PRIVATE_KEY:-}" ]]; then
@@ -159,7 +177,9 @@ if [[ -n "${SPARKLE_ED_PRIVATE_KEY:-}" ]]; then
 else
   "$SPARKLE_BIN/generate_appcast" "${FEED_ARGS[@]}"
 fi
+cp "$FEED_DIR/appcast.xml" "$OUT/appcast.xml"
 rm -rf "$FEED_DIR"
+echo "Feed now lists: $(grep -o '<sparkle:shortVersionString>[^<]*' "$OUT/appcast.xml" | cut -d'>' -f2 | tr '\n' ' ')"
 
 if [[ -n "$APPCAST_ONLY" ]]; then
   echo "Appcast for $VERSION is in $OUT"

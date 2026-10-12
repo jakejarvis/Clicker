@@ -45,6 +45,11 @@ jobs:
       - name: Fetch the annotated tag
         run: git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
 
+      # release.sh extends the published appcast (every version stays listed)
+      # rather than writing a fresh one, so it needs gh-pages before it runs.
+      - name: Fetch the published appcast
+        run: git fetch origin gh-pages:refs/remotes/origin/gh-pages
+
       # A tag can land on a commit CI never saw.
       - name: Lint and test
         run: |
@@ -116,8 +121,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git fetch origin gh-pages
-          git worktree add --detach "$RUNNER_TEMP/gh-pages" FETCH_HEAD
+          git worktree add --detach "$RUNNER_TEMP/gh-pages" origin/gh-pages
           cp dist/release/appcast.xml "$RUNNER_TEMP/gh-pages/appcast.xml"
           cd "$RUNNER_TEMP/gh-pages"
           git add appcast.xml
