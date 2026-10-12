@@ -79,3 +79,16 @@ NOTARY_PROFILE=clicker-notary NOTES_FILE=notes.md \
 ```
 
 Sparkle's tools (`generate_keys`, `sign_update`, `generate_appcast`) are in `.build/artifacts/sparkle/Sparkle/bin` after `swift package resolve`. To test an update end to end without notarizing, package the newer version with `script/package_app.sh --sign <SHA-1> --version 0.2.0`, zip it (`ditto -c -k --sequesterRsrc --keepParent dist/Clicker.app feed/Clicker-0.2.0.zip`) and run `generate_appcast --download-url-prefix http://localhost:8765/ -o feed/appcast.xml feed` (it signs with the EdDSA key in the login keychain). Then package the older version, point it at the feed (`plutil -replace SUFeedURL -string http://localhost:8765/appcast.xml` and `plutil -insert NSAppTransportSecurity -json '{"NSAllowsLocalNetworking": true}'` on its `Info.plist`, then re-run the final `codesign` line from `package_app.sh`), install it, serve the feed with `python3 -m http.server 8765 --bind 127.0.0.1` and use Check for Updates…. Sparkle 2 ignores a `-SUFeedURL` launch argument, so the plist edit is needed. The signing certificate must be one the provisioning profile lists; `package_app.sh` checks.
+
+### Mac App Store build
+
+`script/package_app.sh --app-store` builds the App Store flavor: SwiftPM's default `Sparkle` trait is turned off (`--disable-default-traits`), so the updater, its UI, Sparkle.framework and the `SU*` Info.plist keys are all left out, and the app is signed with `Resources/Clicker-AppStore.entitlements` (App Sandbox, outgoing network, keychain group). Without `--sign` it is ad-hoc signed with the sandbox keys only, which is enough to try the sandbox locally; pairings then live in `~/Library/Containers/com.jakejarvis.Clicker/`.
+
+For a submission, put a Mac App Store distribution profile at `Resources/Clicker-AppStore.provisionprofile` and run:
+
+```bash
+script/package_app.sh --release --universal --app-store --version 1.2.3 \
+  --sign "Apple Distribution: …" --installer "3rd Party Mac Developer Installer: …"
+```
+
+That writes `dist/Clicker.pkg`, which is uploaded with Transporter. An App Store-signed app does not launch outside the store.

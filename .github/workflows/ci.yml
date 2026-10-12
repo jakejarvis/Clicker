@@ -46,3 +46,7 @@ jobs:
           name: Clicker.app
           path: dist/Clicker.app.zip
           retention-days: 14
+
+      # Keeps the build without the Sparkle trait compiling.
+      - name: Package the App Store flavor
+        run: script/package_app.sh --release --app-store
