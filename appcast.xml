@@ -3,6 +3,30 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.2.5</title>
+            <pubDate>Mon, 12 Oct 2026 22:03:05 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>205</sparkle:version>
+            <sparkle:shortVersionString>0.2.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.5
+
+- Fixes the first button press after opening the panel sometimes doing nothing when the Apple TV had dropped the previous session.
+- Reconnects on its own a second after the Apple TV drops the session while the panel is open, and recovers from a stalled connection about twice as fast.
+- Tells the Apple TV the session is over when you quit, instead of leaving it with a dead connection.
+- Opening Clicker again while it's already running now shows the panel.
+- Shows the "Paired, but the pairing couldn't be saved" card when saving a pairing fails, instead of a remote that wouldn't connect.
+- After forgetting the selected Apple TV, switches to another one instead of waiting on the Choose card.
+- Esc now closes the device list first, and the list no longer reopens by itself the next time the panel opens.
+- A failed app launch no longer clears the Mute button's tint while the TV is still muted.
+- fn+Delete now removes the global shortcut while recording one.
+- Settings keeps "Last checked" up to date while it's open, and lists paired Apple TVs by name.
+- Keeps every past release in the update feed, so a Mac left behind by a future minimum macOS can still update to the last version it supports.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.5/Clicker-0.2.5.zip" length="4753122" type="application/octet-stream" sparkle:edSignature="HTwkcNHnkcu+6eQMVLGT2FA9C/ix5DhtX6jv++CwDK5porcrT9p5SIec2/ulKbmfp9Py9/IhLB1Oti3BJpkxDA=="/>
+        </item>
+        <item>
             <title>0.2.4</title>
             <pubDate>Mon, 12 Oct 2026 12:38:50 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
