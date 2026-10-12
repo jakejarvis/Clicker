@@ -119,7 +119,10 @@ struct SettingsScreen: View {
     /// section disappears entirely when nothing is paired.
     @ViewBuilder
     private var pairedSection: some View {
-        let credentials = controller.credentialStore.credentials
+        // By name, like the picker; storage order is the order of pairing.
+        let credentials = controller.credentialStore.credentials.sorted {
+            $0.deviceName.localizedCaseInsensitiveCompare($1.deviceName) == .orderedAscending
+        }
         if !credentials.isEmpty {
             SettingsSection("Paired Apple TVs") {
                 ForEach(Array(credentials.enumerated()), id: \.element.deviceID) { index, item in
@@ -143,18 +146,22 @@ struct SettingsScreen: View {
     }
 
     private var updatesSection: some View {
-        SettingsSection("Updates", footer: updatesFooter) {
-            SettingsRow("Check Automatically") {
-                Toggle("Check Automatically", isOn: $checksForUpdates)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .onChange(of: checksForUpdates) { _, enabled in
-                        // Sparkle persists this; only write when the user changes it.
-                        if enabled != updates.automaticallyChecksForUpdates {
-                            updates.automaticallyChecksForUpdates = enabled
+        // The footer's "Last checked 5 minutes ago" is formatted on render;
+        // a minute tick keeps it true while the screen stays open.
+        TimelineView(.periodic(from: .now, by: 60)) { _ in
+            SettingsSection("Updates", footer: updatesFooter) {
+                SettingsRow("Check Automatically") {
+                    Toggle("Check Automatically", isOn: $checksForUpdates)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .onChange(of: checksForUpdates) { _, enabled in
+                            // Sparkle persists this; only write when the user changes it.
+                            if enabled != updates.automaticallyChecksForUpdates {
+                                updates.automaticallyChecksForUpdates = enabled
+                            }
                         }
-                    }
+                }
             }
         }
         .disabled(!updates.isEnabled)

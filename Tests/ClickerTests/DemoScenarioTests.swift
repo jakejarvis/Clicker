@@ -59,6 +59,15 @@ import Testing
             wrongCode.start()
             #expect(wrongCode.pairingState == .failed(TLV8.ErrorCode.authentication.message))
 
+            let notSaved = RemoteController(demo: .savefailed)
+            notSaved.start()
+            #expect(notSaved.selectedStateDescription == "Not paired")
+            guard case .failed(let message) = notSaved.pairingState else {
+                Issue.record("savefailed should show a failed pair card")
+                return
+            }
+            #expect(message.hasPrefix("Paired, but the pairing couldn't be saved: "))
+
             let failed = RemoteController(demo: .connectionfailed)
             failed.start()
             #expect(failed.selectedStateDescription == "Connection failed")
@@ -84,6 +93,17 @@ import Testing
             choose.start()
             #expect(choose.devices.count == 3)
             #expect(choose.selectedDevice == nil)
+        }
+
+        /// Forgetting the selected offline TV moves on to a usable one at once.
+        @Test @MainActor func forgettingTheSelectedOfflineDeviceReselects() {
+            let controller = RemoteController(demo: .offline)
+            controller.start()
+            #expect(controller.selectedDevice?.name == "Living Room")
+            #expect(controller.selectedDevice?.isOnline == false)
+            controller.forgetPairing(for: controller.selectedDevice!)
+            #expect(controller.selectedDevice?.name == "Bedroom")
+            #expect(controller.connectionState == .connected)
         }
 
         @Test @MainActor func pairingCompletesWithAnyCode() async throws {

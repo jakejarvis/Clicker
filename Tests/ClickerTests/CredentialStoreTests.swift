@@ -45,6 +45,21 @@ import Testing
         #expect(permissions == 0o600)
     }
 
+    /// A refused save leaves the TV unpaired, so the pair card can show the failure.
+    @Test @MainActor func refusedSaveIsNotKept() throws {
+        struct Refusal: Error {}
+        struct RefusingBackend: CredentialBackend {
+            func loadAll() throws -> [PairingCredentials] { [] }
+            func store(_ credentials: PairingCredentials) throws { throw Refusal() }
+            func delete(deviceID: String) throws {}
+        }
+
+        let store = CredentialStore(backend: RefusingBackend())
+        #expect(throws: Refusal.self) { try store.save(makeCredentials(id: "A")) }
+        #expect(store.credentials.isEmpty)
+        #expect(store.credentials(for: "A") == nil)
+    }
+
     @Test @MainActor func rekeyAndRemovePersist() throws {
         let url = temporaryFile()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

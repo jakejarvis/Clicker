@@ -11,29 +11,23 @@ import SwiftUI
 /// TV, where the session landed, with a Rescan action at the bottom. The mode
 /// is decided when the control is clicked and stays until the popover closes.
 struct DevicePickerMenu: View {
-    let controller: RemoteController
-    /// Non-nil while the popover is open. The mode rides on the item because
-    /// an `isPresented` popover rendered the content with the previous
-    /// `showsDetails` value when both changed in the same click.
-    @State private var presentation: Presentation?
-
-    private struct Presentation: Identifiable {
-        let showsDetails: Bool
-        var id: Bool { showsDetails }
-    }
+    /// The popover's item lives on the controller (`devicePickerPresentation`),
+    /// like the Apps picker's flag: the popover goes with the panel when it
+    /// hides, but view state would not, so the next open found it still set.
+    @Bindable var controller: RemoteController
 
     private let shape = RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous)
 
     var body: some View {
         Button {
-            if presentation != nil {
-                presentation = nil
+            if controller.devicePickerPresentation != nil {
+                controller.devicePickerPresentation = nil
                 return
             }
             // The click's own flags cover synthetic events; the class property
             // covers a key held before the panel took the event.
             let flags = (NSApp.currentEvent?.modifierFlags ?? []).union(NSEvent.modifierFlags)
-            presentation = Presentation(showsDetails: flags.contains(.option))
+            controller.devicePickerPresentation = DevicePickerPresentation(showsDetails: flags.contains(.option))
         } label: {
             HStack(spacing: 10) {
                 DeviceIcon(device: controller.selectedDevice, isConnected: controller.connectionState == .connected)
@@ -60,10 +54,10 @@ struct DevicePickerMenu: View {
         .help("Choose an Apple TV. Option-click for details.")
         .accessibilityLabel("Apple TV: \(controller.selectedDevice?.name ?? "none selected")")
         .accessibilityHint("Opens the list of Apple TVs")
-        .popover(item: $presentation, arrowEdge: .bottom) { presentation in
+        .popover(item: $controller.devicePickerPresentation, arrowEdge: .bottom) { presentation in
             DeviceListView(controller: controller, showsDetails: presentation.showsDetails) { device in
                 controller.select(device)
-                self.presentation = nil
+                controller.devicePickerPresentation = nil
             }
         }
     }

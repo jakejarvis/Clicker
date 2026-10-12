@@ -114,7 +114,10 @@ struct ShortcutRow: View {
     }
 
     private func handleKey(_ event: NSEvent) {
-        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift, .function])
+        // Not `.function`: a laptop's forward delete is fn+Delete and carries
+        // it, and with it in the mask that key recorded (and beeped) instead
+        // of removing.
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
         switch event.keyCode {
         case 53 where modifiers.isEmpty:  // Escape
             stopRecording()

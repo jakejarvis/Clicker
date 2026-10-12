@@ -62,6 +62,15 @@ enum PanelScreen: Hashable, Sendable {
     case settings
 }
 
+/// The device picker's popover while it is open: plain, or the ⌥-click
+/// details mode. The mode rides on the item because an `isPresented`
+/// popover rendered its content with the previous mode when both changed
+/// in the same click.
+struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
+    let showsDetails: Bool
+    var id: Bool { showsDetails }
+}
+
 /// App-wide remote control state: which Apple TV is selected, whether we are
 /// connected to it, and the actions the UI can trigger.
 @MainActor
@@ -123,6 +132,9 @@ final class RemoteController {
     /// window underneath a popover, so the clickpad's shortcuts stand down
     /// while this is set and Esc closes the picker before anything else.
     var isAppPickerPresented = false
+    /// The device picker's popover while it is open. Kept here, not in the
+    /// view, so hiding the panel can drop it and Esc can close it.
+    var devicePickerPresentation: DevicePickerPresentation?
     /// Whether the Settings shortcut row is taking a chord (`ShortcutRow`).
     /// The panel's key monitor leaves every key alone while this is set.
     var isRecordingShortcut = false
@@ -134,6 +146,10 @@ final class RemoteController {
     /// TV text field is showing: Esc in the field gives the keys back to the
     /// remote without hiding the field.
     private(set) var padFocusRequests = 0
+    /// Whether the panel is on screen. A session that drops while it is
+    /// showing is reconnected once (`scheduleReconnect`); a drop while it is
+    /// hidden waits for the next open, which connects anyway.
+    private(set) var isPanelVisible = false
 
     @ObservationIgnored private var client: CompanionClient?
     @ObservationIgnored private var clientDeviceID: String?
@@ -142,6 +158,11 @@ final class RemoteController {
     @ObservationIgnored private var pairingSession: CompanionPairingSession?
     @ObservationIgnored private var pairingDeviceID: String?
     @ObservationIgnored private var commandQueue: Task<Void, Never>?
+    @ObservationIgnored private var reconnectTask: Task<Void, Never>?
+    /// How long after a dropped session the panel waits before connecting
+    /// again, so a TV that is tearing down (sleep, a restart) is not hit at
+    /// once.
+    static let reconnectDelay: Duration = .seconds(1)
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
     /// The finger on the TV's touch surface during a trackpad swipe, in
     /// touchpad units; nil between swipes.
@@ -346,8 +367,13 @@ final class RemoteController {
         lastAddressByDevice[device.id] = nil
         pairingNotice = nil
         if selectedDeviceID == device.id, !device.isOnline {
+            // The forgotten TV leaves the list, so move on to another one
+            // now rather than sit on the Choose card until Bonjour next
+            // reports something.
             selectedDeviceID = nil
             rememberSelection(nil)
+            selectPreferredDeviceIfNeeded(online: devices.filter(\.isOnline))
+            connectIfNeeded()
         }
     }
 
@@ -372,14 +398,17 @@ final class RemoteController {
         for device in devices {
             credentialStore.updateName(device.name, model: device.model, for: device.id)
         }
-        if selectedDeviceID == nil || self.devices.first(where: { $0.id == selectedDeviceID }) == nil {
-            let preferred = devices.first { isPaired($0) } ?? devices.first
-            if let preferred {
-                selectedDeviceID = preferred.id
-                rememberSelection(preferred.id)
-            }
-        }
+        selectPreferredDeviceIfNeeded(online: devices)
         connectIfNeeded()
+    }
+
+    /// Picks a TV when none is selected or the selected one is gone: a
+    /// paired one from `online` first, then any.
+    private func selectPreferredDeviceIfNeeded(online: [AppleTVDevice]) {
+        guard selectedDeviceID == nil || devices.first(where: { $0.id == selectedDeviceID }) == nil else { return }
+        guard let preferred = online.first(where: isPaired) ?? online.first else { return }
+        selectedDeviceID = preferred.id
+        rememberSelection(preferred.id)
     }
 
     /// Earlier builds keyed credentials by the rotating `rpBA` address. When an
@@ -421,10 +450,18 @@ final class RemoteController {
     /// Called when the menu bar panel opens.
     func panelDidAppear() {
         if !isDemo { browser.start() }
+        isPanelVisible = true
         lastActionError = nil
         panelAppearances += 1
         connectIfNeeded()
     }
+
+    /// TCP connect limits. A connect on this network lands in about two
+    /// seconds, and the attempt that follows a dropped session tends to get
+    /// no answer at all, so the first try gives up early and the retry
+    /// waits the full ten.
+    static let firstConnectTimeout: TimeInterval = 5
+    static let retryConnectTimeout: TimeInterval = 10
 
     func connectIfNeeded(isRetry: Bool = false) {
         #if DEMO
@@ -448,7 +485,7 @@ final class RemoteController {
 
         connectTask = Task { [weak self] in
             do {
-                try await client.connect()
+                try await client.connect(timeout: isRetry ? Self.retryConnectTimeout : Self.firstConnectTimeout)
                 guard let self, self.client === client else {
                     await client.disconnect()
                     return
@@ -475,14 +512,19 @@ final class RemoteController {
                 Log.remote.error("Connect failed: \(String(describing: error), privacy: .public)")
                 self.client = nil
                 self.clientDeviceID = nil
-                self.connectTask = nil
                 // A TV that just dropped another session often ignores the
-                // very next connection; one quiet retry covers that.
+                // very next connection; one quiet retry covers that. The task
+                // stays in `connectTask` through the pause: `tearDownSession`
+                // cancels it there, so a select or a Forget is not followed
+                // by a stale attempt, and a queued command keeps waiting.
                 if !isRetry, case CompanionError.timeout = error {
                     try? await Task.sleep(for: .seconds(1))
+                    guard !Task.isCancelled else { return }
+                    self.connectTask = nil
                     self.connectIfNeeded(isRetry: true)
                     return
                 }
+                self.connectTask = nil
                 if let reason = error as? CompanionError {
                     switch reason {
                     case .identityChanged, .pairingLost:
@@ -503,14 +545,50 @@ final class RemoteController {
     }
 
     func disconnect() {
+        if let client = tearDownSession() {
+            Task { await client.disconnect() }
+        }
+    }
+
+    /// `disconnect`, but waited for: the TV gets its `_sessionStop` before
+    /// the app quits, instead of a dead TCP connection to notice later. A
+    /// TV that does not answer within `limit` is not allowed to hold the
+    /// quit.
+    func shutdown(within limit: Duration) async {
+        guard let client = tearDownSession() else { return }
+        // Two detached tasks race for one continuation. A task group would
+        // not do: its scope waits for the disconnect child whatever the
+        // deadline says, and the requests inside it ignore cancellation.
+        let gate = ContinuationGate<Void>()
+        _ = try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            gate.store(continuation)
+            Task {
+                await client.disconnect()
+                gate.resume(.success(()))
+            }
+            Task {
+                try? await Task.sleep(for: limit)
+                if gate.resume(.success(())) {
+                    Log.connection.info("Quit without waiting for the TV to acknowledge the session's end")
+                }
+            }
+        }
+    }
+
+    /// Whether a session is open or opening, for the quit handler.
+    var hasSession: Bool { client != nil }
+
+    /// Clears every piece of session state and hands back the client that
+    /// still needs closing, if any.
+    private func tearDownSession() -> CompanionClient? {
+        reconnectTask?.cancel()
+        reconnectTask = nil
         connectTask?.cancel()
         connectTask = nil
         eventTask?.cancel()
         eventTask = nil
-        if let client {
-            Task { await client.disconnect() }
-        }
-        client = nil
+        let client = client
+        self.client = nil
         clientDeviceID = nil
         connectionState = .disconnected
         powerState = .unknown
@@ -525,10 +603,28 @@ final class RemoteController {
         // The session is gone, so a release could only trigger a reconnect;
         // the hold flag is the next press's to clear.
         touchPosition = nil
+        return client
+    }
+
+    /// One connection attempt a moment after the TV dropped the session
+    /// while the panel was open; otherwise the panel sat on "Not connected"
+    /// until a click. The attempt has its own retry, and a failure leaves
+    /// the banner's Retry as before.
+    private func scheduleReconnect() {
+        reconnectTask?.cancel()
+        reconnectTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.reconnectDelay)
+            guard !Task.isCancelled, let self, self.isPanelVisible, self.connectionState == .disconnected else {
+                return
+            }
+            Log.remote.info("Reconnecting after the session dropped")
+            self.connectIfNeeded()
+        }
     }
 
     /// Called when the menu bar panel closes.
     func panelDidDisappear() {
+        isPanelVisible = false
         screen = .remote
         // A swipe in progress loses its end event with the panel (the pad
         // stays loaded, so the monitor never sees it disappear), so lift the
@@ -536,18 +632,24 @@ final class RemoteController {
         if let point = touchPosition {
             handleTrackpadSwipe(.touchUp(point))
         }
-        // The popover goes with the panel; the flag must follow it or the
-        // clickpad stays unfocused the next time the panel opens.
+        // The popovers go with the panel; their state must follow or the
+        // clickpad stays unfocused (Apps) or the device list pops back up
+        // the next time the panel opens.
         isAppPickerPresented = false
+        devicePickerPresentation = nil
         isRecordingShortcut = false
     }
 
-    /// Esc backs out one level: the Apps picker, then Settings, then an
-    /// in-progress pairing. Returns false when there is nothing to back out
-    /// of, so the panel closes.
+    /// Esc backs out one level: an open popover (Apps or the device list),
+    /// then Settings, then an in-progress pairing. Returns false when there
+    /// is nothing to back out of, so the panel closes.
     func handleEscape() -> Bool {
         if isAppPickerPresented {
             isAppPickerPresented = false
+            return true
+        }
+        if devicePickerPresentation != nil {
+            devicePickerPresentation = nil
             return true
         }
         if screen != .remote {
@@ -599,6 +701,7 @@ final class RemoteController {
             // that belonged to the session (text field, mute, media flags),
             // not just the client, so the panel does not keep showing them.
             self.disconnect()
+            if self.isPanelVisible { self.scheduleReconnect() }
         }
     }
 
@@ -698,10 +801,18 @@ final class RemoteController {
             isMuted = true
             let updatesBefore = mediaControlUpdates
             perform { [weak self] client in
-                let current = try await client.fetchVolume()
-                Log.remote.info("Volume before mute: \(current, privacy: .public)")
-                if current > 0 { self?.volumeBeforeMute = current }
-                try await client.setVolume(0)
+                do {
+                    let current = try await client.fetchVolume()
+                    Log.remote.info("Volume before mute: \(current, privacy: .public)")
+                    if current > 0 { self?.volumeBeforeMute = current }
+                    try await client.setVolume(0)
+                } catch {
+                    // The TV's level is unchanged, so the segment must not
+                    // stay tinted; only this action resets it, not every
+                    // failed command.
+                    self?.isMuted = false
+                    throw error
+                }
             } completion: { [weak self] in
                 self?.confirmMute(updatesSince: updatesBefore)
             }
@@ -909,7 +1020,6 @@ final class RemoteController {
             } catch {
                 Log.remote.error("Command failed: \(String(describing: error), privacy: .public)")
                 self.lastActionError = Self.describe(error)
-                self.isMuted = false
                 switch error {
                 case CompanionError.disconnected, CompanionError.notConnected:
                     self.disconnect()
@@ -920,10 +1030,13 @@ final class RemoteController {
         }
     }
 
-    /// Returns a connected client, connecting first when necessary.
+    /// Returns a connected client, connecting first when necessary. Waits
+    /// through every attempt in flight: a timed-out first attempt hands off
+    /// to its retry before it finishes, so waiting on one task alone woke up
+    /// mid-retry and dropped the command without a word.
     private func readyClient() async -> CompanionClient? {
         connectIfNeeded()
-        if let task = connectTask {
+        while let task = connectTask {
             await task.value
         }
         guard connectionState == .connected, let client else { return nil }
@@ -1000,8 +1113,7 @@ final class RemoteController {
                     await session.cancel()
                     self.pairingSession = nil
                     self.pairingDeviceID = nil
-                    self.pairingState = .failed(
-                        "Paired, but the pairing couldn't be saved: \(error.localizedDescription)")
+                    self.pairingState = .failed(Self.pairingNotSavedMessage(error.localizedDescription))
                     return
                 }
                 self.pairingSession = nil
@@ -1027,6 +1139,12 @@ final class RemoteController {
         pairingSession = nil
         pairingDeviceID = nil
         pairingState = .idle
+    }
+
+    /// The pair card's message when the TV accepted the pairing but the
+    /// credentials could not be stored (`--demo savefailed`).
+    nonisolated static func pairingNotSavedMessage(_ reason: String) -> String {
+        "Paired, but the pairing couldn't be saved: \(reason)"
     }
 
     private static func describe(_ error: Error) -> String {

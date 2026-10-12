@@ -38,15 +38,18 @@ final class CredentialStore {
     }
 
     /// Throws when the backend could not persist the pairing (a keychain
-    /// refusal, a read-only disk); the in-memory copy is kept either way so
-    /// the session that just paired still works.
+    /// refusal, a read-only disk). The in-memory list is left as it was
+    /// then: keeping the copy made the TV count as paired, which hid the
+    /// pair card and its failure message behind a live remote.
     func save(_ newCredentials: PairingCredentials) throws {
+        let previous = credentials
         credentials.removeAll { $0.deviceID == newCredentials.deviceID }
         credentials.append(newCredentials)
         do {
             try backend.store(newCredentials)
         } catch {
             Log.storage.error("Could not save pairing: \(String(describing: error), privacy: .public)")
+            credentials = previous
             throw error
         }
     }
@@ -269,7 +272,28 @@ struct FileCredentialBackend: CredentialBackend {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(all)
-        try data.write(to: fileURL, options: [.atomic])
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+        // Written owner-only from the first byte and swapped in whole, so a
+        // failure part-way leaves the previous file and never a readable
+        // or half-saved one; an atomic write followed by a chmod could
+        // report a failed save that still loaded on the next launch.
+        let staging = directory.appendingPathComponent(".pairings-\(UUID().uuidString).json")
+        guard
+            FileManager.default.createFile(atPath: staging.path, contents: data, attributes: [.posixPermissions: 0o600])
+        else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: staging.path])
+        }
+        do {
+            // macOS 27 replaces a missing destination too (checked 2026-10-12,
+            // and the round-trip test starts from none); older releases are
+            // said to refuse, so the first save moves instead.
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: staging, options: .usingNewMetadataOnly)
+            } else {
+                try FileManager.default.moveItem(at: staging, to: fileURL)
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: staging)
+            throw error
+        }
     }
 }

@@ -31,9 +31,11 @@ actor CompanionClient {
         get async { await connection.remoteEndpoint }
     }
 
-    func connect() async throws {
+    /// `timeout` bounds the TCP connect alone; pair-verify and session
+    /// setup have their own per-request limits.
+    func connect(timeout: TimeInterval = 10) async throws {
         do {
-            try await connection.connect()
+            try await connection.connect(timeout: timeout)
             try await CompanionPairing.verify(on: connection, credentials: credentials)
             try await sendSystemInfo()
             try await startSession()
