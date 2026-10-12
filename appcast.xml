@@ -3,19 +3,18 @@
     <channel>
         <title>Clicker</title>
         <item>
-            <title>0.2.2</title>
-            <pubDate>Mon, 12 Oct 2026 01:30:35 +0000</pubDate>
+            <title>0.2.3</title>
+            <pubDate>Mon, 12 Oct 2026 12:30:38 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
-            <sparkle:version>202</sparkle:version>
-            <sparkle:shortVersionString>0.2.2</sparkle:shortVersionString>
+            <sparkle:version>203</sparkle:version>
+            <sparkle:shortVersionString>0.2.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.2
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.3
 
-- The Shortcut row in Settings is a button that shows the chord: click it, press the keys, and it is set. Hover for the remove control, or press Delete while recording. Esc or a click elsewhere cancels.
-- The Name field is the standard text field again.
+- Fixes the Back, TV, Play/Pause and Siri buttons blinking for a few frames when Settings was opened from the ••• menu.
 
 ]]></description>
-            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.2/Clicker-0.2.2.zip" length="4726660" type="application/octet-stream" sparkle:edSignature="pqPWuQfdYxu6ZEDsYl4k21GjDp1aQ+yTeq2ML5p3BZwPFVSf2+A3CJZJsofYv1Mqox6x/4hhbIKM7utQW1ptDg=="/>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.3/Clicker-0.2.3.zip" length="4724675" type="application/octet-stream" sparkle:edSignature="Dw3jOzA+YDvcdXY+pHK5CMYKjPYBr3LwjerQkQeQPw+UWcZW5NEjIX/Y73fO7AHUX8O1EvI4ZkXkl7dEALz6Bw=="/>
         </item>
     </channel>
 </rss>
