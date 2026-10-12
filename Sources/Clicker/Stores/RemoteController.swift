@@ -701,10 +701,18 @@ final class RemoteController {
             isMuted = true
             let updatesBefore = mediaControlUpdates
             perform { [weak self] client in
-                let current = try await client.fetchVolume()
-                Log.remote.info("Volume before mute: \(current, privacy: .public)")
-                if current > 0 { self?.volumeBeforeMute = current }
-                try await client.setVolume(0)
+                do {
+                    let current = try await client.fetchVolume()
+                    Log.remote.info("Volume before mute: \(current, privacy: .public)")
+                    if current > 0 { self?.volumeBeforeMute = current }
+                    try await client.setVolume(0)
+                } catch {
+                    // The TV's level is unchanged, so the segment must not
+                    // stay tinted; only this action resets it, not every
+                    // failed command.
+                    self?.isMuted = false
+                    throw error
+                }
             } completion: { [weak self] in
                 self?.confirmMute(updatesSince: updatesBefore)
             }
@@ -912,7 +920,6 @@ final class RemoteController {
             } catch {
                 Log.remote.error("Command failed: \(String(describing: error), privacy: .public)")
                 self.lastActionError = Self.describe(error)
-                self.isMuted = false
                 switch error {
                 case CompanionError.disconnected, CompanionError.notConnected:
                     self.disconnect()
