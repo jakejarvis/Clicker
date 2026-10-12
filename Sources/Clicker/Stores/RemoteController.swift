@@ -456,6 +456,13 @@ final class RemoteController {
         connectIfNeeded()
     }
 
+    /// TCP connect limits. A connect on this network lands in about two
+    /// seconds, and the attempt that follows a dropped session tends to get
+    /// no answer at all, so the first try gives up early and the retry
+    /// waits the full ten.
+    static let firstConnectTimeout: TimeInterval = 5
+    static let retryConnectTimeout: TimeInterval = 10
+
     func connectIfNeeded(isRetry: Bool = false) {
         #if DEMO
             if let demo {
@@ -478,7 +485,7 @@ final class RemoteController {
 
         connectTask = Task { [weak self] in
             do {
-                try await client.connect()
+                try await client.connect(timeout: isRetry ? Self.retryConnectTimeout : Self.firstConnectTimeout)
                 guard let self, self.client === client else {
                     await client.disconnect()
                     return
