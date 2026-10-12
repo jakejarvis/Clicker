@@ -38,15 +38,18 @@ final class CredentialStore {
     }
 
     /// Throws when the backend could not persist the pairing (a keychain
-    /// refusal, a read-only disk); the in-memory copy is kept either way so
-    /// the session that just paired still works.
+    /// refusal, a read-only disk). The in-memory list is left as it was
+    /// then: keeping the copy made the TV count as paired, which hid the
+    /// pair card and its failure message behind a live remote.
     func save(_ newCredentials: PairingCredentials) throws {
+        let previous = credentials
         credentials.removeAll { $0.deviceID == newCredentials.deviceID }
         credentials.append(newCredentials)
         do {
             try backend.store(newCredentials)
         } catch {
             Log.storage.error("Could not save pairing: \(String(describing: error), privacy: .public)")
+            credentials = previous
             throw error
         }
     }

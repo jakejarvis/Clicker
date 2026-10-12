@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 #if DEMO
     /// Canned states for screenshots and demos, picked with `--demo [scenario]`.
@@ -36,6 +37,8 @@ import Foundation
         case removed
         /// The wrong code was entered.
         case pairingfailed
+        /// The TV accepted the pairing but the keychain refused to store it.
+        case savefailed
         /// Living Room paired and online but the connection failed.
         case connectionfailed
         /// Living Room paired and online, connection closed.
@@ -87,7 +90,7 @@ import Foundation
         var pairedDevices: [AppleTVDevice] {
             switch self {
             case .searching: return []
-            case .pair, .pin, .pairingdisabled, .reset, .removed, .pairingfailed: return [Self.bedroom]
+            case .pair, .pin, .pairingdisabled, .reset, .removed, .pairingfailed, .savefailed: return [Self.bedroom]
             default: return [Self.livingRoom, Self.bedroom]
             }
         }
@@ -104,6 +107,11 @@ import Foundation
             case .pin: return .awaitingPIN
             case .paired: return .succeeded
             case .pairingfailed: return .failed(TLV8.ErrorCode.authentication.message)
+            case .savefailed:
+                // The wording a signed build without a validated profile gets.
+                let refusal = KeychainCredentialBackend.KeychainError(
+                    operation: "add", status: errSecMissingEntitlement)
+                return .failed(RemoteController.pairingNotSavedMessage(refusal.localizedDescription))
             default: return .idle
             }
         }

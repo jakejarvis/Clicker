@@ -1013,8 +1013,7 @@ final class RemoteController {
                     await session.cancel()
                     self.pairingSession = nil
                     self.pairingDeviceID = nil
-                    self.pairingState = .failed(
-                        "Paired, but the pairing couldn't be saved: \(error.localizedDescription)")
+                    self.pairingState = .failed(Self.pairingNotSavedMessage(error.localizedDescription))
                     return
                 }
                 self.pairingSession = nil
@@ -1040,6 +1039,12 @@ final class RemoteController {
         pairingSession = nil
         pairingDeviceID = nil
         pairingState = .idle
+    }
+
+    /// The pair card's message when the TV accepted the pairing but the
+    /// credentials could not be stored (`--demo savefailed`).
+    nonisolated static func pairingNotSavedMessage(_ reason: String) -> String {
+        "Paired, but the pairing couldn't be saved: \(reason)"
     }
 
     private static func describe(_ error: Error) -> String {

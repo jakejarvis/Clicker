@@ -59,6 +59,15 @@ import Testing
             wrongCode.start()
             #expect(wrongCode.pairingState == .failed(TLV8.ErrorCode.authentication.message))
 
+            let notSaved = RemoteController(demo: .savefailed)
+            notSaved.start()
+            #expect(notSaved.selectedStateDescription == "Not paired")
+            guard case .failed(let message) = notSaved.pairingState else {
+                Issue.record("savefailed should show a failed pair card")
+                return
+            }
+            #expect(message.hasPrefix("Paired, but the pairing couldn't be saved: "))
+
             let failed = RemoteController(demo: .connectionfailed)
             failed.start()
             #expect(failed.selectedStateDescription == "Connection failed")
