@@ -30,10 +30,17 @@ struct RemotePadView: View {
                     .frame(maxWidth: .infinity)
                     .overlay(alignment: .topLeading) { AppsMenu(controller: controller) }
                     .overlay(alignment: .topTrailing) { PowerMenu(controller: controller) }
+                // Plain stacks, not a LazyVGrid: a lazy grid drops its rows
+                // for a frame or two when the remote starts sliding out to
+                // Settings after a menu closes (the ellipsis menu's Settings…),
+                // so the four capsules blinked while the ring and the audio
+                // bar stayed.
                 VStack(spacing: 10) {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    HStack(spacing: 10) {
                         HoldRemoteButton(command: .menu, controller: controller)
                         HoldRemoteButton(command: .home, controller: controller)
+                    }
+                    HStack(spacing: 10) {
                         HoldRemoteButton(command: .playPause, controller: controller)
                         HoldRemoteButton(command: .siri, controller: controller)
                     }
