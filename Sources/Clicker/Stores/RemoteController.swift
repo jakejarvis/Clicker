@@ -512,17 +512,19 @@ final class RemoteController {
                 Log.remote.error("Connect failed: \(String(describing: error), privacy: .public)")
                 self.client = nil
                 self.clientDeviceID = nil
-                self.connectTask = nil
                 // A TV that just dropped another session often ignores the
-                // very next connection; one quiet retry covers that.
+                // very next connection; one quiet retry covers that. The task
+                // stays in `connectTask` through the pause: `tearDownSession`
+                // cancels it there, so a select or a Forget is not followed
+                // by a stale attempt, and a queued command keeps waiting.
                 if !isRetry, case CompanionError.timeout = error {
                     try? await Task.sleep(for: .seconds(1))
-                    // `disconnect` cancels this task; a select or a Forget in
-                    // the meantime must not be followed by a stale attempt.
                     guard !Task.isCancelled else { return }
+                    self.connectTask = nil
                     self.connectIfNeeded(isRetry: true)
                     return
                 }
+                self.connectTask = nil
                 if let reason = error as? CompanionError {
                     switch reason {
                     case .identityChanged, .pairingLost:
@@ -554,11 +556,22 @@ final class RemoteController {
     /// quit.
     func shutdown(within limit: Duration) async {
         guard let client = tearDownSession() else { return }
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await client.disconnect() }
-            group.addTask { try? await Task.sleep(for: limit) }
-            await group.next()
-            group.cancelAll()
+        // Two detached tasks race for one continuation. A task group would
+        // not do: its scope waits for the disconnect child whatever the
+        // deadline says, and the requests inside it ignore cancellation.
+        let gate = ContinuationGate<Void>()
+        _ = try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            gate.store(continuation)
+            Task {
+                await client.disconnect()
+                gate.resume(.success(()))
+            }
+            Task {
+                try? await Task.sleep(for: limit)
+                if gate.resume(.success(())) {
+                    Log.connection.info("Quit without waiting for the TV to acknowledge the session's end")
+                }
+            }
         }
     }
 

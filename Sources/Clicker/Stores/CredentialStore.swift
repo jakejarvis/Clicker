@@ -272,7 +272,21 @@ struct FileCredentialBackend: CredentialBackend {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(all)
-        try data.write(to: fileURL, options: [.atomic])
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+        // Written owner-only from the first byte and swapped in whole, so a
+        // failure part-way leaves the previous file and never a readable
+        // or half-saved one; an atomic write followed by a chmod could
+        // report a failed save that still loaded on the next launch.
+        let staging = directory.appendingPathComponent(".pairings-\(UUID().uuidString).json")
+        guard
+            FileManager.default.createFile(atPath: staging.path, contents: data, attributes: [.posixPermissions: 0o600])
+        else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: staging.path])
+        }
+        do {
+            _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: staging, options: .usingNewMetadataOnly)
+        } catch {
+            try? FileManager.default.removeItem(at: staging)
+            throw error
+        }
     }
 }
