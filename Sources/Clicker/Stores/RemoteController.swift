@@ -480,6 +480,9 @@ final class RemoteController {
                 // very next connection; one quiet retry covers that.
                 if !isRetry, case CompanionError.timeout = error {
                     try? await Task.sleep(for: .seconds(1))
+                    // `disconnect` cancels this task; a select or a Forget in
+                    // the meantime must not be followed by a stale attempt.
+                    guard !Task.isCancelled else { return }
                     self.connectIfNeeded(isRetry: true)
                     return
                 }
@@ -920,10 +923,13 @@ final class RemoteController {
         }
     }
 
-    /// Returns a connected client, connecting first when necessary.
+    /// Returns a connected client, connecting first when necessary. Waits
+    /// through every attempt in flight: a timed-out first attempt hands off
+    /// to its retry before it finishes, so waiting on one task alone woke up
+    /// mid-retry and dropped the command without a word.
     private func readyClient() async -> CompanionClient? {
         connectIfNeeded()
-        if let task = connectTask {
+        while let task = connectTask {
             await task.value
         }
         guard connectionState == .connected, let client else { return nil }
