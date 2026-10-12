@@ -95,6 +95,17 @@ import Testing
             #expect(choose.selectedDevice == nil)
         }
 
+        /// Forgetting the selected offline TV moves on to a usable one at once.
+        @Test @MainActor func forgettingTheSelectedOfflineDeviceReselects() {
+            let controller = RemoteController(demo: .offline)
+            controller.start()
+            #expect(controller.selectedDevice?.name == "Living Room")
+            #expect(controller.selectedDevice?.isOnline == false)
+            controller.forgetPairing(for: controller.selectedDevice!)
+            #expect(controller.selectedDevice?.name == "Bedroom")
+            #expect(controller.connectionState == .connected)
+        }
+
         @Test @MainActor func pairingCompletesWithAnyCode() async throws {
             let controller = RemoteController(demo: .pair)
             controller.start()

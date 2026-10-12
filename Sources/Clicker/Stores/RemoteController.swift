@@ -358,8 +358,13 @@ final class RemoteController {
         lastAddressByDevice[device.id] = nil
         pairingNotice = nil
         if selectedDeviceID == device.id, !device.isOnline {
+            // The forgotten TV leaves the list, so move on to another one
+            // now rather than sit on the Choose card until Bonjour next
+            // reports something.
             selectedDeviceID = nil
             rememberSelection(nil)
+            selectPreferredDeviceIfNeeded(online: devices.filter(\.isOnline))
+            connectIfNeeded()
         }
     }
 
@@ -384,14 +389,17 @@ final class RemoteController {
         for device in devices {
             credentialStore.updateName(device.name, model: device.model, for: device.id)
         }
-        if selectedDeviceID == nil || self.devices.first(where: { $0.id == selectedDeviceID }) == nil {
-            let preferred = devices.first { isPaired($0) } ?? devices.first
-            if let preferred {
-                selectedDeviceID = preferred.id
-                rememberSelection(preferred.id)
-            }
-        }
+        selectPreferredDeviceIfNeeded(online: devices)
         connectIfNeeded()
+    }
+
+    /// Picks a TV when none is selected or the selected one is gone: a
+    /// paired one from `online` first, then any.
+    private func selectPreferredDeviceIfNeeded(online: [AppleTVDevice]) {
+        guard selectedDeviceID == nil || devices.first(where: { $0.id == selectedDeviceID }) == nil else { return }
+        guard let preferred = online.first(where: isPaired) ?? online.first else { return }
+        selectedDeviceID = preferred.id
+        rememberSelection(preferred.id)
     }
 
     /// Earlier builds keyed credentials by the rotating `rpBA` address. When an
