@@ -13,8 +13,9 @@ import Observation
 @Observable
 final class DeviceBrowser {
     private(set) var devices: [AppleTVDevice] = []
-    private(set) var isBrowsing = false
     private(set) var isRescanning = false
+    /// Why browsing stopped, shown on the Searching card until a browser
+    /// is ready again.
     private(set) var errorMessage: String?
 
     /// Called on the main actor whenever the device list changes.
@@ -40,27 +41,22 @@ final class DeviceBrowser {
         )
 
         browser.stateUpdateHandler = { [weak self] state in
-            let browsing: Bool
-            var failure: String?
+            // Only ready and failed touch the message: a failure is followed
+            // by a cancel on the way to the restart, and clearing it there
+            // wiped the Searching card's reason the moment it appeared.
             switch state {
             case .ready:
-                browsing = true
+                Task { @MainActor in self?.errorMessage = nil }
             case .failed(let error):
-                browsing = false
-                failure = error.localizedDescription
-            case .cancelled:
-                browsing = false
-            default:
-                browsing = false
-            }
-            Task { @MainActor in
-                guard let self else { return }
-                self.isBrowsing = browsing
-                self.errorMessage = failure
-                if failure != nil {
-                    Log.discovery.error("Browser failed: \(failure ?? "", privacy: .public)")
+                let failure = error.localizedDescription
+                Task { @MainActor in
+                    guard let self else { return }
+                    self.errorMessage = failure
+                    Log.discovery.error("Browser failed: \(failure, privacy: .public)")
                     self.restartAfterFailure()
                 }
+            default:
+                break
             }
         }
 
@@ -84,7 +80,6 @@ final class DeviceBrowser {
     func stop() {
         browser?.cancel()
         browser = nil
-        isBrowsing = false
     }
 
     /// Cancels the browser and starts a fresh one, keeping the current list
