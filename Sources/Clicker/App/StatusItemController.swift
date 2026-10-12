@@ -192,9 +192,9 @@ final class StatusItemController: NSObject {
             let windowID = event.window.map(ObjectIdentifier.init)
             let consumed = MainActor.assumeIsolated { () -> Bool in
                 guard let self, self.panel.isVisible, windowID == ObjectIdentifier(self.panel) else { return false }
-                // The shortcut recorder in Settings takes every key it is given,
+                // The Settings shortcut row takes every key while recording,
                 // so a chord recorded there must not also act here.
-                if self.isRecordingShortcut { return false }
+                if self.controller.isRecordingShortcut { return false }
                 switch (keyCode, modifiers) {
                 case (53, []):  // Escape
                     if self.panel.firstResponder is NSText { return false }
@@ -213,12 +213,6 @@ final class StatusItemController: NSObject {
             }
             return consumed ? nil : event
         }
-    }
-
-    /// Whether the Settings shortcut recorder is taking a chord: its field
-    /// editor is the first responder and the recorder is its delegate.
-    private var isRecordingShortcut: Bool {
-        (panel.firstResponder as? NSText)?.delegate is KeyboardShortcuts.RecorderCocoa
     }
 
     /// The global shortcut goes through the same path as a click on the

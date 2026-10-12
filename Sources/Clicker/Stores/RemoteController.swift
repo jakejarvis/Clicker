@@ -123,6 +123,9 @@ final class RemoteController {
     /// window underneath a popover, so the clickpad's shortcuts stand down
     /// while this is set and Esc closes the picker before anything else.
     var isAppPickerPresented = false
+    /// Whether the Settings shortcut row is taking a chord (`ShortcutRow`).
+    /// The panel's key monitor leaves every key alone while this is set.
+    var isRecordingShortcut = false
     /// Bumped each time the panel opens. Showing the panel clears its first
     /// responder, so the clickpad (or the TV text field) takes keyboard focus
     /// again on every change of this, not only when it first appears.
@@ -536,6 +539,7 @@ final class RemoteController {
         // The popover goes with the panel; the flag must follow it or the
         // clickpad stays unfocused the next time the panel opens.
         isAppPickerPresented = false
+        isRecordingShortcut = false
     }
 
     /// Esc backs out one level: the Apps picker, then Settings, then an
