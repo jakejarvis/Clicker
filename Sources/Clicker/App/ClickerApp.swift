@@ -52,6 +52,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Launching Clicker again while it runs (a double-click in Applications,
+    /// the Dock icon under `--regular`) shows the panel; a menu bar app that
+    /// does nothing there looks like it failed to start.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        statusItemController?.openPanelIfHidden()
+        return false
+    }
+
+    /// Quits only after the live session has been told, so the TV gets a
+    /// `_sessionStop` instead of a dead TCP connection. A TV that does not
+    /// answer is not allowed to hold the quit past a second.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let controller, controller.hasSession else { return .terminateNow }
+        Task { @MainActor in
+            await controller.shutdown(within: .seconds(1))
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
     /// Opens the panel once the status item has been laid out. The Local
     /// Network prompt may land at the same moment on a first launch; a click
     /// on it closes the panel, which has still shown where the icon is.

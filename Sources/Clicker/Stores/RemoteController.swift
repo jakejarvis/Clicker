@@ -146,6 +146,10 @@ final class RemoteController {
     /// TV text field is showing: Esc in the field gives the keys back to the
     /// remote without hiding the field.
     private(set) var padFocusRequests = 0
+    /// Whether the panel is on screen. A session that drops while it is
+    /// showing is reconnected once (`scheduleReconnect`); a drop while it is
+    /// hidden waits for the next open, which connects anyway.
+    private(set) var isPanelVisible = false
 
     @ObservationIgnored private var client: CompanionClient?
     @ObservationIgnored private var clientDeviceID: String?
@@ -154,6 +158,11 @@ final class RemoteController {
     @ObservationIgnored private var pairingSession: CompanionPairingSession?
     @ObservationIgnored private var pairingDeviceID: String?
     @ObservationIgnored private var commandQueue: Task<Void, Never>?
+    @ObservationIgnored private var reconnectTask: Task<Void, Never>?
+    /// How long after a dropped session the panel waits before connecting
+    /// again, so a TV that is tearing down (sleep, a restart) is not hit at
+    /// once.
+    static let reconnectDelay: Duration = .seconds(1)
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
     /// The finger on the TV's touch surface during a trackpad swipe, in
     /// touchpad units; nil between swipes.
@@ -441,6 +450,7 @@ final class RemoteController {
     /// Called when the menu bar panel opens.
     func panelDidAppear() {
         if !isDemo { browser.start() }
+        isPanelVisible = true
         lastActionError = nil
         panelAppearances += 1
         connectIfNeeded()
@@ -526,14 +536,39 @@ final class RemoteController {
     }
 
     func disconnect() {
+        if let client = tearDownSession() {
+            Task { await client.disconnect() }
+        }
+    }
+
+    /// `disconnect`, but waited for: the TV gets its `_sessionStop` before
+    /// the app quits, instead of a dead TCP connection to notice later. A
+    /// TV that does not answer within `limit` is not allowed to hold the
+    /// quit.
+    func shutdown(within limit: Duration) async {
+        guard let client = tearDownSession() else { return }
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await client.disconnect() }
+            group.addTask { try? await Task.sleep(for: limit) }
+            await group.next()
+            group.cancelAll()
+        }
+    }
+
+    /// Whether a session is open or opening, for the quit handler.
+    var hasSession: Bool { client != nil }
+
+    /// Clears every piece of session state and hands back the client that
+    /// still needs closing, if any.
+    private func tearDownSession() -> CompanionClient? {
+        reconnectTask?.cancel()
+        reconnectTask = nil
         connectTask?.cancel()
         connectTask = nil
         eventTask?.cancel()
         eventTask = nil
-        if let client {
-            Task { await client.disconnect() }
-        }
-        client = nil
+        let client = client
+        self.client = nil
         clientDeviceID = nil
         connectionState = .disconnected
         powerState = .unknown
@@ -548,10 +583,28 @@ final class RemoteController {
         // The session is gone, so a release could only trigger a reconnect;
         // the hold flag is the next press's to clear.
         touchPosition = nil
+        return client
+    }
+
+    /// One connection attempt a moment after the TV dropped the session
+    /// while the panel was open; otherwise the panel sat on "Not connected"
+    /// until a click. The attempt has its own retry, and a failure leaves
+    /// the banner's Retry as before.
+    private func scheduleReconnect() {
+        reconnectTask?.cancel()
+        reconnectTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.reconnectDelay)
+            guard !Task.isCancelled, let self, self.isPanelVisible, self.connectionState == .disconnected else {
+                return
+            }
+            Log.remote.info("Reconnecting after the session dropped")
+            self.connectIfNeeded()
+        }
     }
 
     /// Called when the menu bar panel closes.
     func panelDidDisappear() {
+        isPanelVisible = false
         screen = .remote
         // A swipe in progress loses its end event with the panel (the pad
         // stays loaded, so the monitor never sees it disappear), so lift the
@@ -628,6 +681,7 @@ final class RemoteController {
             // that belonged to the session (text field, mute, media flags),
             // not just the client, so the panel does not keep showing them.
             self.disconnect()
+            if self.isPanelVisible { self.scheduleReconnect() }
         }
     }
 
