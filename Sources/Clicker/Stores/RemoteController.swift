@@ -62,6 +62,15 @@ enum PanelScreen: Hashable, Sendable {
     case settings
 }
 
+/// The device picker's popover while it is open: plain, or the ⌥-click
+/// details mode. The mode rides on the item because an `isPresented`
+/// popover rendered its content with the previous mode when both changed
+/// in the same click.
+struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
+    let showsDetails: Bool
+    var id: Bool { showsDetails }
+}
+
 /// App-wide remote control state: which Apple TV is selected, whether we are
 /// connected to it, and the actions the UI can trigger.
 @MainActor
@@ -123,6 +132,9 @@ final class RemoteController {
     /// window underneath a popover, so the clickpad's shortcuts stand down
     /// while this is set and Esc closes the picker before anything else.
     var isAppPickerPresented = false
+    /// The device picker's popover while it is open. Kept here, not in the
+    /// view, so hiding the panel can drop it and Esc can close it.
+    var devicePickerPresentation: DevicePickerPresentation?
     /// Whether the Settings shortcut row is taking a chord (`ShortcutRow`).
     /// The panel's key monitor leaves every key alone while this is set.
     var isRecordingShortcut = false
@@ -539,18 +551,24 @@ final class RemoteController {
         if let point = touchPosition {
             handleTrackpadSwipe(.touchUp(point))
         }
-        // The popover goes with the panel; the flag must follow it or the
-        // clickpad stays unfocused the next time the panel opens.
+        // The popovers go with the panel; their state must follow or the
+        // clickpad stays unfocused (Apps) or the device list pops back up
+        // the next time the panel opens.
         isAppPickerPresented = false
+        devicePickerPresentation = nil
         isRecordingShortcut = false
     }
 
-    /// Esc backs out one level: the Apps picker, then Settings, then an
-    /// in-progress pairing. Returns false when there is nothing to back out
-    /// of, so the panel closes.
+    /// Esc backs out one level: an open popover (Apps or the device list),
+    /// then Settings, then an in-progress pairing. Returns false when there
+    /// is nothing to back out of, so the panel closes.
     func handleEscape() -> Bool {
         if isAppPickerPresented {
             isAppPickerPresented = false
+            return true
+        }
+        if devicePickerPresentation != nil {
+            devicePickerPresentation = nil
             return true
         }
         if screen != .remote {
