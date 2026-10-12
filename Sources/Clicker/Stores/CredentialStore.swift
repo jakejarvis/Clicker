@@ -283,7 +283,14 @@ struct FileCredentialBackend: CredentialBackend {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: staging.path])
         }
         do {
-            _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: staging, options: .usingNewMetadataOnly)
+            // macOS 27 replaces a missing destination too (checked 2026-10-12,
+            // and the round-trip test starts from none); older releases are
+            // said to refuse, so the first save moves instead.
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: staging, options: .usingNewMetadataOnly)
+            } else {
+                try FileManager.default.moveItem(at: staging, to: fileURL)
+            }
         } catch {
             try? FileManager.default.removeItem(at: staging)
             throw error
