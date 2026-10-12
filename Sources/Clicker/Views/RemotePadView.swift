@@ -212,14 +212,14 @@ private struct AudioBar: View {
             AudioBarDivider()
 
             HoldButton(controller: controller, command: .volumeDown, shape: Rectangle(), glass: false, pressScale: 1) {
-                RemoteGlyph(systemImage: "speaker.minus")
+                RemoteGlyph(systemImage: HIDCommand.volumeDown.systemImage)
             }
             .help("Volume Down (−)")
 
             AudioBarDivider()
 
             HoldButton(controller: controller, command: .volumeUp, shape: Rectangle(), glass: false, pressScale: 1) {
-                RemoteGlyph(systemImage: "speaker.plus")
+                RemoteGlyph(systemImage: HIDCommand.volumeUp.systemImage)
             }
             .help("Volume Up (+)")
         }

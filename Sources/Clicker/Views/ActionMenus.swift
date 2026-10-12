@@ -33,12 +33,12 @@ struct PowerMenu: View {
 
     var body: some View {
         Menu {
-            Button("Wake", systemImage: "sun.max") { controller.press(.wake) }
-            Button("Sleep", systemImage: "moon") { controller.press(.sleep) }
+            item(.wake)
+            item(.sleep)
             Divider()
-            Button("Screen Saver", systemImage: "sparkles.tv") { controller.press(.screensaver) }
-            Button("Control Center", systemImage: "switch.2") { controller.press(.pageDown) }
-            Button("Guide", systemImage: "list.bullet.rectangle") { controller.press(.guide) }
+            item(.screensaver)
+            item(.pageDown)
+            item(.guide)
         } label: {
             CornerMenuGlyph(systemImage: "power")
         }
@@ -46,6 +46,12 @@ struct PowerMenu: View {
         .disabled(controller.connectionState != .connected)
         .help(controller.powerState.powerTooltip)
         .accessibilityLabel("Power")
+    }
+
+    /// Title and glyph come from the command, so the menu and the enum
+    /// cannot drift apart.
+    private func item(_ command: HIDCommand) -> some View {
+        Button(command.title, systemImage: command.systemImage) { controller.press(command) }
     }
 }
 

@@ -55,15 +55,17 @@ enum HIDCommand: Int64, CaseIterable, Sendable {
         case .menu: return "chevron.backward"
         case .select: return "circle.fill"
         case .home: return "tv"
-        case .volumeUp: return "speaker.wave.3"
-        case .volumeDown: return "speaker.wave.1"
+        // Three speakers differing only in their badge; the wave glyphs read
+        // as levels and the three-wave one is wider.
+        case .volumeUp: return "speaker.plus"
+        case .volumeDown: return "speaker.minus"
         case .siri:
             // The Siri orb glyph arrived with the 2025 symbol catalog.
             if #available(macOS 26, *) { return "siri" }
             return "mic"
         case .screensaver: return "sparkles.tv"
-        case .sleep: return "moon.fill"
-        case .wake: return "sun.max.fill"
+        case .sleep: return "moon"
+        case .wake: return "sun.max"
         case .playPause: return "playpause"
         case .channelIncrement: return "plus.rectangle"
         case .channelDecrement: return "minus.rectangle"
