@@ -12,7 +12,7 @@ import os
 /// rather than a `ViewModifier` because a modifier's `body` is main-actor
 /// isolated, which `Animatable` does not allow. Zero means "not measured
 /// yet" and is skipped, so the panel keeps its opening size until then.
-struct PanelHeightEffect: GeometryEffect {
+nonisolated struct PanelHeightEffect: GeometryEffect {
     var height: CGFloat
 
     var animatableData: CGFloat {
@@ -43,7 +43,7 @@ extension View {
 /// coalesced to its newest height, and a generation bumped on every open and
 /// close drops frames queued for a panel that has since been hidden or
 /// reopened, since a pending hop cannot be cancelled.
-enum PanelHeightBridge {
+nonisolated enum PanelHeightBridge {
     /// Installed by `StatusItemController`; applies one clamped frame.
     @MainActor static var apply: ((CGFloat) -> Void)?
 

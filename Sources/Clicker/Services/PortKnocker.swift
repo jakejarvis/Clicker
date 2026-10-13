@@ -1,3 +1,4 @@
+import ClickerCompanion
 import Foundation
 import Network
 

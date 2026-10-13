@@ -3,7 +3,7 @@ import CryptoKit
 import Foundation
 import Testing
 
-@testable import Clicker
+@testable import ClickerCompanion
 
 @Suite struct CryptoTests {
     @Test func sessionCipherRoundTripsWithCounters() throws {

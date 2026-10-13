@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import Clicker
+@testable import ClickerCompanion
 
 @Suite struct OPACKTests {
     @Test func roundTripsScalars() throws {

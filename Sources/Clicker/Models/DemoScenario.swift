@@ -1,3 +1,4 @@
+import ClickerCompanion
 import Foundation
 import Security
 
@@ -8,7 +9,7 @@ import Security
     /// remembered selection: devices and pairings live in memory, the selected
     /// TV is "connected" at once, remote commands go nowhere, and pairing walks
     /// through its steps on timers and accepts any code.
-    enum DemoScenario: String, CaseIterable, Sendable {
+    nonisolated enum DemoScenario: String, CaseIterable, Sendable {
         /// Living Room connected and awake.
         case ready
         /// Living Room connected but asleep.

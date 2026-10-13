@@ -9,19 +9,22 @@ Sources/Clicker
 ├── App/            @main app, status item, the custom glass NSPanel and its geometry
 ├── Views/          MenuBarView, DevicePickerMenu, RemotePadView, TVTextFieldView, RemoteOverlayCards, PINCodeField, SettingsScreen, AppPickerView, TrackpadSwipeMonitor
 ├── Stores/         RemoteController (app state), CredentialStore, IdentityStore, UpdateController
-├── Services/
-│   ├── DeviceBrowser.swift            NWBrowser for _companion-link._tcp
-│   └── Companion/
-│       ├── OPACK.swift                Apple's OPACK serialization
-│       ├── TLV8.swift                 HomeKit TLV8
-│       ├── SRPClient.swift            SRP-6a (3072-bit, SHA-512) for pair-setup
-│       ├── HAPCrypto.swift            HKDF + ChaCha20-Poly1305, session cipher
-│       ├── CompanionConnection.swift  framed TCP connection, encryption, request matching
-│       ├── CompanionPairing.swift     pair-setup and pair-verify procedures
-│       ├── TextInputArchive.swift     keyed-archive payloads for the TV's text fields
-│       └── CompanionClient.swift      session setup, HID buttons, volume, apps, power, text
-└── Support/        logging, glass/material surfaces, small helpers
+├── Services/       DeviceBrowser (NWBrowser for _companion-link._tcp), PortKnocker
+└── Support/        glass/material surfaces
+
+Sources/ClickerCompanion        the protocol, a separate module the app imports
+├── OPACK.swift                Apple's OPACK serialization
+├── TLV8.swift                 HomeKit TLV8
+├── SRPClient.swift            SRP-6a (3072-bit, SHA-512) for pair-setup
+├── HAPCrypto.swift            HKDF + ChaCha20-Poly1305, session cipher
+├── CompanionConnection.swift  framed TCP connection, encryption, request matching
+├── CompanionPairing.swift     pair-setup and pair-verify procedures
+├── TextInputArchive.swift     keyed-archive payloads for the TV's text fields
+├── CompanionClient.swift      session setup, HID buttons, volume, apps, power, text
+└── …                          credentials, command enums, logging, small helpers
 ```
+
+The app module is main-actor by default; the protocol module is nonisolated, so its actors and codecs run wherever their callers put them and never on the main thread by accident.
 
 ## Discovery
 

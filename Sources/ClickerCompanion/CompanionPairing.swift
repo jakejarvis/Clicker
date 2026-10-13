@@ -3,9 +3,9 @@ import Foundation
 import Network
 
 /// HomeKit-style pair-setup and pair-verify over a Companion connection.
-enum CompanionPairing {
+package enum CompanionPairing {
     /// Extracts and validates the `_pd` TLV from an authentication response.
-    static func pairingData(from response: OPACKValue) throws -> TLV8.Items {
+    package static func pairingData(from response: OPACKValue) throws -> TLV8.Items {
         guard let data = response["_pd"]?.dataValue else {
             throw CompanionError.unexpectedResponse("missing pairing data")
         }
@@ -20,7 +20,7 @@ enum CompanionPairing {
 
     /// Proves possession of stored credentials and switches the connection to
     /// encrypted frames.
-    static func verify(on connection: CompanionConnection, credentials: PairingCredentials) async throws {
+    package static func verify(on connection: CompanionConnection, credentials: PairingCredentials) async throws {
         let ephemeral = Curve25519.KeyAgreement.PrivateKey()
         let ourPublic = ephemeral.publicKey.rawRepresentation
 
@@ -92,7 +92,7 @@ enum CompanionPairing {
 
 /// One pair-setup attempt. `start()` makes the Apple TV display a PIN;
 /// `finish(pin:)` completes the exchange and returns long-term credentials.
-actor CompanionPairingSession {
+package actor CompanionPairingSession {
     private let connection: CompanionConnection
     private let srp = SRPClient()
     private let signingKey = Curve25519.Signing.PrivateKey()
@@ -100,11 +100,11 @@ actor CompanionPairingSession {
     private var salt: Data?
     private var serverPublicKey: Data?
 
-    init(endpoint: NWEndpoint) {
+    package init(endpoint: NWEndpoint) {
         connection = CompanionConnection(endpoint: endpoint)
     }
 
-    func start() async throws {
+    package func start() async throws {
         try await connection.connect()
         let response = try await connection.exchangeAuthentication(
             .pairSetupStart,
@@ -121,7 +121,11 @@ actor CompanionPairingSession {
         Log.pairing.info("Pair-setup started; PIN should be on screen")
     }
 
-    func finish(pin: String, clientName: String, device: AppleTVDevice) async throws -> PairingCredentials {
+    /// `deviceID`, `deviceName` and `deviceModel` describe the TV for the
+    /// stored credentials; the exchange itself does not use them.
+    package func finish(
+        pin: String, clientName: String, deviceID: String, deviceName: String, deviceModel: String?
+    ) async throws -> PairingCredentials {
         guard let salt, let serverPublicKey else {
             throw CompanionError.pairingError("Pairing has not been started.")
         }
@@ -203,12 +207,12 @@ actor CompanionPairingSession {
         }
 
         await connection.close()
-        Log.pairing.info("Pair-setup completed with \(device.name, privacy: .public)")
+        Log.pairing.info("Pair-setup completed with \(deviceName, privacy: .public)")
 
         return PairingCredentials(
-            deviceID: device.id,
-            deviceName: device.name,
-            deviceModel: device.model,
+            deviceID: deviceID,
+            deviceName: deviceName,
+            deviceModel: deviceModel,
             accessoryIdentifier: accessoryIdentifier,
             accessoryPublicKey: accessoryPublicKey,
             clientIdentifier: pairingIdentifier,
@@ -217,7 +221,7 @@ actor CompanionPairingSession {
         )
     }
 
-    func cancel() async {
+    package func cancel() async {
         await connection.close()
     }
 }

@@ -1,9 +1,10 @@
+import ClickerCompanion
 import Foundation
 import Network
 
 /// An Apple TV discovered on the local network, or one we have credentials for
 /// that is not currently advertising.
-struct AppleTVDevice: Identifiable, Hashable, Sendable {
+nonisolated struct AppleTVDevice: Identifiable, Hashable, Sendable {
     /// The `rpMRtID` UUID from the TXT record, which tvOS keeps stable. The
     /// `rpBA` address rotates, so it is only a fallback, then the Bonjour name.
     let id: String

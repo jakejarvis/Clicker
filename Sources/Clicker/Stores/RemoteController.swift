@@ -1,9 +1,10 @@
+import ClickerCompanion
 import Foundation
 import Network
 import Observation
 import SwiftUI
 
-enum ConnectionState: Equatable, Sendable {
+nonisolated enum ConnectionState: Equatable, Sendable {
     case disconnected
     case connecting
     case connected
@@ -12,7 +13,7 @@ enum ConnectionState: Equatable, Sendable {
     var isBusy: Bool { self == .connecting }
 }
 
-enum PairingState: Equatable, Sendable {
+nonisolated enum PairingState: Equatable, Sendable {
     case idle
     case starting
     case awaitingPIN
@@ -25,7 +26,7 @@ enum PairingState: Equatable, Sendable {
 
 /// Where the live Companion session landed: the resolved address and the
 /// session id the TV handed back.
-struct ConnectionInfo: Hashable, Sendable {
+nonisolated struct ConnectionInfo: Hashable, Sendable {
     var address: String
     var port: UInt16
     var sessionID: UInt64
@@ -57,7 +58,7 @@ struct ConnectionInfo: Hashable, Sendable {
 
 /// Which page the menu bar panel is showing. Settings replaces the remote in
 /// place; there is no separate window.
-enum PanelScreen: Hashable, Sendable {
+nonisolated enum PanelScreen: Hashable, Sendable {
     case remote
     case settings
 }
@@ -66,14 +67,13 @@ enum PanelScreen: Hashable, Sendable {
 /// details mode. The mode rides on the item because an `isPresented`
 /// popover rendered its content with the previous mode when both changed
 /// in the same click.
-struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
+nonisolated struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
     let showsDetails: Bool
     var id: Bool { showsDetails }
 }
 
 /// App-wide remote control state: which Apple TV is selected, whether we are
 /// connected to it, and the actions the UI can trigger.
-@MainActor
 @Observable
 final class RemoteController {
     let browser = DeviceBrowser()
@@ -1102,7 +1102,9 @@ final class RemoteController {
         let clientName = IdentityStore.identity().name
         Task { [weak self] in
             do {
-                let credentials = try await session.finish(pin: digits, clientName: clientName, device: device)
+                let credentials = try await session.finish(
+                    pin: digits, clientName: clientName, deviceID: device.id, deviceName: device.name,
+                    deviceModel: device.model)
                 guard let self, self.pairingSession === session else { return }
                 do {
                     try self.credentialStore.save(credentials)

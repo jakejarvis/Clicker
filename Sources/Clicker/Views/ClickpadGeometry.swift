@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Coordinates are SwiftUI's (y grows downward); angles grow clockwise on
 /// screen.
-enum ClickpadGeometry {
+nonisolated enum ClickpadGeometry {
     static let diameter: CGFloat = 192
     static let selectDiameter: CGFloat = 84
     /// Channel between the ring and Select.
@@ -69,7 +69,7 @@ enum ClickpadGeometry {
 
 /// The band as one shape: the disc with Select's hole cut out, so one glass
 /// surface backs all four directions without stacking on the glass Select.
-struct ClickpadRing: InsettableShape {
+nonisolated struct ClickpadRing: InsettableShape {
     var insetAmount: CGFloat = 0
 
     func path(in rect: CGRect) -> Path {
@@ -92,7 +92,7 @@ struct ClickpadRing: InsettableShape {
 
 /// One quadrant of the band, drawn around the center of its frame. Used for
 /// the hover and press wash over the ring.
-struct ClickpadQuadrant: Shape {
+nonisolated struct ClickpadQuadrant: Shape {
     let direction: ClickpadGeometry.Direction
 
     func path(in rect: CGRect) -> Path {

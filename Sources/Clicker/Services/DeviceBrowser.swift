@@ -1,3 +1,4 @@
+import ClickerCompanion
 import Foundation
 import Network
 import Observation
@@ -9,7 +10,6 @@ import Observation
 /// so the list normally needs no manual refresh. `restart()` exists for the
 /// picker's Rescan action; it re-issues the Bonjour query but cannot flush
 /// records mDNSResponder still caches.
-@MainActor
 @Observable
 final class DeviceBrowser {
     private(set) var devices: [AppleTVDevice] = []
@@ -137,7 +137,7 @@ final class DeviceBrowser {
     private func restartAfterFailure() {
         browser?.cancel()
         browser = nil
-        Task { @MainActor [weak self] in
+        Task { [weak self] in
             try? await Task.sleep(for: .seconds(5))
             self?.start()
         }

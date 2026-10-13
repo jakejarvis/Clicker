@@ -8,7 +8,6 @@ import AppKit
 /// app. Callers hide the menu bar panel beforehand, since it floats at pop-up
 /// menu level and would cover the window.
 enum AboutPanel {
-    @MainActor
     static func present() {
         NSApp.activate(ignoringOtherApps: true)
         // An empty copyright hides the line; the bundle's copyright string

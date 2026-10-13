@@ -2,7 +2,7 @@ import Foundation
 
 /// Frame types on the wire. Every frame is a one-byte type, a three-byte
 /// big-endian payload length and the payload.
-enum CompanionFrameType: UInt8, Sendable {
+package enum CompanionFrameType: UInt8, Sendable {
     case unknown = 0
     case noOp = 1
     case pairSetupStart = 3
@@ -21,14 +21,14 @@ enum CompanionFrameType: UInt8, Sendable {
     case familyIdentityResponse = 33
     case familyIdentityUpdate = 34
 
-    var isAuthentication: Bool {
+    package var isAuthentication: Bool {
         switch self {
         case .pairSetupStart, .pairSetupNext, .pairVerifyStart, .pairVerifyNext: return true
         default: return false
         }
     }
 
-    var isOPACK: Bool {
+    package var isOPACK: Bool {
         switch self {
         case .unencryptedOPACK, .encryptedOPACK, .plainOPACK: return true
         default: return false
@@ -36,7 +36,7 @@ enum CompanionFrameType: UInt8, Sendable {
     }
 
     /// Responses to a `*Start` frame arrive as the matching `*Next` type.
-    var responseType: CompanionFrameType {
+    package var responseType: CompanionFrameType {
         switch self {
         case .pairSetupStart: return .pairSetupNext
         case .pairVerifyStart: return .pairVerifyNext
@@ -45,13 +45,13 @@ enum CompanionFrameType: UInt8, Sendable {
     }
 }
 
-enum CompanionMessageType: Int64, Sendable {
+package enum CompanionMessageType: Int64, Sendable {
     case event = 1
     case request = 2
     case response = 3
 }
 
-enum CompanionError: Error, LocalizedError, Sendable {
+package enum CompanionError: Error, LocalizedError, Sendable {
     case notConnected
     case disconnected
     case timeout
@@ -70,7 +70,7 @@ enum CompanionError: Error, LocalizedError, Sendable {
     case encryptionFailed
     case pairingDisabled
 
-    var errorDescription: String? {
+    package var errorDescription: String? {
         switch self {
         case .notConnected: return "Not connected to the Apple TV."
         case .disconnected: return "The connection to the Apple TV was closed."

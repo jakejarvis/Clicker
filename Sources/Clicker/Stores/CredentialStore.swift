@@ -1,3 +1,4 @@
+import ClickerCompanion
 import Foundation
 import Observation
 import Security
@@ -6,7 +7,6 @@ import Security
 /// keychain, where only code with Clicker's keychain access group can read
 /// them; ad-hoc builds have no validated entitlements and fall back to a
 /// private JSON file in Application Support.
-@MainActor
 @Observable
 final class CredentialStore {
     private(set) var credentials: [PairingCredentials] = []

@@ -6,11 +6,16 @@ import Foundation
 /// tvOS writes these with `RTIKeyedArchiver`, so the `$archiver` field is
 /// swapped on the way in and out; the object graph itself is a plain
 /// `NSKeyedArchiver` archive.
-enum TextInputArchive {
-    struct Session: Hashable, Sendable {
-        let sessionUUID: UUID
+package enum TextInputArchive {
+    package struct Session: Hashable, Sendable {
+        package let sessionUUID: UUID
         /// Text already in the focused field on the TV.
-        let currentText: String
+        package let currentText: String
+
+        package init(sessionUUID: UUID, currentText: String) {
+            self.sessionUUID = sessionUUID
+            self.currentText = currentText
+        }
     }
 
     private static let remoteArchiverName = "RTIKeyedArchiver"
@@ -22,7 +27,7 @@ enum TextInputArchive {
     ///
     /// The archive is walked by hand following keyed-archiver UIDs, mirroring
     /// pyatv, so decoding never depends on tvOS-private classes being resolvable.
-    static func session(from archive: Data) -> Session? {
+    package static func session(from archive: Data) -> Session? {
         guard let plist = try? PropertyListSerialization.propertyList(from: archive, format: nil) as? [String: Any],
             let objects = plist["$objects"] as? [Any],
             let top = plist["$top"] as? [String: Any]
@@ -78,13 +83,13 @@ enum TextInputArchive {
     // MARK: - Writing
 
     /// Payload that inserts `text` at the cursor in the TV's focused field.
-    static func insertTextPayload(sessionUUID: UUID, text: String) -> Data {
+    package static func insertTextPayload(sessionUUID: UUID, text: String) -> Data {
         let output = KeyboardOutput(insertionText: text)
         return encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: output, textToAssert: nil))
     }
 
     /// Payload that clears the TV's focused field.
-    static func clearTextPayload(sessionUUID: UUID) -> Data {
+    package static func clearTextPayload(sessionUUID: UUID) -> Data {
         let output = KeyboardOutput(insertionText: nil)
         return encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: output, textToAssert: ""))
     }
@@ -93,7 +98,7 @@ enum TextInputArchive {
     /// operation: the empty assertion clears the field and the keyboard output
     /// is applied to the result, so a backspace is a single `_tiC` event
     /// rather than a clear followed by an insert.
-    static func replaceTextPayload(sessionUUID: UUID, text: String) -> Data {
+    package static func replaceTextPayload(sessionUUID: UUID, text: String) -> Data {
         let output = KeyboardOutput(insertionText: text)
         return encode(TextOperations(sessionUUID: sessionUUID, keyboardOutput: output, textToAssert: ""))
     }

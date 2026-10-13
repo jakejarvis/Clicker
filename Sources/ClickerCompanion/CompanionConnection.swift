@@ -1,9 +1,9 @@
 import Foundation
 import Network
 
-struct CompanionEvent: Sendable {
-    let name: String
-    let content: OPACKValue
+package struct CompanionEvent: Sendable {
+    package let name: String
+    package let content: OPACKValue
 }
 
 /// A framed, optionally encrypted TCP connection to a Companion service.
@@ -11,7 +11,7 @@ struct CompanionEvent: Sendable {
 /// Handles the four-byte frame header, session encryption once pair-verify has
 /// completed, and matching responses to requests: authentication frames are
 /// matched by frame type, regular OPACK responses by transaction id (`_x`).
-actor CompanionConnection {
+package actor CompanionConnection {
     private let endpoint: NWEndpoint
     private let queue = DispatchQueue(label: "com.jakejarvis.Clicker.companion-connection")
     private var connection: NWConnection?
@@ -25,32 +25,32 @@ actor CompanionConnection {
     private let eventContinuation: AsyncStream<CompanionEvent>.Continuation
 
     /// Unsolicited events pushed by the Apple TV (power state changes, etc).
-    nonisolated let events: AsyncStream<CompanionEvent>
+    package nonisolated let events: AsyncStream<CompanionEvent>
 
     /// How often an empty NoOp frame goes out on an idle session. The session
     /// stays open after the panel closes, and without this nothing crosses the
     /// link between the last button press and the next one.
-    static let keepAliveInterval: Duration = .seconds(30)
+    package static let keepAliveInterval: Duration = .seconds(30)
 
-    init(endpoint: NWEndpoint) {
+    package init(endpoint: NWEndpoint) {
         self.endpoint = endpoint
         let (stream, continuation) = AsyncStream<CompanionEvent>.makeStream()
         events = stream
         eventContinuation = continuation
     }
 
-    var isConnected: Bool {
+    package var isConnected: Bool {
         connection != nil && !isClosed
     }
 
     /// The resolved address the TCP connection ended up on, once ready.
-    var remoteEndpoint: NWEndpoint? {
+    package var remoteEndpoint: NWEndpoint? {
         connection?.currentPath?.remoteEndpoint
     }
 
     // MARK: - Lifecycle
 
-    func connect(timeout: TimeInterval = 10) async throws {
+    package func connect(timeout: TimeInterval = 10) async throws {
         guard connection == nil, !isClosed else {
             if isClosed { throw CompanionError.disconnected }
             return
@@ -104,18 +104,18 @@ actor CompanionConnection {
         Log.connection.info("Connected to \(String(describing: self.endpoint), privacy: .public)")
     }
 
-    func close() {
+    package func close() {
         handleDisconnect(CompanionError.disconnected)
     }
 
-    func enableEncryption(outputKey: SymmetricKeyBox, inputKey: SymmetricKeyBox) {
+    package func enableEncryption(outputKey: SymmetricKeyBox, inputKey: SymmetricKeyBox) {
         cipher = SessionCipher(outputKey: outputKey.key, inputKey: inputKey.key)
     }
 
     // MARK: - Sending
 
     /// Sends an OPACK dictionary, adding a transaction id when missing.
-    func send(_ frameType: CompanionFrameType, _ message: [String: OPACKValue]) throws {
+    package func send(_ frameType: CompanionFrameType, _ message: [String: OPACKValue]) throws {
         var message = message
         if message["_x"] == nil {
             message["_x"] = .int(takeTransactionID())
@@ -124,7 +124,7 @@ actor CompanionConnection {
     }
 
     /// Sends a pair-setup or pair-verify frame and waits for the device's reply.
-    func exchangeAuthentication(
+    package func exchangeAuthentication(
         _ frameType: CompanionFrameType,
         _ message: [String: OPACKValue],
         timeout: TimeInterval = 30
@@ -158,7 +158,7 @@ actor CompanionConnection {
     }
 
     /// Sends a request-style OPACK message and waits for the matching response.
-    func exchange(
+    package func exchange(
         _ frameType: CompanionFrameType,
         _ message: [String: OPACKValue],
         timeout: TimeInterval = 5

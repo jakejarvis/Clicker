@@ -1,3 +1,4 @@
+import ClickerCompanion
 import SwiftUI
 
 /// The remote itself: a clickpad ring with a large Select in the middle, a

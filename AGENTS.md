@@ -24,16 +24,19 @@ Sources/Clicker
 │               ClickpadGeometry, TrackpadSwipeMonitor (two-finger scroll → touch)
 ├── Stores/     RemoteController (all UI-facing state), CredentialStore,
 │               IdentityStore, UpdateController (Sparkle)
-├── Services/   DeviceBrowser (NWBrowser), PortKnocker (Rescan's wake knock) and Companion/* (OPACK, TLV8,
-│               SRPClient, HAPCrypto, CompanionFrame, CompanionConnection,
-│               CompanionPairing, CompanionClient, TextInputArchive)
-├── Support/    Log, Surface (glass/material helpers), key wrappers
-└── Models/     AppleTVDevice, PairingCredentials, RemoteCommand (HID enum,
-                PowerState, ClientIdentity), TrackpadSwipe (scroll deltas →
+├── Services/   DeviceBrowser (NWBrowser), PortKnocker (Rescan's wake knock)
+├── Support/    Surface (glass/material helpers)
+└── Models/     AppleTVDevice, RemoteCommand+Display (titles and glyphs for the
+                protocol's HID and power enums), TrackpadSwipe (scroll deltas →
                 touch events), DemoScenario (--demo, compiled only under DEMO)
-Tests/ClickerTests   codecs, crypto + SRP, text-input archive, panel and clickpad geometry,
-                     trackpad swipes, device TXT parsing, credential store, demo scenarios,
-                     app favorites and recents, media-control flags, device picker order
+Sources/ClickerCompanion   the Companion protocol as its own module: OPACK, TLV8, SRPClient,
+                     HAPCrypto, CompanionFrame, CompanionConnection, CompanionPairing,
+                     CompanionClient, TextInputArchive, PairingCredentials, RemoteCommand
+                     (HID enum, PowerState, MediaControlFlags, ClientIdentity), Log, key wrappers
+Tests/ClickerTests   panel and clickpad geometry, trackpad swipes, device TXT parsing,
+                     credential store, demo scenarios, app favorites and recents,
+                     media-control flags, device picker order
+Tests/ClickerCompanionTests   codecs, crypto + SRP, text-input archive
 script/              build_and_run.sh, package_app.sh (bundle assembly + signing,
                      compiles the icon with actool), release.sh (notarize, DMG/zip, appcast),
                      render_icon.sh (ictool previews + site icon PNGs),
@@ -63,6 +66,10 @@ docs/how-it-works.md code layout and protocol overview for contributors
 ```
 
 The README is written for people using the app; keep build, protocol and release details in CONTRIBUTING.md and docs/. Don't hard-wrap prose in Markdown files (this one included): one line per paragraph or list item.
+
+## Modules and isolation
+
+`Package.swift` (tools 6.2) has two targets. `Clicker`, the app, builds with `.defaultIsolation(MainActor.self)`: everything is on the main actor unless it says otherwise, so `@MainActor` is not written on stores or views, and pure value types that SwiftUI or the tests use off the main actor (`ClickpadGeometry`, `PanelGeometry`, `TrackpadSwipe`, `AppleTVDevice`, `ConnectionInfo`, `DemoScenario`, `IdentityStore`, `PanelHeightEffect`) are marked `nonisolated`. `ClickerCompanion`, the protocol, keeps Swift's nonisolated default, so its actors and codecs never touch the main actor, and exposes its API with `package` access (a declaration the app or the tests need must say `package`; inits of structs too, since memberwise ones are internal). Both use the `NonisolatedNonsendingByDefault` and `InferIsolatedConformances` upcoming features: a nonisolated `async` function runs on its caller's actor unless it is `@concurrent`. The app-only presentation of protocol types (button titles, SF Symbols, power tooltips) lives in the app's `RemoteCommand+Display.swift`.
 
 ## Build, run, test
 
