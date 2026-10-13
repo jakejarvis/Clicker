@@ -11,15 +11,26 @@ package struct CompanionEvent: Sendable {
 /// Handles the four-byte frame header, session encryption once pair-verify has
 /// completed, and matching responses to requests: authentication frames are
 /// matched by frame type, regular OPACK responses by transaction id (`_x`).
+///
+/// Every wait honors task cancellation: a cancelled caller gets
+/// `CancellationError` at once instead of waiting out its timeout.
 package actor CompanionConnection {
+    /// What a waiting caller is waiting for.
+    private enum PendingReply: Hashable {
+        case authentication(CompanionFrameType)
+        case transaction(Int64)
+    }
+
     private let endpoint: NWEndpoint
     private let queue = DispatchQueue(label: "com.jakejarvis.Clicker.companion-connection")
     private var connection: NWConnection?
     private var cipher: SessionCipher?
     private var receiveTask: Task<Void, Never>?
     private var keepAliveTask: Task<Void, Never>?
-    private var pendingAuthentication: [CompanionFrameType: CheckedContinuation<OPACKValue, Error>] = [:]
-    private var pendingResponses: [Int64: CheckedContinuation<OPACKValue, Error>] = [:]
+    private var pendingReplies: [PendingReply: CheckedContinuation<OPACKValue, Error>] = [:]
+    /// The TCP connect in flight, so `close()` can end it rather than leave
+    /// the caller waiting out the timeout.
+    private var connectGate: ContinuationGate<Void>?
     private var nextTransactionID = Int64.random(in: 0...0xFFFF)
     private var isClosed = false
     private let eventContinuation: AsyncStream<CompanionEvent>.Continuation
@@ -50,7 +61,7 @@ package actor CompanionConnection {
 
     // MARK: - Lifecycle
 
-    package func connect(timeout: TimeInterval = 10) async throws {
+    package func connect(timeout: Duration = .seconds(10)) async throws {
         guard connection == nil, !isClosed else {
             if isClosed { throw CompanionError.disconnected }
             return
@@ -61,32 +72,45 @@ package actor CompanionConnection {
         let connection = NWConnection(to: endpoint, using: parameters)
         self.connection = connection
 
+        // The state handler, the timeout, a cancelled caller and `close()`
+        // all race to finish the connect; the gate lets only the first through.
         let gate = ContinuationGate<Void>()
-        let queue = self.queue
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            gate.store(continuation)
-            connection.stateUpdateHandler = { state in
-                switch state {
-                case .ready:
-                    gate.resume(.success(()))
-                case .failed(let error):
-                    gate.resume(.failure(CompanionError.connectionFailed(error.localizedDescription)))
-                    connection.cancel()
-                case .cancelled:
-                    gate.resume(.failure(CompanionError.disconnected))
-                case .waiting(let error):
-                    Log.connection.info("Waiting for connection: \(error.localizedDescription, privacy: .public)")
-                default:
-                    break
-                }
-            }
-            queue.asyncAfter(deadline: .now() + timeout) {
-                if gate.resume(.failure(CompanionError.timeout)) {
-                    connection.cancel()
-                }
-            }
-            connection.start(queue: queue)
+        connectGate = gate
+        let timeoutTask = Task {
+            try? await Task.sleep(for: timeout)
+            guard !Task.isCancelled else { return }
+            if gate.resume(.failure(CompanionError.timeout)) { connection.cancel() }
         }
+        defer {
+            timeoutTask.cancel()
+            connectGate = nil
+        }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                gate.store(continuation)
+                connection.stateUpdateHandler = { state in
+                    switch state {
+                    case .ready:
+                        gate.resume(.success(()))
+                    case .failed(let error):
+                        gate.resume(.failure(CompanionError.connectionFailed(error.localizedDescription)))
+                        connection.cancel()
+                    case .cancelled:
+                        gate.resume(.failure(CompanionError.disconnected))
+                    case .waiting(let error):
+                        Log.connection.info("Waiting for connection: \(error.localizedDescription, privacy: .public)")
+                    default:
+                        break
+                    }
+                }
+                connection.start(queue: queue)
+            }
+        } onCancel: {
+            if gate.resume(.failure(CancellationError())) { connection.cancel() }
+        }
+
+        // `close()` may have run while the connect was suspended.
+        guard !isClosed, self.connection === connection else { throw CompanionError.disconnected }
 
         connection.stateUpdateHandler = { [weak self] state in
             switch state {
@@ -127,64 +151,74 @@ package actor CompanionConnection {
     package func exchangeAuthentication(
         _ frameType: CompanionFrameType,
         _ message: [String: OPACKValue],
-        timeout: TimeInterval = 30
+        timeout: Duration = .seconds(30)
     ) async throws -> OPACKValue {
         precondition(frameType.isAuthentication)
-        let key = frameType.responseType
-        let timeoutTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(timeout))
-            guard !Task.isCancelled else { return }
-            await self?.timeOutAuthentication(key)
-        }
-        defer { timeoutTask.cancel() }
-
         var message = message
         message["_x"] = .int(takeTransactionID())
-
-        let response: OPACKValue = try await withCheckedThrowingContinuation { continuation in
-            if let previous = pendingAuthentication.removeValue(forKey: key) {
-                previous.resume(throwing: CompanionError.unexpectedResponse("superseded authentication exchange"))
-            }
-            pendingAuthentication[key] = continuation
-            do {
-                try sendFrame(frameType, payload: OPACK.encode(.dictionary(message)))
-            } catch {
-                pendingAuthentication[key] = nil
-                continuation.resume(throwing: error)
-            }
+        let payload = OPACK.encode(.dictionary(message))
+        return try await awaitReply(.authentication(frameType.responseType), timeout: timeout) {
+            try sendFrame(frameType, payload: payload)
         }
-        try Self.checkRemoteError(response)
-        return response
     }
 
     /// Sends a request-style OPACK message and waits for the matching response.
     package func exchange(
         _ frameType: CompanionFrameType,
         _ message: [String: OPACKValue],
-        timeout: TimeInterval = 5
+        timeout: Duration = .seconds(5)
     ) async throws -> OPACKValue {
         let transactionID = takeTransactionID()
         var message = message
         message["_x"] = .int(transactionID)
+        let payload = OPACK.encode(.dictionary(message))
+        return try await awaitReply(.transaction(transactionID), timeout: timeout) {
+            try sendFrame(frameType, payload: payload)
+        }
+    }
 
+    /// Registers a waiter for `key`, runs `send`, and waits for the reply, the
+    /// timeout, a disconnect or the caller's cancellation, whichever comes
+    /// first. A reply carrying `_em` is thrown as `remoteError`.
+    private func awaitReply(
+        _ key: PendingReply,
+        timeout: Duration,
+        send: () throws -> Void
+    ) async throws -> OPACKValue {
         let timeoutTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(timeout))
+            try? await Task.sleep(for: timeout)
             guard !Task.isCancelled else { return }
-            await self?.timeOutResponse(transactionID)
+            await self?.failReply(key, with: CompanionError.timeout)
         }
         defer { timeoutTask.cancel() }
 
-        let response: OPACKValue = try await withCheckedThrowingContinuation { continuation in
-            pendingResponses[transactionID] = continuation
-            do {
-                try sendFrame(frameType, payload: OPACK.encode(.dictionary(message)))
-            } catch {
-                pendingResponses[transactionID] = nil
-                continuation.resume(throwing: error)
+        let response = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<OPACKValue, Error>) in
+                // Checked here, on the actor, so a cancellation that landed
+                // before the waiter was registered is not missed: the
+                // handler's hop below can only run after this closure.
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                failReply(key, with: CompanionError.unexpectedResponse("superseded exchange"))
+                pendingReplies[key] = continuation
+                do {
+                    try send()
+                } catch {
+                    pendingReplies[key] = nil
+                    continuation.resume(throwing: error)
+                }
             }
+        } onCancel: {
+            Task { await self.failReply(key, with: CancellationError()) }
         }
         try Self.checkRemoteError(response)
         return response
+    }
+
+    private func failReply(_ key: PendingReply, with error: Error) {
+        pendingReplies.removeValue(forKey: key)?.resume(throwing: error)
     }
 
     private func sendFrame(_ frameType: CompanionFrameType, payload: Data) throws {
@@ -199,8 +233,8 @@ package actor CompanionConnection {
             UInt8((length >> 8) & 0xFF),
             UInt8(length & 0xFF),
         ])
-        if encrypts {
-            body = try cipher!.encrypt(payload, aad: header)
+        if encrypts, let sealed = try cipher?.encrypt(payload, aad: header) {
+            body = sealed
         }
 
         connection.send(
@@ -247,8 +281,8 @@ package actor CompanionConnection {
                 let header = [UInt8](try await receive(exactly: 4, from: connection))
                 let length = Int(header[1]) << 16 | Int(header[2]) << 8 | Int(header[3])
                 var payload = length > 0 ? try await receive(exactly: length, from: connection) : Data()
-                if cipher != nil, !payload.isEmpty {
-                    payload = try cipher!.decrypt(payload, aad: Data(header))
+                if !payload.isEmpty, let opened = try cipher?.decrypt(payload, aad: Data(header)) {
+                    payload = opened
                 }
                 dispatch(frameType: CompanionFrameType(rawValue: header[0]) ?? .unknown, payload: payload)
             }
@@ -288,7 +322,7 @@ package actor CompanionConnection {
         }
 
         if frameType.isAuthentication {
-            if let continuation = pendingAuthentication.removeValue(forKey: frameType) {
+            if let continuation = pendingReplies.removeValue(forKey: .authentication(frameType)) {
                 continuation.resume(returning: message)
             } else {
                 Log.connection.warning("Unexpected authentication frame \(frameType.rawValue)")
@@ -308,7 +342,7 @@ package actor CompanionConnection {
             }
         case .response:
             if let transactionID = message["_x"]?.intValue,
-                let continuation = pendingResponses.removeValue(forKey: transactionID)
+                let continuation = pendingReplies.removeValue(forKey: .transaction(transactionID))
             {
                 continuation.resume(returning: message)
             } else {
@@ -317,14 +351,6 @@ package actor CompanionConnection {
         case .request:
             Log.connection.debug("Ignoring request from device: \(message.description, privacy: .public)")
         }
-    }
-
-    private func timeOutAuthentication(_ key: CompanionFrameType) {
-        pendingAuthentication.removeValue(forKey: key)?.resume(throwing: CompanionError.timeout)
-    }
-
-    private func timeOutResponse(_ transactionID: Int64) {
-        pendingResponses.removeValue(forKey: transactionID)?.resume(throwing: CompanionError.timeout)
     }
 
     private func handleDisconnect(_ error: Error) {
@@ -341,10 +367,9 @@ package actor CompanionConnection {
         connection = nil
         cipher = nil
 
-        for continuation in pendingAuthentication.values { continuation.resume(throwing: error) }
-        pendingAuthentication.removeAll()
-        for continuation in pendingResponses.values { continuation.resume(throwing: error) }
-        pendingResponses.removeAll()
+        connectGate?.resume(.failure(error))
+        for continuation in pendingReplies.values { continuation.resume(throwing: error) }
+        pendingReplies.removeAll()
         eventContinuation.finish()
     }
 }

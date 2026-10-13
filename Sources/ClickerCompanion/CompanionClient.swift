@@ -33,7 +33,7 @@ package actor CompanionClient {
 
     /// `timeout` bounds the TCP connect alone; pair-verify and session
     /// setup have their own per-request limits.
-    package func connect(timeout: TimeInterval = 10) async throws {
+    package func connect(timeout: Duration = .seconds(10)) async throws {
         do {
             try await connection.connect(timeout: timeout)
             try await CompanionPairing.verify(on: connection, credentials: credentials)
@@ -55,15 +55,15 @@ package actor CompanionClient {
     }
 
     package func disconnect() async {
-        _ = try? await request("_tiStop", [:], timeout: 1)
+        _ = try? await request("_tiStop", [:], timeout: .seconds(1))
         if touchStartedAt != nil {
-            _ = try? await request("_touchStop", ["_i": 1], timeout: 1)
+            _ = try? await request("_touchStop", ["_i": 1], timeout: .seconds(1))
         }
         if sessionID != 0 {
             _ = try? await request(
                 "_sessionStop",
                 ["_srvT": "com.apple.tvremoteservices", "_sid": .int(Int64(bitPattern: sessionID))],
-                timeout: 1
+                timeout: .seconds(1)
             )
         }
         await connection.close()
@@ -148,7 +148,7 @@ package actor CompanionClient {
     // MARK: - Apps
 
     package func fetchApps() async throws -> [AppleTVApp] {
-        let response = try await request("FetchLaunchableApplicationsEvent", [:], timeout: 10)
+        let response = try await request("FetchLaunchableApplicationsEvent", [:], timeout: .seconds(10))
         guard let content = response["_c"]?.stringKeyedDictionary else {
             throw CompanionError.unexpectedResponse("app list missing content")
         }
@@ -340,7 +340,7 @@ package actor CompanionClient {
     private func request(
         _ identifier: String,
         _ content: [String: OPACKValue],
-        timeout: TimeInterval = 5
+        timeout: Duration = .seconds(5)
     ) async throws -> OPACKValue {
         try await connection.exchange(
             .encryptedOPACK,

@@ -460,8 +460,8 @@ final class RemoteController {
     /// seconds, and the attempt that follows a dropped session tends to get
     /// no answer at all, so the first try gives up early and the retry
     /// waits the full ten.
-    static let firstConnectTimeout: TimeInterval = 5
-    static let retryConnectTimeout: TimeInterval = 10
+    static let firstConnectTimeout: Duration = .seconds(5)
+    static let retryConnectTimeout: Duration = .seconds(10)
 
     func connectIfNeeded(isRetry: Bool = false) {
         #if DEMO
@@ -556,22 +556,21 @@ final class RemoteController {
     /// quit.
     func shutdown(within limit: Duration) async {
         guard let client = tearDownSession() else { return }
-        // Two detached tasks race for one continuation. A task group would
-        // not do: its scope waits for the disconnect child whatever the
-        // deadline says, and the requests inside it ignore cancellation.
-        let gate = ContinuationGate<Void>()
-        _ = try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            gate.store(continuation)
-            Task {
+        // The first child to finish wins; cancelling the other makes a
+        // disconnect still waiting on the TV give up at once.
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
                 await client.disconnect()
-                gate.resume(.success(()))
+                return true
             }
-            Task {
+            group.addTask {
                 try? await Task.sleep(for: limit)
-                if gate.resume(.success(())) {
-                    Log.connection.info("Quit without waiting for the TV to acknowledge the session's end")
-                }
+                return false
             }
+            if await group.next() == false {
+                Log.connection.info("Quit without waiting for the TV to acknowledge the session's end")
+            }
+            group.cancelAll()
         }
     }
 
