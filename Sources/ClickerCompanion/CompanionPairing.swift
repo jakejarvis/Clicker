@@ -94,7 +94,10 @@ package enum CompanionPairing {
 /// `finish(pin:)` completes the exchange and returns long-term credentials.
 package actor CompanionPairingSession {
     private let connection: CompanionConnection
-    private let srp = SRPClient()
+    /// Made in `start()`, on this actor: computing `A` is a 3072-bit modular
+    /// exponentiation (about 14 ms optimized, half a second in a debug
+    /// build), and `init` runs on the caller's thread, the main one.
+    private var srp: SRPClient?
     private let signingKey = Curve25519.Signing.PrivateKey()
     private let pairingIdentifier = UUID().uuidString.lowercased()
     private var salt: Data?
@@ -105,6 +108,7 @@ package actor CompanionPairingSession {
     }
 
     package func start() async throws {
+        srp = SRPClient()
         try await connection.connect()
         let response = try await connection.exchangeAuthentication(
             .pairSetupStart,
@@ -126,7 +130,7 @@ package actor CompanionPairingSession {
     package func finish(
         pin: String, clientName: String, deviceID: String, deviceName: String, deviceModel: String?
     ) async throws -> PairingCredentials {
-        guard let salt, let serverPublicKey else {
+        guard let salt, let serverPublicKey, let srp else {
             throw CompanionError.pairingError("Pairing has not been started.")
         }
 
