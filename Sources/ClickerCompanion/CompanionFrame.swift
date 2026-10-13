@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 /// Frame types on the wire. Every frame is a one-byte type, a three-byte
 /// big-endian payload length and the payload.
@@ -55,7 +56,7 @@ package enum CompanionError: Error, LocalizedError, Sendable {
     case notConnected
     case disconnected
     case timeout
-    case connectionFailed(String)
+    case connectionFailed(NWError)
     case unexpectedResponse(String)
     case remoteError(String)
     case pairingError(String)

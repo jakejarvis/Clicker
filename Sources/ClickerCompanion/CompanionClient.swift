@@ -86,28 +86,32 @@ package actor CompanionClient {
 
     // MARK: - Media control
 
-    /// Media-control commands sent as `_mcc`, numbered as in pyatv. They act on
-    /// the TV's current player; `MediaControlFlags` says which it accepts.
-    /// Caption settings (12, 13) are listed for completeness only: pyatv never
-    /// sends them, so their payload is unknown.
+    /// The media-control commands that take no arguments, sent as `_mcc` and
+    /// numbered as in pyatv. They act on the TV's current player;
+    /// `MediaControlFlags` says which it accepts. The rest of the `_mcc` set
+    /// has its own methods (`skip(by:)`, `fetchVolume()`, `setVolume(_:)`).
     package enum MediaControlCommand: Int64, Sendable {
         case play = 1
         case pause = 2
         case nextTrack = 3
         case previousTrack = 4
-        case getVolume = 5
-        case setVolume = 6
-        case skipBy = 7
         case fastForwardBegin = 8
         case fastForwardEnd = 9
         case rewindBegin = 10
         case rewindEnd = 11
+    }
+
+    /// The `_mcc` numbers of the commands with arguments or replies. Caption
+    /// settings (12, 13) are listed for completeness only: pyatv never sends
+    /// them, so their payload is unknown.
+    private enum MediaControlOperation: Int64 {
+        case getVolume = 5
+        case setVolume = 6
+        case skipBy = 7
         case getCaptionSettings = 12
         case setCaptionSettings = 13
     }
 
-    /// Sends a media-control command that takes no arguments (play, pause,
-    /// next/previous track, and the begin/end halves of fast forward and rewind).
     package func mediaControl(_ command: MediaControlCommand) async throws {
         _ = try await request("_mcc", ["_mcc": .int(command.rawValue)])
     }
@@ -118,7 +122,7 @@ package actor CompanionClient {
         _ = try await request(
             "_mcc",
             [
-                "_mcc": .int(MediaControlCommand.skipBy.rawValue),
+                "_mcc": .int(MediaControlOperation.skipBy.rawValue),
                 "_skpS": .double(seconds),
             ])
     }
@@ -127,7 +131,7 @@ package actor CompanionClient {
     /// control flags include `.volume`; over plain HDMI the request fails or
     /// comes back without a level.
     package func fetchVolume() async throws -> Double {
-        let response = try await request("_mcc", ["_mcc": .int(MediaControlCommand.getVolume.rawValue)])
+        let response = try await request("_mcc", ["_mcc": .int(MediaControlOperation.getVolume.rawValue)])
         guard let volume = response["_c"]?["_vol"]?.doubleValue else {
             throw CompanionError.unexpectedResponse("volume missing")
         }
@@ -138,7 +142,7 @@ package actor CompanionClient {
         let response = try await request(
             "_mcc",
             [
-                "_mcc": .int(MediaControlCommand.setVolume.rawValue),
+                "_mcc": .int(MediaControlOperation.setVolume.rawValue),
                 "_vol": .double(min(max(volume, 0), 1)),
             ])
         Log.remote.info(

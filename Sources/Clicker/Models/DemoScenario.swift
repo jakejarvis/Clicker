@@ -129,7 +129,8 @@ import Security
         /// State the stand-in connection lands in.
         var connectionState: ConnectionState {
             switch self {
-            case .connectionfailed: return .failed(CompanionError.connectionFailed("demo").localizedDescription)
+            case .connectionfailed:
+                return .failed(CompanionError.connectionFailed(.posix(.ECONNREFUSED)).localizedDescription)
             case .disconnected: return .disconnected
             default: return .connected
             }

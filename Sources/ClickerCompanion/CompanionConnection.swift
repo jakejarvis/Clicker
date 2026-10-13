@@ -93,7 +93,7 @@ package actor CompanionConnection {
                     case .ready:
                         gate.resume(.success(()))
                     case .failed(let error):
-                        gate.resume(.failure(CompanionError.connectionFailed(error.localizedDescription)))
+                        gate.resume(.failure(CompanionError.connectionFailed(error)))
                         connection.cancel()
                     case .cancelled:
                         gate.resume(.failure(CompanionError.disconnected))
@@ -115,7 +115,7 @@ package actor CompanionConnection {
         connection.stateUpdateHandler = { [weak self] state in
             switch state {
             case .failed(let error):
-                Task { await self?.handleDisconnect(CompanionError.connectionFailed(error.localizedDescription)) }
+                Task { await self?.handleDisconnect(CompanionError.connectionFailed(error)) }
             case .cancelled:
                 Task { await self?.handleDisconnect(CompanionError.disconnected) }
             default:
@@ -295,7 +295,7 @@ package actor CompanionConnection {
         try await withCheckedThrowingContinuation { continuation in
             connection.receive(minimumIncompleteLength: count, maximumLength: count) { content, _, _, error in
                 if let error {
-                    continuation.resume(throwing: CompanionError.connectionFailed(error.localizedDescription))
+                    continuation.resume(throwing: CompanionError.connectionFailed(error))
                     return
                 }
                 guard let content, content.count == count else {

@@ -534,7 +534,7 @@ final class RemoteController {
                         break
                     }
                 }
-                self.connectionState = .failed(Self.describe(error))
+                self.connectionState = .failed(error.localizedDescription)
             }
         }
     }
@@ -712,17 +712,8 @@ final class RemoteController {
         perform { try await $0.press(command) }
     }
 
-    /// Sends a media-control command to the TV's current player. Volume and
-    /// caption commands are not accepted here: volume goes through Mute and
-    /// the HID buttons, and the caption payload is unknown.
+    /// Sends a media-control command to the TV's current player.
     func mediaControl(_ command: CompanionClient.MediaControlCommand) {
-        switch command {
-        case .getVolume, .setVolume, .getCaptionSettings, .setCaptionSettings, .skipBy:
-            assertionFailure("\(command) is not a plain media command")
-            return
-        default:
-            break
-        }
         Log.remote.info("Media control \(String(describing: command), privacy: .public)")
         perform { try await $0.mediaControl(command) }
     }
@@ -1018,7 +1009,7 @@ final class RemoteController {
                 self.lastActionError = nil
             } catch {
                 Log.remote.error("Command failed: \(String(describing: error), privacy: .public)")
-                self.lastActionError = Self.describe(error)
+                self.lastActionError = error.localizedDescription
                 switch error {
                 case CompanionError.disconnected, CompanionError.notConnected:
                     self.disconnect()
@@ -1074,7 +1065,7 @@ final class RemoteController {
                 // otherwise stay open until the TV drops it.
                 await session.cancel()
                 guard let self, self.pairingSession === session else { return }
-                self.pairingState = .failed(Self.describe(error))
+                self.pairingState = .failed(error.localizedDescription)
                 self.pairingSession = nil
             }
         }
@@ -1128,7 +1119,7 @@ final class RemoteController {
                 Log.pairing.error("Pair-setup failed: \(String(describing: error), privacy: .public)")
                 await session.cancel()
                 self.pairingSession = nil
-                self.pairingState = .failed(Self.describe(error))
+                self.pairingState = .failed(error.localizedDescription)
             }
         }
     }
@@ -1146,13 +1137,6 @@ final class RemoteController {
     /// credentials could not be stored (`--demo savefailed`).
     nonisolated static func pairingNotSavedMessage(_ reason: String) -> String {
         "Paired, but the pairing couldn't be saved: \(reason)"
-    }
-
-    private static func describe(_ error: Error) -> String {
-        if let companionError = error as? CompanionError {
-            return companionError.localizedDescription
-        }
-        return error.localizedDescription
     }
 }
 

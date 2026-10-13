@@ -257,6 +257,8 @@ package enum OPACK {
         let bytes: [UInt8]
         var index = 0
         var objects: [OPACKValue] = []
+        /// The same values as `objects`, for constant-time deduplication.
+        var recorded: Set<OPACKValue> = []
 
         init(bytes: [UInt8]) {
             self.bytes = bytes
@@ -346,7 +348,7 @@ package enum OPACK {
                 throw OPACKError.unsupportedMarker(marker)
             }
 
-            if recordObject, !objects.contains(value) {
+            if recordObject, recorded.insert(value).inserted {
                 objects.append(value)
             }
             return value

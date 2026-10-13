@@ -26,6 +26,8 @@ final class DeviceBrowser {
     static let rescanGrace: Duration = .seconds(2)
 
     @ObservationIgnored private var browser: NWBrowser?
+    /// Bumped for each browser `start()` makes; see `isCurrent`.
+    @ObservationIgnored private var browserGeneration = 0
     @ObservationIgnored private var latestFound: [AppleTVDevice] = []
     @ObservationIgnored private var rescanTask: Task<Void, Never>?
     @ObservationIgnored private let queue = DispatchQueue(label: "com.jakejarvis.Clicker.discovery")
@@ -39,6 +41,10 @@ final class DeviceBrowser {
             for: .bonjourWithTXTRecord(type: "_companion-link._tcp", domain: nil),
             using: parameters
         )
+        // Callbacks hop to the main actor, so a browser cancelled by a
+        // Rescan can still deliver one; only the current browser's count.
+        browserGeneration += 1
+        let generation = browserGeneration
 
         browser.stateUpdateHandler = { [weak self] state in
             // Only ready and failed touch the message: a failure is followed
@@ -46,11 +52,14 @@ final class DeviceBrowser {
             // wiped the Searching card's reason the moment it appeared.
             switch state {
             case .ready:
-                Task { @MainActor in self?.errorMessage = nil }
+                Task { @MainActor in
+                    guard let self, self.isCurrent(generation) else { return }
+                    self.errorMessage = nil
+                }
             case .failed(let error):
                 let failure = error.localizedDescription
                 Task { @MainActor in
-                    guard let self else { return }
+                    guard let self, self.isCurrent(generation) else { return }
                     self.errorMessage = failure
                     Log.discovery.error("Browser failed: \(failure, privacy: .public)")
                     self.restartAfterFailure()
@@ -68,13 +77,18 @@ final class DeviceBrowser {
             else { return }
             let found = results.compactMap(AppleTVDevice.init(result:))
             Task { @MainActor in
-                self?.update(with: found)
+                guard let self, self.isCurrent(generation) else { return }
+                self.update(with: found)
             }
         }
 
         self.browser = browser
         browser.start(queue: queue)
         Log.discovery.info("Started browsing for Apple TVs")
+    }
+
+    private func isCurrent(_ generation: Int) -> Bool {
+        browser != nil && generation == browserGeneration
     }
 
     func stop() {
