@@ -52,6 +52,23 @@ import Testing
         #expect(try OPACK.decode(dict) == ["k": "v", "k2": "v"])
     }
 
+    /// Which values take a slot in the object list, as pyatv's `_unpack`
+    /// has it: sized ints, floats, strings and data do; one-byte ints,
+    /// bools, null and containers do not.
+    @Test func countsObjectsLikePyatv() throws {
+        // [42, "a", "a"]: the sized int is object 0, so "a" is object 1.
+        let afterSizedInt = Data([0xD3, 0x30, 0x2A, 0x41, 0x61, 0xA1])
+        #expect(try OPACK.decode(afterSizedInt) == .array([42, "a", "a"]))
+
+        // [5, true, [], "a", "a"]: none of the first three take a slot.
+        let afterSkipped = Data([0xD5, 0x0D, 0x01, 0xD0, 0x41, 0x61, 0xA0])
+        #expect(try OPACK.decode(afterSkipped) == .array([5, true, [], "a", "a"]))
+
+        // [42, 42, "a", "a"]: a repeated int is recorded once.
+        let repeated = Data([0xD4, 0x30, 0x2A, 0x30, 0x2A, 0x41, 0x61, 0xA1])
+        #expect(try OPACK.decode(repeated) == .array([42, 42, "a", "a"]))
+    }
+
     @Test func decodesEndlessContainers() throws {
         let list = Data([0xDF, 0x09, 0x0A, 0x03])
         #expect(try OPACK.decode(list) == .array([1, 2]))

@@ -85,7 +85,7 @@ package enum CompanionPairing {
 
         let outputKey = HAPCrypto.deriveKey(salt: "", info: "ClientEncrypt-main", sharedSecret: shared)
         let inputKey = HAPCrypto.deriveKey(salt: "", info: "ServerEncrypt-main", sharedSecret: shared)
-        await connection.enableEncryption(outputKey: SymmetricKeyBox(outputKey), inputKey: SymmetricKeyBox(inputKey))
+        await connection.enableEncryption(outputKey: outputKey, inputKey: inputKey)
         Log.pairing.info("Pair-verify succeeded; session encrypted")
     }
 }

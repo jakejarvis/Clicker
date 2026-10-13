@@ -32,7 +32,7 @@ Sources/Clicker
 Sources/ClickerCompanion   the Companion protocol as its own module: OPACK, TLV8, SRPClient,
                      HAPCrypto, CompanionFrame, CompanionConnection, CompanionPairing,
                      CompanionClient, TextInputArchive, PairingCredentials, RemoteCommand
-                     (HID enum, PowerState, MediaControlFlags, ClientIdentity), Log, key wrappers
+                     (HID enum, PowerState, MediaControlFlags, ClientIdentity), Log, ContinuationGate
 Tests/ClickerTests   panel and clickpad geometry, trackpad swipes, device TXT parsing,
                      credential store, demo scenarios, app favorites and recents,
                      media-control flags, device picker order
@@ -159,6 +159,7 @@ ImageRenderer and offscreen `cacheDisplay` snapshots are useless here (they drop
 
 ## Protocol gotchas already hit
 
+- OPACK back-references: the decoder's object list (what pointer markers 0xA0–0xC4 index) takes sized ints (0x30–0x33), floats, UUIDs, dates, strings and data, and skips one-byte ints, bools, null, arrays and dictionaries, as pyatv's `_unpack` does. Until 2026-10-13 sized ints were skipped, so a pointer after one (a transaction id above 0x27, say) resolved one object early; `OPACKTests.countsObjectsLikePyatv` pins the rule. `SymmetricKey` is `Sendable` in the SDK, so keys cross actors unwrapped.
 - `Data` slices: CryptoKit ciphertext has a non-zero `startIndex`. Index by the value's own indices or copy (`Data(slice)`). This crashed pairing once.
 - Device identity: key pairings by the TXT `rpMRtID` UUID, not `rpBA` (the Bluetooth address rotates). `RemoteController` migrates old keys by name + model when a TV reappears unpaired. When pair-verify then finds a different accessory identifier (`CompanionError.identityChanged`, a factory reset) or the TV answers M4 with an error TLV (`CompanionError.pairingLost`: Clicker was removed from Remotes and Devices; the TLV's own code 2 message is about PIN codes and would mislead), the controller drops the stale credentials itself (`dropStalePairing`) and the pair card comes back with `pairingNotice` explaining why, since Retry would fail the same way and Forget is buried in Settings. `--demo reset` and `--demo removed` show the two notices.
 - Session nonce: 12-byte little-endian counter for encrypted frames; pairing nonces are 8-byte labels ("PS-Msg05") left-padded with zeros.

@@ -492,8 +492,13 @@ final class RemoteController {
                 }
                 self.connectionState = .connected
                 let endpoint = await client.remoteEndpoint
-                self.connectionInfo = ConnectionInfo(
-                    endpoint: endpoint, sessionID: await client.sessionID, osVersion: await client.osVersion)
+                let sessionID = await client.sessionID
+                let osVersion = await client.osVersion
+                // A select during those hops tears this session down and
+                // starts another; its details and events are not ours to
+                // install then.
+                guard self.client === client else { return }
+                self.connectionInfo = ConnectionInfo(endpoint: endpoint, sessionID: sessionID, osVersion: osVersion)
                 self.rememberAddress(of: endpoint, for: device.id)
                 self.listenForEvents(from: client)
                 if let state = try? await client.fetchPowerState() {

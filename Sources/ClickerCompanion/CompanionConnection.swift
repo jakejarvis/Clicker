@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Network
 
@@ -143,8 +144,8 @@ package actor CompanionConnection {
         handleDisconnect(CompanionError.disconnected)
     }
 
-    package func enableEncryption(outputKey: SymmetricKeyBox, inputKey: SymmetricKeyBox) {
-        cipher = SessionCipher(outputKey: outputKey.key, inputKey: inputKey.key)
+    package func enableEncryption(outputKey: SymmetricKey, inputKey: SymmetricKey) {
+        cipher = SessionCipher(outputKey: outputKey, inputKey: inputKey)
     }
 
     // MARK: - Sending

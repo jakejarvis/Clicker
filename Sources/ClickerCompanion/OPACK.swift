@@ -294,9 +294,11 @@ package enum OPACK {
             case 0x36:
                 value = .double(Double(bitPattern: try littleEndian(byteCount: 8)))
             case 0x30...0x33:
+                // Sized ints join the object list, unlike the one-byte ones
+                // above: pyatv's `_unpack` records them, and a pointer after
+                // one would otherwise land one object early.
                 let byteCount = 1 << Int(marker & 0x0F)
                 value = .int(Int64(bitPattern: try littleEndian(byteCount: byteCount)))
-                recordObject = false
             case 0x40...0x60:
                 value = try string(length: Int(marker - 0x40))
             case 0x61...0x64:
