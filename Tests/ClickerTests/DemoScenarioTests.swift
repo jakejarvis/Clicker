@@ -26,15 +26,16 @@ import Testing
             #expect(controller.devices.first { $0.name == "Office" }.map(controller.isPaired) == false)
         }
 
-        @Test @MainActor func scenariosDescribeTheirState() {
-            let expectations: [(DemoScenario, String)] = [
-                (.asleep, "Asleep"), (.offline, "Offline"), (.pair, "Not paired"), (.pin, "Not paired"),
-            ]
-            for (scenario, description) in expectations {
-                let controller = RemoteController(demo: scenario)
-                controller.start()
-                #expect(controller.selectedStateDescription == description, "\(scenario)")
-            }
+        @Test(arguments: [
+            (DemoScenario.asleep, "Asleep"), (.offline, "Offline"), (.pair, "Not paired"), (.pin, "Not paired"),
+        ])
+        @MainActor func scenariosDescribeTheirState(_ scenario: DemoScenario, description: String) {
+            let controller = RemoteController(demo: scenario)
+            controller.start()
+            #expect(controller.selectedStateDescription == description)
+        }
+
+        @Test @MainActor func typingScenarioMirrorsTheTVField() {
             let typing = RemoteController(demo: .typing)
             typing.start()
             #expect(typing.keyboardSession != nil)

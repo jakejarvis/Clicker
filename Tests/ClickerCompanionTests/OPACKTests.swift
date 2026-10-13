@@ -4,18 +4,16 @@ import Testing
 @testable import ClickerCompanion
 
 @Suite struct OPACKTests {
-    @Test func roundTripsScalars() throws {
-        let values: [OPACKValue] = [
+    @Test(
+        arguments: [
             .null, .bool(true), .bool(false), .int(0), .int(0x27), .int(0x28), .int(0xFF), .int(0x100),
             .int(0x1_0000), .int(0x1_0000_0000), .int(-5), .double(3.25), .string(""), .string("hello"),
             .string(String(repeating: "x", count: 40)), .string(String(repeating: "y", count: 300)),
             .data(Data()), .data(Data(repeating: 7, count: 33)), .data(Data(repeating: 1, count: 70_000)),
             .uuid(UUID()), .date(123.5),
-        ]
-        for value in values {
-            let decoded = try OPACK.decode(OPACK.encode(value))
-            #expect(decoded == value, "\(value)")
-        }
+        ] as [OPACKValue])
+    func roundTripsScalars(_ value: OPACKValue) throws {
+        #expect(try OPACK.decode(OPACK.encode(value)) == value)
     }
 
     @Test func roundTripsContainers() throws {

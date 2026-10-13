@@ -12,11 +12,10 @@ import Testing
         CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
     }
 
-    @Test func directionsOwnTheirArrows() {
-        for direction in Direction.allCases {
-            let arrow = point(radius: ClickpadGeometry.arrowRadius, angle: direction.centerAngle)
-            #expect(ClickpadGeometry.direction(at: arrow, center: center) == direction)
-        }
+    @Test(arguments: Direction.allCases)
+    func directionsOwnTheirArrows(_ direction: Direction) {
+        let arrow = point(radius: ClickpadGeometry.arrowRadius, angle: direction.centerAngle)
+        #expect(ClickpadGeometry.direction(at: arrow, center: center) == direction)
     }
 
     @Test func diagonalsSplitTheQuadrants() {
@@ -36,17 +35,16 @@ import Testing
         #expect(ClickpadGeometry.direction(at: pastRim, center: center) == nil)
     }
 
-    @Test func quadrantPathsMatchTheHitTest() {
+    @Test(arguments: Direction.allCases)
+    func quadrantPathsMatchTheHitTest(_ direction: Direction) {
         // Walk the band and check the drawn quadrant agrees with direction(at:).
-        for direction in Direction.allCases {
-            let path = ClickpadGeometry.quadrantPath(for: direction, center: center)
-            for radius in stride(from: ClickpadGeometry.innerRadius + 1, to: ClickpadGeometry.outerRadius, by: 8) {
-                for step in 0..<36 {
-                    let angle = CGFloat(step) * .pi / 18 + 0.01
-                    let p = point(radius: radius, angle: angle)
-                    let hit = ClickpadGeometry.direction(at: p, center: center) == direction
-                    #expect(path.contains(p) == hit, "\(direction) r=\(radius) angle=\(angle)")
-                }
+        let path = ClickpadGeometry.quadrantPath(for: direction, center: center)
+        for radius in stride(from: ClickpadGeometry.innerRadius + 1, to: ClickpadGeometry.outerRadius, by: 8) {
+            for step in 0..<36 {
+                let angle = CGFloat(step) * .pi / 18 + 0.01
+                let p = point(radius: radius, angle: angle)
+                let hit = ClickpadGeometry.direction(at: p, center: center) == direction
+                #expect(path.contains(p) == hit, "r=\(radius) angle=\(angle)")
             }
         }
     }
