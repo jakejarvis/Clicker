@@ -24,7 +24,7 @@ Sources/ClickerCompanion        the protocol, a separate module the app imports
 └── …                          credentials, command enums, logging, small helpers
 ```
 
-The app module is main-actor by default; the protocol module is nonisolated, so its actors and codecs run wherever their callers put them and never on the main thread by accident.
+The app module is main-actor by default; the protocol module is nonisolated, so nothing in it is tied to the main actor. Its actors (the connection, the client, the pairing session) run their work on their own executors; its synchronous codecs run wherever they are called, which is the main actor when the app decodes an event there.
 
 ## Discovery
 

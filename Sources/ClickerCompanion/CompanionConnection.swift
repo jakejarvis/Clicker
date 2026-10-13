@@ -85,28 +85,39 @@ package actor CompanionConnection {
             timeoutTask.cancel()
             connectGate = nil
         }
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                gate.store(continuation)
-                connection.stateUpdateHandler = { state in
-                    switch state {
-                    case .ready:
-                        gate.resume(.success(()))
-                    case .failed(let error):
-                        gate.resume(.failure(CompanionError.connectionFailed(error)))
-                        connection.cancel()
-                    case .cancelled:
-                        gate.resume(.failure(CompanionError.disconnected))
-                    case .waiting(let error):
-                        Log.connection.info("Waiting for connection: \(error.localizedDescription, privacy: .public)")
-                    default:
-                        break
+        do {
+            try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    // False when a cancellation (or `close()`) already settled
+                    // the gate: the continuation is resumed, so do not start.
+                    guard gate.store(continuation) else { return }
+                    connection.stateUpdateHandler = { state in
+                        switch state {
+                        case .ready:
+                            gate.resume(.success(()))
+                        case .failed(let error):
+                            gate.resume(.failure(CompanionError.connectionFailed(error)))
+                            connection.cancel()
+                        case .cancelled:
+                            gate.resume(.failure(CompanionError.disconnected))
+                        case .waiting(let error):
+                            Log.connection.info(
+                                "Waiting for connection: \(error.localizedDescription, privacy: .public)")
+                        default:
+                            break
+                        }
                     }
+                    connection.start(queue: queue)
                 }
-                connection.start(queue: queue)
+            } onCancel: {
+                if gate.resume(.failure(CancellationError())) { connection.cancel() }
             }
-        } onCancel: {
-            if gate.resume(.failure(CancellationError())) { connection.cancel() }
+        } catch {
+            // A failed connect leaves the actor closed, like a dropped
+            // session, rather than holding a dead connection that reads as
+            // connected and makes the next `connect()` a silent no-op.
+            handleDisconnect(error)
+            throw error
         }
 
         // `close()` may have run while the connect was suspended.
