@@ -3,6 +3,23 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.2.6</title>
+            <pubDate>Tue, 13 Oct 2026 18:03:11 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>206</sparkle:version>
+            <sparkle:shortVersionString>0.2.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.6
+
+- Clicking Pair no longer briefly freezes the panel while the pairing keys are computed.
+- A connection that fails or is abandoned is cleaned up right away, so the next attempt actually reconnects instead of waiting out a timeout.
+- Quitting and closing the panel mid-connect no longer wait for a stalled Apple TV to time out.
+- Rescan no longer lets results from the previous search briefly change the device list.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.6/Clicker-0.2.6.zip" length="4859914" type="application/octet-stream" sparkle:edSignature="WFh/ofcZ0i64TDKfdNxrwcdi3YOaQk3D+n8UdLpH12go2PpZCKHfAMHr9AJCjKAX5RvnNjmWiea4q5uMGyVZBg=="/>
+        </item>
+        <item>
             <title>0.2.5</title>
             <pubDate>Mon, 12 Oct 2026 22:03:05 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
