@@ -12,11 +12,11 @@ import Testing
             #expect(controller.recentApps.map(\.name) == ["Netflix", "TV", "YouTube"])
         }
 
-        @Test @MainActor func togglingStarsAndUnstarsInOrder() {
+        @Test @MainActor func togglingStarsAndUnstarsInOrder() throws {
             let controller = RemoteController(demo: .ready)
             controller.start()
-            let netflix = try! #require(controller.apps.first { $0.name == "Netflix" })
-            let plex = try! #require(controller.apps.first { $0.name == "Plex" })
+            let netflix = try #require(controller.apps.first { $0.name == "Netflix" })
+            let plex = try #require(controller.apps.first { $0.name == "Plex" })
 
             #expect(controller.isFavorite(netflix) == false)
             controller.toggleFavorite(netflix)
@@ -36,10 +36,10 @@ import Testing
             #expect(controller.favoriteApps.map(\.name) == ["Plex", "Music"])
         }
 
-        @Test @MainActor func forgettingATVDropsItsFavorites() {
+        @Test @MainActor func forgettingATVDropsItsFavorites() throws {
             let controller = RemoteController(demo: .ready)
             controller.start()
-            let device = try! #require(controller.selectedDevice)
+            let device = try #require(controller.selectedDevice)
             #expect(!controller.favoriteApps.isEmpty)
             controller.forgetPairing(for: device)
             #expect(controller.favoriteAppIDsByDevice[device.id] == nil)

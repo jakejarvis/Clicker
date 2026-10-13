@@ -4,36 +4,36 @@ import Network
 /// High-level remote control session with one Apple TV: connects, verifies the
 /// pairing, registers the session the way the iOS Remote does, and exposes
 /// button, app and power commands.
-actor CompanionClient {
-    let credentials: PairingCredentials
-    let identity: ClientIdentity
+package actor CompanionClient {
+    package let credentials: PairingCredentials
+    package let identity: ClientIdentity
     private let connection: CompanionConnection
-    private(set) var sessionID: UInt64 = 0
+    package private(set) var sessionID: UInt64 = 0
     /// The TV's half of the `_systemInfo` exchange, kept for the details view.
-    private(set) var deviceSystemInfo: [String: OPACKValue] = [:]
+    package private(set) var deviceSystemInfo: [String: OPACKValue] = [:]
 
     /// The tvOS version the TV reported in its `_systemInfo` reply (`_osV`).
-    var osVersion: String? { deviceSystemInfo["_osV"]?.stringValue }
+    package var osVersion: String? { deviceSystemInfo["_osV"]?.stringValue }
 
-    nonisolated var events: AsyncStream<CompanionEvent> { connection.events }
+    package nonisolated var events: AsyncStream<CompanionEvent> { connection.events }
 
-    init(endpoint: NWEndpoint, credentials: PairingCredentials, identity: ClientIdentity) {
+    package init(endpoint: NWEndpoint, credentials: PairingCredentials, identity: ClientIdentity) {
         self.credentials = credentials
         self.identity = identity
         self.connection = CompanionConnection(endpoint: endpoint)
     }
 
-    var isConnected: Bool {
+    package var isConnected: Bool {
         get async { await connection.isConnected }
     }
 
-    var remoteEndpoint: NWEndpoint? {
+    package var remoteEndpoint: NWEndpoint? {
         get async { await connection.remoteEndpoint }
     }
 
     /// `timeout` bounds the TCP connect alone; pair-verify and session
     /// setup have their own per-request limits.
-    func connect(timeout: TimeInterval = 10) async throws {
+    package func connect(timeout: Duration = .seconds(10)) async throws {
         do {
             try await connection.connect(timeout: timeout)
             try await CompanionPairing.verify(on: connection, credentials: credentials)
@@ -54,16 +54,16 @@ actor CompanionClient {
         }
     }
 
-    func disconnect() async {
-        _ = try? await request("_tiStop", [:], timeout: 1)
+    package func disconnect() async {
+        _ = try? await request("_tiStop", [:], timeout: .seconds(1))
         if touchStartedAt != nil {
-            _ = try? await request("_touchStop", ["_i": 1], timeout: 1)
+            _ = try? await request("_touchStop", ["_i": 1], timeout: .seconds(1))
         }
         if sessionID != 0 {
             _ = try? await request(
                 "_sessionStop",
                 ["_srvT": "com.apple.tvremoteservices", "_sid": .int(Int64(bitPattern: sessionID))],
-                timeout: 1
+                timeout: .seconds(1)
             )
         }
         await connection.close()
@@ -71,54 +71,58 @@ actor CompanionClient {
 
     // MARK: - Buttons
 
-    func press(_ command: HIDCommand) async throws {
+    package func press(_ command: HIDCommand) async throws {
         try await buttonDown(command)
         try await buttonUp(command)
     }
 
-    func buttonDown(_ command: HIDCommand) async throws {
+    package func buttonDown(_ command: HIDCommand) async throws {
         _ = try await request("_hidC", ["_hBtS": 1, "_hidC": .int(command.rawValue)])
     }
 
-    func buttonUp(_ command: HIDCommand) async throws {
+    package func buttonUp(_ command: HIDCommand) async throws {
         _ = try await request("_hidC", ["_hBtS": 2, "_hidC": .int(command.rawValue)])
     }
 
     // MARK: - Media control
 
-    /// Media-control commands sent as `_mcc`, numbered as in pyatv. They act on
-    /// the TV's current player; `MediaControlFlags` says which it accepts.
-    /// Caption settings (12, 13) are listed for completeness only: pyatv never
-    /// sends them, so their payload is unknown.
-    enum MediaControlCommand: Int64, Sendable {
+    /// The media-control commands that take no arguments, sent as `_mcc` and
+    /// numbered as in pyatv. They act on the TV's current player;
+    /// `MediaControlFlags` says which it accepts. The rest of the `_mcc` set
+    /// has its own methods (`skip(by:)`, `fetchVolume()`, `setVolume(_:)`).
+    package enum MediaControlCommand: Int64, Sendable {
         case play = 1
         case pause = 2
         case nextTrack = 3
         case previousTrack = 4
-        case getVolume = 5
-        case setVolume = 6
-        case skipBy = 7
         case fastForwardBegin = 8
         case fastForwardEnd = 9
         case rewindBegin = 10
         case rewindEnd = 11
+    }
+
+    /// The `_mcc` numbers of the commands with arguments or replies. Caption
+    /// settings (12, 13) are listed for completeness only: pyatv never sends
+    /// them, so their payload is unknown.
+    private enum MediaControlOperation: Int64 {
+        case getVolume = 5
+        case setVolume = 6
+        case skipBy = 7
         case getCaptionSettings = 12
         case setCaptionSettings = 13
     }
 
-    /// Sends a media-control command that takes no arguments (play, pause,
-    /// next/previous track, and the begin/end halves of fast forward and rewind).
-    func mediaControl(_ command: MediaControlCommand) async throws {
+    package func mediaControl(_ command: MediaControlCommand) async throws {
         _ = try await request("_mcc", ["_mcc": .int(command.rawValue)])
     }
 
     /// Skips the current item by `seconds`, backward when negative. Sent as a
     /// double: pyatv notes that negative OPACK integers are rejected.
-    func skip(by seconds: Double) async throws {
+    package func skip(by seconds: Double) async throws {
         _ = try await request(
             "_mcc",
             [
-                "_mcc": .int(MediaControlCommand.skipBy.rawValue),
+                "_mcc": .int(MediaControlOperation.skipBy.rawValue),
                 "_skpS": .double(seconds),
             ])
     }
@@ -126,19 +130,19 @@ actor CompanionClient {
     /// Current output volume in 0...1. Only meaningful while the TV's media
     /// control flags include `.volume`; over plain HDMI the request fails or
     /// comes back without a level.
-    func fetchVolume() async throws -> Double {
-        let response = try await request("_mcc", ["_mcc": .int(MediaControlCommand.getVolume.rawValue)])
+    package func fetchVolume() async throws -> Double {
+        let response = try await request("_mcc", ["_mcc": .int(MediaControlOperation.getVolume.rawValue)])
         guard let volume = response["_c"]?["_vol"]?.doubleValue else {
             throw CompanionError.unexpectedResponse("volume missing")
         }
         return volume
     }
 
-    func setVolume(_ volume: Double) async throws {
+    package func setVolume(_ volume: Double) async throws {
         let response = try await request(
             "_mcc",
             [
-                "_mcc": .int(MediaControlCommand.setVolume.rawValue),
+                "_mcc": .int(MediaControlOperation.setVolume.rawValue),
                 "_vol": .double(min(max(volume, 0), 1)),
             ])
         Log.remote.info(
@@ -147,8 +151,8 @@ actor CompanionClient {
 
     // MARK: - Apps
 
-    func fetchApps() async throws -> [AppleTVApp] {
-        let response = try await request("FetchLaunchableApplicationsEvent", [:], timeout: 10)
+    package func fetchApps() async throws -> [AppleTVApp] {
+        let response = try await request("FetchLaunchableApplicationsEvent", [:], timeout: .seconds(10))
         guard let content = response["_c"]?.stringKeyedDictionary else {
             throw CompanionError.unexpectedResponse("app list missing content")
         }
@@ -159,14 +163,14 @@ actor CompanionClient {
         .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    func launchApp(bundleIdentifier: String) async throws {
+    package func launchApp(bundleIdentifier: String) async throws {
         _ = try await request("_launchApp", ["_bundleID": .string(bundleIdentifier)])
     }
 
     // MARK: - User accounts
 
     /// The tvOS user profiles that can be switched to, by name.
-    func fetchUserAccounts() async throws -> [UserAccount] {
+    package func fetchUserAccounts() async throws -> [UserAccount] {
         let response = try await request("FetchUserAccountsEvent", [:])
         guard let content = response["_c"]?.stringKeyedDictionary else {
             throw CompanionError.unexpectedResponse("account list missing content")
@@ -178,16 +182,16 @@ actor CompanionClient {
         .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    func switchUserAccount(id: String) async throws {
+    package func switchUserAccount(id: String) async throws {
         _ = try await request("SwitchUserAccountEvent", ["SwitchAccountID": .string(id)])
     }
 
     // MARK: - Touch
 
     /// Side of the virtual touchpad in the TV's units; coordinates run 0...1000.
-    static let touchpadSize = 1000.0
+    package static let touchpadSize = 1000.0
     /// pyatv's spacing between the hold events of a swipe.
-    static let touchInterval: Duration = .milliseconds(16)
+    package static let touchInterval: Duration = .milliseconds(16)
 
     /// Set by `_touchStart`; touch events carry nanoseconds since then.
     private var touchStartedAt: ContinuousClock.Instant?
@@ -195,7 +199,7 @@ actor CompanionClient {
     /// Sends one touch event at `x`, `y` (0...1000), opening the touch
     /// session on first use. pyatv opens it on every connect; doing it lazily
     /// keeps sessions that never touch the same as before.
-    func touch(x: Double, y: Double, phase: TouchPhase) async throws {
+    package func touch(x: Double, y: Double, phase: TouchPhase) async throws {
         let startedAt = try await startTouchIfNeeded()
         let elapsed = ContinuousClock.now - startedAt
         let nanoseconds = elapsed.components.seconds * 1_000_000_000 + elapsed.components.attoseconds / 1_000_000_000
@@ -215,7 +219,7 @@ actor CompanionClient {
     /// as pyatv's `swipe` does: a press, hold events every 16 ms, a release.
     /// tvOS reads a 600-unit drag over 200 ms as a flick with momentum: on
     /// the Home Screen it moved focus two or three tiles, not one.
-    func swipe(from start: CGPoint, to end: CGPoint, duration: Duration) async throws {
+    package func swipe(from start: CGPoint, to end: CGPoint, duration: Duration) async throws {
         let clock = ContinuousClock()
         let startedAt = clock.now
         try await touch(x: start.x, y: start.y, phase: .press)
@@ -245,17 +249,17 @@ actor CompanionClient {
     /// Opens a text-input session. Returns the TV's current field when a
     /// keyboard is on screen, `nil` otherwise; the TV then pushes
     /// `_tiStarted` / `_tiStopped` events as focus changes.
-    func startTextInput() async throws -> TextInputArchive.Session? {
+    package func startTextInput() async throws -> TextInputArchive.Session? {
         let response = try await request("_tiStart", [:])
         guard let payload = response["_c"]?["_tiD"]?.dataValue else { return nil }
         return TextInputArchive.session(from: payload)
     }
 
-    func stopTextInput() async throws {
+    package func stopTextInput() async throws {
         _ = try await request("_tiStop", [:])
     }
 
-    func insertText(_ text: String, session: TextInputArchive.Session) async throws {
+    package func insertText(_ text: String, session: TextInputArchive.Session) async throws {
         try await sendEvent(
             "_tiC",
             [
@@ -264,7 +268,7 @@ actor CompanionClient {
             ])
     }
 
-    func clearText(session: TextInputArchive.Session) async throws {
+    package func clearText(session: TextInputArchive.Session) async throws {
         try await sendEvent(
             "_tiC",
             [
@@ -274,7 +278,7 @@ actor CompanionClient {
     }
 
     /// Replaces the field's contents in one event; see `TextInputArchive.replaceTextPayload`.
-    func replaceText(_ text: String, session: TextInputArchive.Session) async throws {
+    package func replaceText(_ text: String, session: TextInputArchive.Session) async throws {
         try await sendEvent(
             "_tiC",
             [
@@ -286,7 +290,7 @@ actor CompanionClient {
     // MARK: - Power
 
     /// Not implemented on recent tvOS; callers should fall back to pushed events.
-    func fetchPowerState() async throws -> PowerState {
+    package func fetchPowerState() async throws -> PowerState {
         let response = try await request("FetchAttentionState", [:])
         guard let state = response["_c"]?["state"]?.intValue else {
             throw CompanionError.unexpectedResponse("attention state missing")
@@ -340,7 +344,7 @@ actor CompanionClient {
     private func request(
         _ identifier: String,
         _ content: [String: OPACKValue],
-        timeout: TimeInterval = 5
+        timeout: Duration = .seconds(5)
     ) async throws -> OPACKValue {
         try await connection.exchange(
             .encryptedOPACK,

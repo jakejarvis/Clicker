@@ -1,10 +1,10 @@
 import CryptoKit
 
 /// `SymmetricKey` wrapper that is explicitly `Sendable` so keys can cross actor boundaries.
-struct SymmetricKeyBox: Sendable {
-    let key: SymmetricKey
+package struct SymmetricKeyBox: Sendable {
+    package let key: SymmetricKey
 
-    init(_ key: SymmetricKey) {
+    package init(_ key: SymmetricKey) {
         self.key = key
     }
 }

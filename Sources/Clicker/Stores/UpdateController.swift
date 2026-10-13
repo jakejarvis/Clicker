@@ -1,4 +1,5 @@
 import AppKit
+import ClickerCompanion
 import Observation
 import Sparkle
 
@@ -10,7 +11,6 @@ import Sparkle
 /// the alert only appears when the user asks for it. While a Sparkle window is
 /// up the app becomes `.regular` so the window comes forward with a Dock icon,
 /// then returns to the activation policy it launched with.
-@MainActor
 @Observable
 final class UpdateController: NSObject {
     /// False for development builds, whose Info.plist has no `SUFeedURL`.

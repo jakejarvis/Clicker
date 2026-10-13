@@ -1,3 +1,4 @@
+import ClickerCompanion
 import SwiftUI
 
 /// Popover content for the Apps button: a search field over the Apple TV's

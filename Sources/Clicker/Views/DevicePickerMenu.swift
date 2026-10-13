@@ -1,4 +1,5 @@
 import AppKit
+import ClickerCompanion
 import SwiftUI
 
 /// The device selector: a full-width control showing the current Apple TV's

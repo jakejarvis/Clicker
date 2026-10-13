@@ -1,3 +1,4 @@
+import ClickerCompanion
 import SwiftUI
 
 /// Apps button at the top left of the clickpad. Opens `AppPickerView` in a

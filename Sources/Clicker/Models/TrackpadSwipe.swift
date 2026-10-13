@@ -1,3 +1,4 @@
+import ClickerCompanion
 import Foundation
 
 /// Turns a two-finger scroll on the Mac's trackpad into one finger on the
@@ -9,7 +10,7 @@ import Foundation
 ///
 /// Kept free of AppKit so the rules are unit tested; the view layer reduces
 /// an `NSEvent` to an `Event`.
-struct TrackpadSwipe: Sendable {
+nonisolated struct TrackpadSwipe: Sendable {
     /// One scroll-wheel event, reduced to what the translation needs.
     struct Event: Sendable {
         enum Phase: Sendable {

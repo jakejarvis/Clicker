@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import Clicker
+@testable import ClickerCompanion
 
 @Suite struct TextInputArchiveTests {
     @Test func insertPayloadMatchesRTIShape() throws {

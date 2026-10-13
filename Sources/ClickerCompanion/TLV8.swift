@@ -2,8 +2,8 @@ import Foundation
 
 /// TLV8 as used by HomeKit-style pairing (one byte tag, one byte length).
 /// Values longer than 255 bytes are split across repeated tags and joined on read.
-enum TLV8 {
-    enum Tag: UInt8, Sendable {
+package enum TLV8 {
+    package enum Tag: UInt8, Sendable {
         case method = 0x00
         case identifier = 0x01
         case salt = 0x02
@@ -22,7 +22,7 @@ enum TLV8 {
         case flags = 0x13
     }
 
-    enum ErrorCode: UInt8, Sendable {
+    package enum ErrorCode: UInt8, Sendable {
         case unknown = 0x01
         case authentication = 0x02
         case backoff = 0x03
@@ -31,7 +31,7 @@ enum TLV8 {
         case unavailable = 0x06
         case busy = 0x07
 
-        var message: String {
+        package var message: String {
             switch self {
             case .unknown: return "The Apple TV reported an unknown error."
             case .authentication: return "That code wasn't accepted."
@@ -44,19 +44,19 @@ enum TLV8 {
         }
     }
 
-    struct Items: Sendable {
+    package struct Items: Sendable {
         private var storage: [UInt8: Data] = [:]
 
-        subscript(tag: Tag) -> Data? {
+        package subscript(tag: Tag) -> Data? {
             get { storage[tag.rawValue] }
             set { storage[tag.rawValue] = newValue }
         }
 
-        subscript(raw tag: UInt8) -> Data? {
+        package subscript(raw tag: UInt8) -> Data? {
             storage[tag]
         }
 
-        var errorCode: ErrorCode? {
+        package var errorCode: ErrorCode? {
             guard let bytes = self[.error], let first = bytes.first else { return nil }
             return ErrorCode(rawValue: first)
         }
@@ -70,7 +70,7 @@ enum TLV8 {
         }
     }
 
-    static func encode(_ items: [(Tag, Data)]) -> Data {
+    package static func encode(_ items: [(Tag, Data)]) -> Data {
         var output = Data()
         for (tag, value) in items {
             // Walk the value's own indices: `Data` slices (CryptoKit ciphertext,
@@ -88,7 +88,7 @@ enum TLV8 {
         return output
     }
 
-    static func decode(_ data: Data) throws -> Items {
+    package static func decode(_ data: Data) throws -> Items {
         var items = Items()
         var index = data.startIndex
         while index < data.endIndex {
@@ -105,6 +105,6 @@ enum TLV8 {
     }
 }
 
-enum TLV8Error: Error {
+package enum TLV8Error: Error {
     case truncated
 }

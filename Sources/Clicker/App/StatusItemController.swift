@@ -7,7 +7,6 @@ import SwiftUI
 /// Deliberately not `MenuBarExtra`: its window is system chrome with no control
 /// over corner radius, size animation or key status. A plain `NSStatusItem`
 /// plus a key-capable `NSPanel` gives all three.
-@MainActor
 final class StatusItemController: NSObject {
     private let controller: RemoteController
     private let updates: UpdateController
@@ -347,7 +346,7 @@ final class StatusItemController: NSObject {
     /// the content animation, so it is refreshed once the frames stop.
     private func scheduleShadowSettle() {
         shadowSettleTask?.cancel()
-        shadowSettleTask = Task { @MainActor [weak self] in
+        shadowSettleTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(120))
             guard !Task.isCancelled, let self, self.panel.isVisible else { return }
             self.panel.invalidateShadow()

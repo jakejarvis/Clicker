@@ -65,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// answer is not allowed to hold the quit past a second.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let controller, controller.hasSession else { return .terminateNow }
-        Task { @MainActor in
+        Task {
             await controller.shutdown(within: .seconds(1))
             NSApp.reply(toApplicationShouldTerminate: true)
         }
@@ -77,11 +77,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// on it closes the panel, which has still shown where the icon is.
     /// The first-launch flag is recorded only once the panel is actually up,
     /// so a launch where the status item was not ready gets another go.
-    /// Main-actor isolated like the delegate callback that calls it, so the
-    /// task may capture `self`.
-    @MainActor
     private func openPanelShortly(recordingFirstLaunch: Bool = false) {
-        Task { @MainActor [weak self] in
+        Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
             guard let self, self.statusItemController?.openPanelIfHidden() == true else { return }
             if recordingFirstLaunch { UserDefaults.standard.set(true, forKey: Self.firstLaunchKey) }

@@ -1,3 +1,4 @@
+import ClickerCompanion
 import SwiftUI
 
 /// Something standing between the user and a working remote. The remote is

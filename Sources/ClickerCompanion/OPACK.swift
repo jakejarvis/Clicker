@@ -2,7 +2,7 @@ import Foundation
 
 /// A value in Apple's OPACK serialization format, which the Companion protocol
 /// uses for every message payload.
-indirect enum OPACKValue: Hashable, Sendable {
+package indirect enum OPACKValue: Hashable, Sendable {
     case null
     case bool(Bool)
     case uuid(UUID)
@@ -18,17 +18,17 @@ indirect enum OPACKValue: Hashable, Sendable {
 // MARK: - Convenience accessors
 
 extension OPACKValue {
-    subscript(key: String) -> OPACKValue? {
+    package subscript(key: String) -> OPACKValue? {
         guard case .dictionary(let dictionary) = self else { return nil }
         return dictionary[.string(key)]
     }
 
-    var stringValue: String? {
+    package var stringValue: String? {
         if case .string(let value) = self { return value }
         return nil
     }
 
-    var intValue: Int64? {
+    package var intValue: Int64? {
         switch self {
         case .int(let value): return value
         case .double(let value): return Int64(exactly: value)
@@ -37,7 +37,7 @@ extension OPACKValue {
         }
     }
 
-    var boolValue: Bool? {
+    package var boolValue: Bool? {
         switch self {
         case .bool(let value): return value
         case .int(let value): return value != 0
@@ -45,7 +45,7 @@ extension OPACKValue {
         }
     }
 
-    var doubleValue: Double? {
+    package var doubleValue: Double? {
         switch self {
         case .double(let value): return value
         case .int(let value): return Double(value)
@@ -53,24 +53,24 @@ extension OPACKValue {
         }
     }
 
-    var dataValue: Data? {
+    package var dataValue: Data? {
         if case .data(let value) = self { return value }
         return nil
     }
 
-    var arrayValue: [OPACKValue]? {
+    package var arrayValue: [OPACKValue]? {
         if case .array(let value) = self { return value }
         return nil
     }
 
-    var dictionaryValue: [OPACKValue: OPACKValue]? {
+    package var dictionaryValue: [OPACKValue: OPACKValue]? {
         if case .dictionary(let value) = self { return value }
         return nil
     }
 
     /// The dictionary with only its string-keyed entries, which is every key
     /// Apple uses in practice.
-    var stringKeyedDictionary: [String: OPACKValue]? {
+    package var stringKeyedDictionary: [String: OPACKValue]? {
         guard let dictionary = dictionaryValue else { return nil }
         var result: [String: OPACKValue] = [:]
         for (key, value) in dictionary {
@@ -79,7 +79,7 @@ extension OPACKValue {
         return result
     }
 
-    static func dictionary(_ entries: [String: OPACKValue]) -> OPACKValue {
+    package static func dictionary(_ entries: [String: OPACKValue]) -> OPACKValue {
         var result: [OPACKValue: OPACKValue] = [:]
         for (key, value) in entries { result[.string(key)] = value }
         return .dictionary(result)
@@ -90,12 +90,12 @@ extension OPACKValue: ExpressibleByStringLiteral, ExpressibleByIntegerLiteral,
     ExpressibleByBooleanLiteral, ExpressibleByFloatLiteral,
     ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral
 {
-    init(stringLiteral value: String) { self = .string(value) }
-    init(integerLiteral value: Int64) { self = .int(value) }
-    init(booleanLiteral value: Bool) { self = .bool(value) }
-    init(floatLiteral value: Double) { self = .double(value) }
-    init(arrayLiteral elements: OPACKValue...) { self = .array(elements) }
-    init(dictionaryLiteral elements: (String, OPACKValue)...) {
+    package init(stringLiteral value: String) { self = .string(value) }
+    package init(integerLiteral value: Int64) { self = .int(value) }
+    package init(booleanLiteral value: Bool) { self = .bool(value) }
+    package init(floatLiteral value: Double) { self = .double(value) }
+    package init(arrayLiteral elements: OPACKValue...) { self = .array(elements) }
+    package init(dictionaryLiteral elements: (String, OPACKValue)...) {
         var result: [OPACKValue: OPACKValue] = [:]
         for (key, value) in elements { result[.string(key)] = value }
         self = .dictionary(result)
@@ -103,7 +103,7 @@ extension OPACKValue: ExpressibleByStringLiteral, ExpressibleByIntegerLiteral,
 }
 
 extension OPACKValue: CustomStringConvertible {
-    var description: String {
+    package var description: String {
         switch self {
         case .null: return "null"
         case .bool(let value): return value ? "true" : "false"
@@ -127,21 +127,21 @@ extension OPACKValue: CustomStringConvertible {
 
 // MARK: - Codec
 
-enum OPACKError: Error, Equatable {
+package enum OPACKError: Error, Equatable {
     case truncated
     case unsupportedMarker(UInt8)
     case invalidPointer(Int)
     case invalidString
 }
 
-enum OPACK {
-    static func encode(_ value: OPACKValue) -> Data {
+package enum OPACK {
+    package static func encode(_ value: OPACKValue) -> Data {
         var output = Data()
         encode(value, into: &output)
         return output
     }
 
-    static func decode(_ data: Data) throws -> OPACKValue {
+    package static func decode(_ data: Data) throws -> OPACKValue {
         var decoder = Decoder(bytes: [UInt8](data))
         return try decoder.decodeValue()
     }
@@ -257,6 +257,8 @@ enum OPACK {
         let bytes: [UInt8]
         var index = 0
         var objects: [OPACKValue] = []
+        /// The same values as `objects`, for constant-time deduplication.
+        var recorded: Set<OPACKValue> = []
 
         init(bytes: [UInt8]) {
             self.bytes = bytes
@@ -346,7 +348,7 @@ enum OPACK {
                 throw OPACKError.unsupportedMarker(marker)
             }
 
-            if recordObject, !objects.contains(value) {
+            if recordObject, recorded.insert(value).inserted {
                 objects.append(value)
             }
             return value

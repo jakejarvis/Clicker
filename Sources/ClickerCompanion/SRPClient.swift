@@ -4,22 +4,22 @@ import Foundation
 
 /// SRP-6a client in the HomeKit flavor: RFC 5054 3072-bit group, SHA-512,
 /// `k = H(N | PAD(g))`, `u = H(PAD(A) | PAD(B))`, and the RFC 2945 proofs.
-struct SRPClient {
-    struct Session: Sendable {
+package struct SRPClient {
+    package struct Session: Sendable {
         /// `M1`, sent to the accessory.
-        let clientProof: Data
+        package let clientProof: Data
         /// `M2`, which the accessory must echo back.
-        let expectedServerProof: Data
+        package let expectedServerProof: Data
         /// `K`, the shared session key used to derive the pairing keys.
-        let sessionKey: Data
+        package let sessionKey: Data
     }
 
-    enum Failure: Error {
+    package enum Failure: Error {
         case invalidServerPublicKey
         case invalidScrambler
     }
 
-    static let prime = BigUInt(
+    package static let prime = BigUInt(
         "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DD"
             + "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"
             + "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"
@@ -30,30 +30,31 @@ struct SRPClient {
             + "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF",
         radix: 16
     )!
-    static let generator = BigUInt(5)
-    static let keyLength = 384
+    package static let generator = BigUInt(5)
+    package static let keyLength = 384
 
     private let privateKey: BigUInt
     private let publicKeyValue: BigUInt
 
-    init() {
+    package init() {
         var bytes = [UInt8](repeating: 0, count: 32)
         var generator = SystemRandomNumberGenerator()
         for index in bytes.indices { bytes[index] = generator.next() }
         self.init(privateKey: BigUInt(Data(bytes)))
     }
 
-    init(privateKey: BigUInt) {
+    package init(privateKey: BigUInt) {
         self.privateKey = privateKey
         self.publicKeyValue = Self.generator.power(privateKey, modulus: Self.prime)
     }
 
     /// `A`, padded to the group size.
-    var publicKey: Data {
+    package var publicKey: Data {
         Self.pad(publicKeyValue)
     }
 
-    func process(serverPublicKey: Data, salt: Data, username: String = "Pair-Setup", password: String) throws -> Session
+    package func process(serverPublicKey: Data, salt: Data, username: String = "Pair-Setup", password: String) throws
+        -> Session
     {
         let N = Self.prime
         let g = Self.generator
@@ -90,13 +91,13 @@ struct SRPClient {
         return Session(clientProof: M1, expectedServerProof: M2, sessionKey: K)
     }
 
-    static func hash(_ parts: Data...) -> Data {
+    package static func hash(_ parts: Data...) -> Data {
         var hasher = SHA512()
         for part in parts { hasher.update(data: part) }
         return Data(hasher.finalize())
     }
 
-    static func pad(_ value: BigUInt) -> Data {
+    package static func pad(_ value: BigUInt) -> Data {
         let bytes = value.serialize()
         guard bytes.count < keyLength else { return bytes }
         return Data(count: keyLength - bytes.count) + bytes

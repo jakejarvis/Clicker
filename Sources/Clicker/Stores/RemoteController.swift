@@ -1,9 +1,10 @@
+import ClickerCompanion
 import Foundation
 import Network
 import Observation
 import SwiftUI
 
-enum ConnectionState: Equatable, Sendable {
+nonisolated enum ConnectionState: Equatable, Sendable {
     case disconnected
     case connecting
     case connected
@@ -12,7 +13,7 @@ enum ConnectionState: Equatable, Sendable {
     var isBusy: Bool { self == .connecting }
 }
 
-enum PairingState: Equatable, Sendable {
+nonisolated enum PairingState: Equatable, Sendable {
     case idle
     case starting
     case awaitingPIN
@@ -25,7 +26,7 @@ enum PairingState: Equatable, Sendable {
 
 /// Where the live Companion session landed: the resolved address and the
 /// session id the TV handed back.
-struct ConnectionInfo: Hashable, Sendable {
+nonisolated struct ConnectionInfo: Hashable, Sendable {
     var address: String
     var port: UInt16
     var sessionID: UInt64
@@ -57,7 +58,7 @@ struct ConnectionInfo: Hashable, Sendable {
 
 /// Which page the menu bar panel is showing. Settings replaces the remote in
 /// place; there is no separate window.
-enum PanelScreen: Hashable, Sendable {
+nonisolated enum PanelScreen: Hashable, Sendable {
     case remote
     case settings
 }
@@ -66,14 +67,13 @@ enum PanelScreen: Hashable, Sendable {
 /// details mode. The mode rides on the item because an `isPresented`
 /// popover rendered its content with the previous mode when both changed
 /// in the same click.
-struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
+nonisolated struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
     let showsDetails: Bool
     var id: Bool { showsDetails }
 }
 
 /// App-wide remote control state: which Apple TV is selected, whether we are
 /// connected to it, and the actions the UI can trigger.
-@MainActor
 @Observable
 final class RemoteController {
     let browser = DeviceBrowser()
@@ -460,8 +460,8 @@ final class RemoteController {
     /// seconds, and the attempt that follows a dropped session tends to get
     /// no answer at all, so the first try gives up early and the retry
     /// waits the full ten.
-    static let firstConnectTimeout: TimeInterval = 5
-    static let retryConnectTimeout: TimeInterval = 10
+    static let firstConnectTimeout: Duration = .seconds(5)
+    static let retryConnectTimeout: Duration = .seconds(10)
 
     func connectIfNeeded(isRetry: Bool = false) {
         #if DEMO
@@ -534,7 +534,7 @@ final class RemoteController {
                         break
                     }
                 }
-                self.connectionState = .failed(Self.describe(error))
+                self.connectionState = .failed(error.localizedDescription)
             }
         }
     }
@@ -556,22 +556,21 @@ final class RemoteController {
     /// quit.
     func shutdown(within limit: Duration) async {
         guard let client = tearDownSession() else { return }
-        // Two detached tasks race for one continuation. A task group would
-        // not do: its scope waits for the disconnect child whatever the
-        // deadline says, and the requests inside it ignore cancellation.
-        let gate = ContinuationGate<Void>()
-        _ = try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            gate.store(continuation)
-            Task {
+        // The first child to finish wins; cancelling the other makes a
+        // disconnect still waiting on the TV give up at once.
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
                 await client.disconnect()
-                gate.resume(.success(()))
+                return true
             }
-            Task {
+            group.addTask {
                 try? await Task.sleep(for: limit)
-                if gate.resume(.success(())) {
-                    Log.connection.info("Quit without waiting for the TV to acknowledge the session's end")
-                }
+                return false
             }
+            if await group.next() == false {
+                Log.connection.info("Quit without waiting for the TV to acknowledge the session's end")
+            }
+            group.cancelAll()
         }
     }
 
@@ -713,17 +712,8 @@ final class RemoteController {
         perform { try await $0.press(command) }
     }
 
-    /// Sends a media-control command to the TV's current player. Volume and
-    /// caption commands are not accepted here: volume goes through Mute and
-    /// the HID buttons, and the caption payload is unknown.
+    /// Sends a media-control command to the TV's current player.
     func mediaControl(_ command: CompanionClient.MediaControlCommand) {
-        switch command {
-        case .getVolume, .setVolume, .getCaptionSettings, .setCaptionSettings, .skipBy:
-            assertionFailure("\(command) is not a plain media command")
-            return
-        default:
-            break
-        }
         Log.remote.info("Media control \(String(describing: command), privacy: .public)")
         perform { try await $0.mediaControl(command) }
     }
@@ -1019,7 +1009,7 @@ final class RemoteController {
                 self.lastActionError = nil
             } catch {
                 Log.remote.error("Command failed: \(String(describing: error), privacy: .public)")
-                self.lastActionError = Self.describe(error)
+                self.lastActionError = error.localizedDescription
                 switch error {
                 case CompanionError.disconnected, CompanionError.notConnected:
                     self.disconnect()
@@ -1075,7 +1065,7 @@ final class RemoteController {
                 // otherwise stay open until the TV drops it.
                 await session.cancel()
                 guard let self, self.pairingSession === session else { return }
-                self.pairingState = .failed(Self.describe(error))
+                self.pairingState = .failed(error.localizedDescription)
                 self.pairingSession = nil
             }
         }
@@ -1102,7 +1092,9 @@ final class RemoteController {
         let clientName = IdentityStore.identity().name
         Task { [weak self] in
             do {
-                let credentials = try await session.finish(pin: digits, clientName: clientName, device: device)
+                let credentials = try await session.finish(
+                    pin: digits, clientName: clientName, deviceID: device.id, deviceName: device.name,
+                    deviceModel: device.model)
                 guard let self, self.pairingSession === session else { return }
                 do {
                     try self.credentialStore.save(credentials)
@@ -1127,7 +1119,7 @@ final class RemoteController {
                 Log.pairing.error("Pair-setup failed: \(String(describing: error), privacy: .public)")
                 await session.cancel()
                 self.pairingSession = nil
-                self.pairingState = .failed(Self.describe(error))
+                self.pairingState = .failed(error.localizedDescription)
             }
         }
     }
@@ -1145,13 +1137,6 @@ final class RemoteController {
     /// credentials could not be stored (`--demo savefailed`).
     nonisolated static func pairingNotSavedMessage(_ reason: String) -> String {
         "Paired, but the pairing couldn't be saved: \(reason)"
-    }
-
-    private static func describe(_ error: Error) -> String {
-        if let companionError = error as? CompanionError {
-            return companionError.localizedDescription
-        }
-        return error.localizedDescription
     }
 }
 

@@ -1,4 +1,5 @@
 import AppKit
+import ClickerCompanion
 import KeyboardShortcuts
 import SwiftUI
 
@@ -51,7 +52,7 @@ struct ShortcutRow: View {
                 buttonFrame = $0
             }
             .help(isRecording ? "Press the keys, or Esc to cancel" : "Click, then press the keys")
-            .accessibilityLabel(shortcut.map { "Shortcut: \($0)" } ?? "Record Shortcut")
+            .accessibilityLabel(shortcut.map { "Shortcut: \($0.description)" } ?? "Record Shortcut")
             // Floated beside the button rather than laid out next to it, so
             // the row keeps its width for "Record Shortcut" while hidden.
             .overlay(alignment: .leading) {

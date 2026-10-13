@@ -8,7 +8,7 @@ final class MenuBarPanel: NSPanel {
 }
 
 /// Dimensions shared by the panel and the SwiftUI content inside it.
-enum PanelMetrics {
+nonisolated enum PanelMetrics {
     static let width: CGFloat = 264
     /// One radius for the panel and the controls inside it.
     static let cornerRadius: CGFloat = 14
@@ -19,7 +19,7 @@ enum PanelMetrics {
 }
 
 /// Pure panel geometry, separate from the window so it can be unit tested.
-enum PanelGeometry {
+nonisolated enum PanelGeometry {
     static let topGap: CGFloat = 5
     static let screenMargin: CGFloat = 8
     static let minimumHeight: CGFloat = 120

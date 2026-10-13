@@ -2,7 +2,6 @@ import AppKit
 
 /// Dismisses the panel on clicks outside it, while leaving clicks on the status
 /// item (which toggles), inside the panel, and in menus or popovers alone.
-@MainActor
 final class PanelOutsideClickMonitor {
     private let panel: NSPanel
     private let statusItem: NSStatusItem
