@@ -3,6 +3,21 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.2.7</title>
+            <pubDate>Thu, 15 Oct 2026 13:07:53 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>207</sparkle:version>
+            <sparkle:shortVersionString>0.2.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.7
+
+- Replies from the Apple TV are decoded correctly later in a session. After a few dozen commands, a decoding mistake could mix up repeated values in a reply, such as names in the app list.
+- Switching to another Apple TV while the previous one is still connecting no longer lets the old connection's events reach the remote.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.7/Clicker-0.2.7.zip" length="4859770" type="application/octet-stream" sparkle:edSignature="76teYDkiRN5MCzuGQ1SbVBkJqIdgT84jRzcX2IJYYeD6O8NgQQ3OPp085Q6OFsgJR+cBxj8hYCUMU79Gv9V7BQ=="/>
+        </item>
+        <item>
             <title>0.2.6</title>
             <pubDate>Tue, 13 Oct 2026 18:03:11 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
