@@ -8,15 +8,17 @@ package struct PairingCredentials: Codable, Hashable, Sendable {
     /// Name of the Apple TV at pairing time, shown while it is offline.
     package var deviceName: String
     package var deviceModel: String?
+    // The keys are fixed by pair-setup; only the device's id, name and
+    // model change afterwards.
     /// The Apple TV's pairing identifier.
-    package var accessoryIdentifier: Data
+    package let accessoryIdentifier: Data
     /// The Apple TV's long-term Ed25519 public key.
-    package var accessoryPublicKey: Data
+    package let accessoryPublicKey: Data
     /// Our pairing identifier, a UUID string.
-    package var clientIdentifier: String
+    package let clientIdentifier: String
     /// Our long-term Ed25519 private key seed.
-    package var clientPrivateKey: Data
-    package var pairedAt: Date
+    package let clientPrivateKey: Data
+    package let pairedAt: Date
 
     package init(
         deviceID: String, deviceName: String, deviceModel: String?, accessoryIdentifier: Data,

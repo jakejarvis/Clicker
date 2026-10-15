@@ -69,8 +69,10 @@ final class CredentialStore {
         updated.deviceID = newID
         credentials.removeAll { $0.deviceID == oldID || $0.deviceID == newID }
         credentials.append(updated)
-        delete(deviceID: oldID)
+        // Store before delete: a failure in between then leaves an extra
+        // item rather than none, and the pairing survives a relaunch.
         store(updated)
+        delete(deviceID: oldID)
         Log.storage.info("Re-keyed credentials for \(updated.deviceName, privacy: .public)")
     }
 

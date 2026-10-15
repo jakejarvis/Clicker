@@ -1028,11 +1028,18 @@ final class RemoteController {
     /// Returns a connected client, connecting first when necessary. Waits
     /// through every attempt in flight: a timed-out first attempt hands off
     /// to its retry before it finishes, so waiting on one task alone woke up
-    /// mid-retry and dropped the command without a word.
+    /// mid-retry and dropped the command without a word. A failed attempt
+    /// is not repeated per command: the banner's Retry, the next panel open
+    /// and `scheduleReconnect` reconnect, and a queue of presses would
+    /// otherwise run one full attempt each and replay once the TV answered.
     private func readyClient() async -> CompanionClient? {
+        if connectTask == nil, case .failed = connectionState { return nil }
         connectIfNeeded()
         while let task = connectTask {
             await task.value
+            // Every attempt clears its own slot; this only guards the loop
+            // against one that returns early without doing so.
+            if connectTask == task { connectTask = nil }
         }
         guard connectionState == .connected, let client else { return nil }
         return client

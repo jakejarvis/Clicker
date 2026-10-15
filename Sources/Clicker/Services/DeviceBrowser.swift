@@ -91,11 +91,6 @@ final class DeviceBrowser {
         browser != nil && generation == browserGeneration
     }
 
-    func stop() {
-        browser?.cancel()
-        browser = nil
-    }
-
     /// Cancels the browser and starts a fresh one, keeping the current list
     /// until the new results have settled.
     func restart() {

@@ -37,9 +37,7 @@ package struct SRPClient {
     private let publicKeyValue: BigUInt
 
     package init() {
-        var bytes = [UInt8](repeating: 0, count: 32)
-        var generator = SystemRandomNumberGenerator()
-        for index in bytes.indices { bytes[index] = generator.next() }
+        let bytes = (0..<32).map { _ in UInt8.random(in: .min ... .max) }
         self.init(privateKey: BigUInt(Data(bytes)))
     }
 
