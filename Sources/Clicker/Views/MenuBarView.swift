@@ -114,8 +114,11 @@ struct MenuBarView: View {
                 TVTextFieldView(controller: controller)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            if isLive {
-                connectionBanner
+            let notices = notices(isLive: isLive)
+            if !notices.isEmpty {
+                VStack(spacing: 6) {
+                    ForEach(notices) { InlineNoticeView(notice: $0) }
+                }
             }
         }
         .animation(.snappy(duration: 0.3), value: overlay)
@@ -139,39 +142,43 @@ struct MenuBarView: View {
         }
     }
 
-    @ViewBuilder
-    private var connectionBanner: some View {
-        switch controller.connectionState {
-        case .failed(let message):
-            InlineNoticeView(message: message, actionTitle: "Retry") {
-                controller.retryConnection()
-            }
-        case .disconnected:
-            InlineNoticeView(message: "Not connected.", actionTitle: "Connect") {
-                controller.retryConnection()
-            }
-        case .connecting, .connected:
-            if let error = controller.lastActionError {
-                InlineNoticeView(message: error, actionTitle: nil, action: nil)
+    /// Notices under the remote, problems first. Connection notices only make
+    /// sense while the remote is usable (an overlay card already explains the
+    /// rest); the update notice shows regardless, so a TV that is off or
+    /// unpaired does not hide it.
+    private func notices(isLive: Bool) -> [InlineNotice] {
+        var notices: [InlineNotice] = []
+        if isLive {
+            switch controller.connectionState {
+            case .failed(let message):
+                notices.append(
+                    InlineNotice(
+                        id: "connection", kind: .warning, message: message,
+                        action: .init(title: "Retry") { controller.retryConnection() }))
+            case .disconnected:
+                notices.append(
+                    InlineNotice(
+                        id: "connection", kind: .warning, message: "Not connected.",
+                        action: .init(title: "Connect") { controller.retryConnection() }))
+            case .connecting, .connected:
+                if let error = controller.lastActionError {
+                    notices.append(InlineNotice(id: "action-error", kind: .warning, message: error))
+                }
             }
         }
+        if let version = updates.pendingUpdateVersion {
+            notices.append(
+                InlineNotice(
+                    id: "update", kind: .update, message: "Clicker \(version) is available.",
+                    action: .init(title: "Update") { updates.checkForUpdates() }))
+        }
+        return notices
     }
 
     private var footer: some View {
         HStack(spacing: 2) {
             keyboardButton
             Spacer()
-            if let version = updates.pendingUpdateVersion {
-                Button {
-                    updates.checkForUpdates()
-                } label: {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .foregroundStyle(.tint)
-                        .frame(width: 28, height: 24)
-                }
-                .help("Clicker \(version) is available")
-                .accessibilityLabel("Update Clicker to \(version)")
-            }
             AppMenu(controller: controller, updates: updates)
         }
         // Flat footer controls: a rounded highlight on hover, no glass.
@@ -198,7 +205,7 @@ extension MenuBarView {
             controller.toggleTextField()
         } label: {
             Image(systemName: "keyboard")
-                // Accent while the field is showing, like the update button.
+                // Accent while the field is showing.
                 .foregroundStyle(controller.isTextFieldShown ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                 .frame(width: 28, height: 24)
         }
@@ -208,31 +215,5 @@ extension MenuBarView {
         )
         .contentShape(Rectangle())
         .help(help)
-    }
-}
-
-struct InlineNoticeView: View {
-    let message: String
-    let actionTitle: String?
-    let action: (() -> Void)?
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if let actionTitle, let action {
-                Button(actionTitle, action: action)
-                    .controlSize(.small)
-            }
-        }
-        .padding(8)
-        .background(
-            .quaternary.opacity(0.5),
-            in: RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
     }
 }

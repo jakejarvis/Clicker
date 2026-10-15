@@ -69,7 +69,7 @@ Open Settings from the ••• menu in the bottom corner of the panel, by righ
 
 ## Updates
 
-Clicker checks for a new version once a day. When one is ready, a dot appears on the menu bar icon and an update button shows up in the panel. You can also check yourself with **Check for Updates…** in the ••• menu or by right-clicking the menu bar icon. Turn the daily check off in Settings.
+Clicker checks for a new version once a day. When one is ready, a notice with an **Update** button appears under the remote. You can also check yourself with **Check for Updates…** in the ••• menu or by right-clicking the menu bar icon. Turn the daily check off in Settings.
 
 ## Privacy
 

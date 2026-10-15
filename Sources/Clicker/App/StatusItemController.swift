@@ -119,16 +119,16 @@ final class StatusItemController: NSObject {
         button.toolTip = "Clicker"
     }
 
-    /// Filled glyph while connected, outlined otherwise, with a dot while an
-    /// update is waiting; re-armed on each change.
+    /// Filled glyph while connected, outlined otherwise; re-armed on each
+    /// change. A pending update shows in the panel's footer, not here.
     private func updateStatusImage() {
-        let (iconName, hasUpdate) = withObservationTracking {
-            (controller.menuBarIconName, updates.pendingUpdateVersion != nil)
+        let iconName = withObservationTracking {
+            controller.menuBarIconName
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.updateStatusImage() }
         }
         guard let glyph = Self.statusIcon(named: iconName) else { return }
-        statusItem.button?.image = Self.statusImage(glyph, badged: hasUpdate)
+        statusItem.button?.image = Self.statusImage(glyph)
     }
 
     /// PDF glyphs from Resources/StatusIcon (see script/make_status_icons.swift),
@@ -153,30 +153,17 @@ final class StatusItemController: NSObject {
         return image
     }
 
-    /// The glyph centered with side padding (the remote is narrow, so it would
-    /// otherwise sit cramped next to wider items), plus a small dot at its
-    /// top-right corner while an update is waiting, cut out of the glyph so it
-    /// reads on its own. The dot sits inside the padding, so the width holds.
-    private static func statusImage(_ glyph: NSImage, badged: Bool) -> NSImage {
+    /// The glyph centered with side padding: the remote is narrow, so it
+    /// would otherwise sit cramped next to wider items.
+    private static func statusImage(_ glyph: NSImage) -> NSImage {
         let padding: CGFloat = 4
-        let diameter: CGFloat = 6
         let size = NSSize(width: glyph.size.width + padding * 2, height: glyph.size.height)
-        let glyphRect = NSRect(origin: NSPoint(x: padding, y: 0), size: glyph.size)
         let image = NSImage(size: size, flipped: false) { _ in
-            glyph.draw(in: glyphRect)
-            guard badged else { return true }
-            let dot = NSRect(
-                x: glyphRect.maxX - diameter / 2, y: size.height - diameter,
-                width: diameter, height: diameter)
-            NSGraphicsContext.current?.compositingOperation = .clear
-            NSBezierPath(ovalIn: dot.insetBy(dx: -1.5, dy: -1.5)).fill()
-            NSGraphicsContext.current?.compositingOperation = .sourceOver
-            NSColor.black.setFill()
-            NSBezierPath(ovalIn: dot).fill()
+            glyph.draw(in: NSRect(origin: NSPoint(x: padding, y: 0), size: glyph.size))
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = badged ? "Clicker, update available" : "Clicker"
+        image.accessibilityDescription = "Clicker"
         return image
     }
 

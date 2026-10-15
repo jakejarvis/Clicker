@@ -46,8 +46,10 @@ import Security
         case disconnected
         /// Living Room over HDMI: Mute just failed and is now disabled.
         case hdmi
-        /// An update found in the background: dot on the status item, footer button.
+        /// An update found in the background: an inline notice and the menus' Update to… items.
         case update
+        /// A failed connection with an update pending: both inline notices stacked.
+        case notices
 
         /// The scenario from the launch arguments, if any. `--demo` on its own,
         /// or with a name it does not know, means `ready`.
@@ -129,7 +131,7 @@ import Security
         /// State the stand-in connection lands in.
         var connectionState: ConnectionState {
             switch self {
-            case .connectionfailed:
+            case .connectionfailed, .notices:
                 return .failed(CompanionError.connectionFailed(.posix(.ECONNREFUSED)).localizedDescription)
             case .disconnected: return .disconnected
             default: return .connected
@@ -148,7 +150,7 @@ import Security
 
         /// Version shown as a pending update.
         var pendingUpdateVersion: String? {
-            self == .update ? "1.1.0" : nil
+            self == .update || self == .notices ? "1.1.0" : nil
         }
 
         var screen: PanelScreen { self == .settings ? .settings : .remote }
