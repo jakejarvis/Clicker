@@ -132,7 +132,7 @@ import Security
         var connectionState: ConnectionState {
             switch self {
             case .connectionfailed, .notices:
-                return .failed(CompanionError.connectionFailed(.posix(.ECONNREFUSED)).localizedDescription)
+                return .failed(RemoteController.connectFailedMessage(Self.livingRoom.name))
             case .disconnected: return .disconnected
             default: return .connected
             }

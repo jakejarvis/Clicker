@@ -539,7 +539,14 @@ final class RemoteController {
                         break
                     }
                 }
-                self.connectionState = .failed(error.localizedDescription)
+                // The TV never answered: name it, since the protocol's wording
+                // cannot. Other failures keep their more specific message.
+                switch error {
+                case CompanionError.connectionFailed, CompanionError.timeout:
+                    self.connectionState = .failed(Self.connectFailedMessage(device.name))
+                default:
+                    self.connectionState = .failed(error.localizedDescription)
+                }
             }
         }
     }
@@ -1149,6 +1156,10 @@ final class RemoteController {
     /// credentials could not be stored (`--demo savefailed`).
     nonisolated static func pairingNotSavedMessage(_ reason: String) -> String {
         "Paired, but the pairing couldn't be saved: \(reason)"
+    }
+
+    nonisolated static func connectFailedMessage(_ deviceName: String) -> String {
+        "Couldn't connect to \(deviceName)."
     }
 }
 
