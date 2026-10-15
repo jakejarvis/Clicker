@@ -104,10 +104,14 @@ extension UpdateController: SPUUpdaterDelegate {
 extension UpdateController: @preconcurrency SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
 
+    /// Never: a scheduled find only sets `pendingUpdateVersion`, so the panel
+    /// shows its notice and Sparkle's alert waits for a click on Update.
+    /// Immediate focus includes "just launched", which with Open at Login
+    /// would put the alert in front of whatever the user is doing.
     func standardUserDriverShouldHandleShowingScheduledUpdate(
         _ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool
     ) -> Bool {
-        immediateFocus
+        false
     }
 
     func standardUserDriverWillHandleShowingUpdate(
