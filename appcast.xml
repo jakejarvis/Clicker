@@ -3,6 +3,22 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.2.9</title>
+            <pubDate>Thu, 15 Oct 2026 18:26:51 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>209</sparkle:version>
+            <sparkle:shortVersionString>0.2.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.9
+
+- When an update is available, a notice with an Update button now appears under the remote, in place of the dot on the menu bar icon. It shows even while the remote is unavailable, such as when the Apple TV is off.
+- Clicker no longer opens the update window on its own, including right after you log in. It waits until you click Update or Check for Updates….
+- The connection error now names the Apple TV, for example "Couldn't connect to Living Room."
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.9/Clicker-0.2.9.zip" length="4857904" type="application/octet-stream" sparkle:edSignature="OM04jOMEKEHD2ikpC0zJ7yjMHIbRNsASzYk/SZKE1XMleEu1fd/YXjzwgUrfal1PKUXTCPK1S5YpbqFq2n8VBg=="/>
+        </item>
+        <item>
             <title>0.2.8</title>
             <pubDate>Thu, 15 Oct 2026 14:53:51 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
