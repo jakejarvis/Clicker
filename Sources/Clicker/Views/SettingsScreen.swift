@@ -19,6 +19,7 @@ struct SettingsScreen: View {
     @State private var contentHeight: CGFloat = 0
 
     @AppStorage(IdentityStore.clientNameKey) private var clientName = IdentityStore.defaultClientName
+    @AppStorage(TrackpadSwipe.reversedKey) private var reversesSwipes = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
     @State private var checksForUpdates = false
@@ -95,6 +96,8 @@ struct SettingsScreen: View {
     private var thisMacSection: some View {
         let nameHelp =
             "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair."
+        let swipeHelp =
+            "Two-finger swipes over the clickpad move the TV's focus the way your fingers move, like the Siri Remote. Turn this on to move it the other way."
         return SettingsSection("This Mac", footer: launchAtLoginError) {
             SettingsRow("Name", help: nameHelp) {
                 TextField("Name", text: $clientName)
@@ -104,6 +107,13 @@ struct SettingsScreen: View {
             }
             SettingsDivider()
             ShortcutRow(controller: controller)
+            SettingsDivider()
+            SettingsRow("Invert Swipes", help: swipeHelp) {
+                Toggle("Invert Swipes", isOn: $reversesSwipes)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+            }
             SettingsDivider()
             SettingsRow("Open at Login") {
                 Toggle("Open at Login", isOn: $launchAtLogin)

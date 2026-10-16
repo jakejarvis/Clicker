@@ -23,6 +23,7 @@ extension View {
 private struct TrackpadSwipeMonitor: ViewModifier {
     let controller: RemoteController
     let isEnabled: Bool
+    @AppStorage(TrackpadSwipe.reversedKey) private var isReversed = false
     @State private var tracking = SwipeTracking()
 
     func body(content: Content) -> some View {
@@ -33,6 +34,9 @@ private struct TrackpadSwipeMonitor: ViewModifier {
             .onChange(of: isEnabled, initial: true) {
                 tracking.isEnabled = isEnabled
                 if !isEnabled { cancel() }
+            }
+            .onChange(of: isReversed, initial: true) {
+                tracking.swipe.isReversed = isReversed
             }
             .onAppear(perform: install)
             .onDisappear(perform: remove)

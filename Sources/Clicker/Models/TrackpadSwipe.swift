@@ -50,6 +50,15 @@ nonisolated struct TrackpadSwipe: Sendable {
     /// tvOS reads as a flick. Not yet tuned against a TV.
     static let gain: CGFloat = 3
 
+    /// The user-defaults key for the Settings switch that reverses swipes.
+    static let reversedKey = "reversesTrackpadSwipes"
+
+    /// Moves the TV's finger against the fingers on the trackpad instead of
+    /// with them, for those who expect a swipe to move a list's content (as
+    /// scrolling does) rather than its focus. Separate from the system's
+    /// Natural scrolling, which the translation already undoes.
+    var isReversed = false
+
     /// Where the finger is while it touches the surface, in surface units
     /// with the origin top left; nil between gestures and once the fingers
     /// have carried it off an edge.
@@ -81,7 +90,8 @@ nonisolated struct TrackpadSwipe: Sendable {
             // The TV wants the fingers' own motion (focus follows the finger,
             // which for a list is the opposite of content following it), and
             // AppKit has already flipped the deltas under Natural scrolling.
-            let sign: CGFloat = event.isDirectionInverted ? 1 : -1
+            let natural: CGFloat = event.isDirectionInverted ? 1 : -1
+            let sign = isReversed ? -natural : natural
             let moved = CGPoint(
                 x: current.x + sign * event.deltaX * Self.gain,
                 y: current.y + sign * event.deltaY * Self.gain)

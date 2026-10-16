@@ -34,6 +34,26 @@ import Testing
         #expect(action == .touchMove(expected))
     }
 
+    @Test func reversedSwipesMoveAgainstTheFingers() {
+        for inverted in [true, false] {
+            var normal = TrackpadSwipe()
+            var reversed = TrackpadSwipe()
+            reversed.isReversed = true
+            let event = Event(phase: .changed, deltaX: 10, deltaY: 20, isDirectionInverted: inverted)
+            _ = normal.translate(Event(phase: .began))
+            _ = reversed.translate(Event(phase: .began))
+            guard case .touchMove(let forward) = normal.translate(event),
+                case .touchMove(let backward) = reversed.translate(event)
+            else {
+                Issue.record("Expected both swipes to move")
+                continue
+            }
+            // Mirror images about the center, under either scroll setting.
+            #expect(forward.x - center.x == center.x - backward.x)
+            #expect(forward.y - center.y == center.y - backward.y)
+        }
+    }
+
     @Test func slidingOffAnEdgeLiftsTheFingerThere() {
         var swipe = TrackpadSwipe()
         _ = swipe.translate(Event(phase: .began))
