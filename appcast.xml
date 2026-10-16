@@ -3,6 +3,21 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.2.11</title>
+            <pubDate>Fri, 16 Oct 2026 17:47:26 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>211</sparkle:version>
+            <sparkle:shortVersionString>0.2.11</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.2.11
+
+- New Invert Swipes setting in Settings › This Mac reverses the direction of two-finger trackpad swipes over the clickpad, for people who expect a swipe to scroll content rather than move the selection.
+- Quick trackpad swipes no longer sometimes jerk the selection back the wrong way at the end.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.2.11/Clicker-0.2.11.zip" length="4872140" type="application/octet-stream" sparkle:edSignature="jf73MEBYmhu6eDiSYPtS5+H6BdFqDsVQNgQnEwASY9Tc7DiTe4P7ENiIkkFrsvrHQBLSfzZoCBPM1fxqICwwAQ=="/>
+        </item>
+        <item>
             <title>0.2.10</title>
             <pubDate>Fri, 16 Oct 2026 17:33:14 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
