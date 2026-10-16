@@ -36,7 +36,7 @@ Pairing follows the HomeKit pattern over Companion frames: pair-setup (SRP with 
 
 Buttons and keyboard keys send real press and release events, so holds work: Siri, and a held arrow key that keeps moving focus. The HID set has no mute, so Mute remembers the volume and sets it to zero.
 
-A two-finger scroll over the clickpad becomes a finger on the TV's touch surface: `_touchStart` opens a 1000×1000 virtual pad and `_hidT` events carry press, hold and release with coordinates and a timestamp. The finger presses at the center when the gesture begins, follows the trackpad deltas, and lifts when the fingers do; the Mac's momentum events are dropped so tvOS applies its own flick physics from the release velocity, as it does for the real remote.
+A two-finger scroll over the clickpad becomes a finger on the TV's touch surface: `_touchStart` opens a 1000×1000 virtual pad and `_hidT` events carry press, hold and release with coordinates and a timestamp. The finger presses at the center when the gesture begins, follows the trackpad deltas, and lifts when the fingers do or when they carry it off an edge; the Mac's momentum events are dropped so tvOS applies its own flick physics from the release velocity, as it does for the real remote.
 
 ## Text entry
 

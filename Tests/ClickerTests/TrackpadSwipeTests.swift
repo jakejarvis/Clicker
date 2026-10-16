@@ -34,13 +34,33 @@ import Testing
         #expect(action == .touchMove(expected))
     }
 
-    @Test func theFingerStopsAtTheEdge() {
+    @Test func slidingOffAnEdgeLiftsTheFingerThere() {
         var swipe = TrackpadSwipe()
         _ = swipe.translate(Event(phase: .began))
         let action = swipe.translate(Event(phase: .changed, deltaX: -10_000, deltaY: 10_000))
-        #expect(action == .touchMove(CGPoint(x: 0, y: TrackpadSwipe.surfaceSize)))
-        // Further motion into the edge changes nothing, so nothing is sent.
+        #expect(action == .touchUp(CGPoint(x: 0, y: TrackpadSwipe.surfaceSize)))
+        #expect(swipe.position == nil)
+        // The rest of the gesture is still the pad's, but sends nothing.
+        #expect(swipe.isActive)
         #expect(swipe.translate(Event(phase: .changed, deltaX: -1, deltaY: 1)) == nil)
+        #expect(swipe.translate(Event(phase: .ended)) == nil)
+        #expect(swipe.isActive == false)
+    }
+
+    @Test func easingBackAfterAnOvershootNeverMovesTheFingerBackwards() {
+        var swipe = TrackpadSwipe()
+        _ = swipe.translate(Event(phase: .began))
+        // A flick down past the bottom edge, then the fingers settle back a
+        // little as they lift: the TV must not see a move back up.
+        _ = swipe.translate(Event(phase: .changed, deltaY: 120))
+        let up = swipe.translate(Event(phase: .changed, deltaY: 120))
+        guard case .touchUp(let released) = up else {
+            Issue.record("Expected a release at the edge, got \(String(describing: up))")
+            return
+        }
+        #expect(released.y == TrackpadSwipe.surfaceSize)
+        #expect(swipe.translate(Event(phase: .changed, deltaY: -2)) == nil)
+        #expect(swipe.translate(Event(phase: .ended)) == nil)
     }
 
     @Test func aStationaryEventSendsNothing() {
