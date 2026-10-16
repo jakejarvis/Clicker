@@ -421,11 +421,7 @@ final class RemoteController {
     private func adoptCredentialsForRenamedIdentifiers(_ devices: [AppleTVDevice]) {
         let onlineIDs = Set(devices.map(\.id))
         for device in devices where credentialStore.credentials(for: device.id) == nil {
-            let orphan = credentialStore.credentials.first {
-                !onlineIDs.contains($0.deviceID)
-                    && $0.deviceName == device.name
-                    && ($0.deviceModel == nil || device.model == nil || $0.deviceModel == device.model)
-            }
+            let orphan = Self.legacyPairing(for: device, in: credentialStore.credentials, onlineIDs: onlineIDs)
             guard let orphan else { continue }
             credentialStore.rekey(from: orphan.deviceID, to: device.id)
             if let recents = recentAppIDsByDevice.removeValue(forKey: orphan.deviceID) {
@@ -440,6 +436,22 @@ final class RemoteController {
                 selectedDeviceID = device.id
                 rememberSelection(device.id)
             }
+        }
+    }
+
+    /// The pairing an earlier build saved under `device`'s old `rpBA` key, if any: same name and
+    /// model, not on the network, and keyed by something other than an `rpMRtID` UUID. A
+    /// UUID-keyed pairing belongs to another Apple TV, such as one with the same name in another
+    /// home, and adopting it would hand that TV's keys to this one (pair-verify then fails and
+    /// drops them, and the same happens in reverse back home).
+    nonisolated static func legacyPairing(
+        for device: AppleTVDevice, in credentials: [PairingCredentials], onlineIDs: Set<String>
+    ) -> PairingCredentials? {
+        credentials.first {
+            UUID(uuidString: $0.deviceID) == nil
+                && !onlineIDs.contains($0.deviceID)
+                && $0.deviceName == device.name
+                && ($0.deviceModel == nil || device.model == nil || $0.deviceModel == device.model)
         }
     }
 
