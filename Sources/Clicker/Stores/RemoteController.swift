@@ -164,6 +164,10 @@ final class RemoteController {
     /// once.
     static let reconnectDelay: Duration = .seconds(1)
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
+    /// The pad's keys currently held down on the TV. A key-down sends the
+    /// button's down and its key-up the up, so tvOS repeats a held arrow and
+    /// long-presses a held Return as it does for the Siri Remote.
+    @ObservationIgnored private var heldKeys: Set<HIDCommand> = []
     /// The finger on the TV's touch surface during a trackpad swipe, in
     /// touchpad units; nil between swipes.
     @ObservationIgnored private var touchPosition: CGPoint?
@@ -614,6 +618,7 @@ final class RemoteController {
         // The session is gone, so a release could only trigger a reconnect;
         // the hold flag is the next press's to clear.
         touchPosition = nil
+        heldKeys = []
         return client
     }
 
@@ -643,6 +648,8 @@ final class RemoteController {
         if let point = touchPosition {
             handleTrackpadSwipe(.touchUp(point))
         }
+        // Likewise a held key's key-up goes nowhere once the panel is hidden.
+        releaseHeldKeys()
         // The popovers go with the panel; their state must follow or the
         // clickpad stays unfocused (Apps) or the device list pops back up
         // the next time the panel opens.
@@ -859,6 +866,27 @@ final class RemoteController {
     func buttonUp(_ command: HIDCommand) {
         Log.remote.info("Up \(command.title, privacy: .public)")
         perform { try await $0.buttonUp(command) }
+    }
+
+    /// A pad key went down. The Mac's key repeats never get here: tvOS
+    /// repeats a held button itself, and a press per repeat would queue up
+    /// behind the command queue and keep moving focus after the key is let go.
+    func keyDown(_ command: HIDCommand) {
+        guard heldKeys.insert(command).inserted else { return }
+        buttonDown(command)
+    }
+
+    func keyUp(_ command: HIDCommand) {
+        guard heldKeys.remove(command) != nil else { return }
+        buttonUp(command)
+    }
+
+    /// Lets go of every held key. For when the pad stops receiving key-ups:
+    /// the panel hid, or focus moved to the text field or the Apps picker.
+    func releaseHeldKeys() {
+        let held = heldKeys
+        heldKeys = []
+        for command in held { buttonUp(command) }
     }
 
     private func adoptKeyboardSession(_ session: TextInputArchive.Session) {

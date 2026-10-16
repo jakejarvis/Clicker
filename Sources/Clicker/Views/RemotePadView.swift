@@ -349,7 +349,13 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
                     takeFocusIfFree()
                 }
             }
-            .onKeyPress(phases: .down) { press in
+            // Without focus the key-ups go elsewhere, and so does the rest of
+            // a hold.
+            .onChange(of: isFocused) { _, focused in
+                if !focused { controller.releaseHeldKeys() }
+            }
+            .onDisappear { controller.releaseHeldKeys() }
+            .onKeyPress(phases: [.down, .repeat, .up]) { press in
                 handle(press)
             }
     }
@@ -362,39 +368,54 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
         DispatchQueue.main.async { isFocused = true }
     }
 
+    /// Keys send the button's down on key-down and its up on key-up, like
+    /// the on-screen buttons, so a held arrow scrolls and a held Return
+    /// long-presses. The Mac's key repeats are swallowed: tvOS repeats a held
+    /// button itself.
     private func handle(_ press: KeyPress) -> KeyPress.Result {
+        // A key-up releases whatever its key-down held, whatever modifiers
+        // went down in between.
+        if press.phase == .up {
+            guard let command = Self.command(for: press) else { return .ignored }
+            controller.keyUp(command)
+            return .handled
+        }
         guard press.modifiers.isDisjoint(with: [.command, .control, .option]) else { return .ignored }
         guard !controller.isAppPickerPresented else { return .ignored }
 
-        let command: HIDCommand?
+        if press.characters.lowercased() == "m" {
+            guard controller.canMute else { return .ignored }
+            if press.phase == .down { controller.toggleMute() }
+            return .handled
+        }
+        guard let command = Self.command(for: press) else { return .ignored }
+        if press.phase == .down { controller.keyDown(command) }
+        return .handled
+    }
+
+    private static func command(for press: KeyPress) -> HIDCommand? {
         switch press.key {
-        case .upArrow: command = .up
-        case .downArrow: command = .down
-        case .leftArrow: command = .left
-        case .rightArrow: command = .right
-        case .return: command = .select
+        case .upArrow: .up
+        case .downArrow: .down
+        case .leftArrow: .left
+        case .rightArrow: .right
+        case .return: .select
         // The Mac's Delete key arrives as U+007F, which SwiftUI calls
         // `.deleteForward`; `.delete` (U+0008) alone never matched it.
-        case .delete, .deleteForward: command = .menu
-        case .space: command = .playPause
+        case .delete, .deleteForward: .menu
+        case .space: .playPause
         default:
+            // Shifted and unshifted characters map alike, so a key-up after
+            // Shift was let go still finds the key-down's button.
             switch press.characters.lowercased() {
-            case "\u{7F}", "\u{8}": command = .menu
-            case "h", "t": command = .home
-            case "p": command = .playPause
-            case "+", "=": command = .volumeUp
-            case "-", "_": command = .volumeDown
-            case "m":
-                guard controller.canMute else { return .ignored }
-                controller.toggleMute()
-                return .handled
-            default: command = nil
+            case "\u{7F}", "\u{8}": .menu
+            case "h", "t": .home
+            case "p": .playPause
+            case "+", "=": .volumeUp
+            case "-", "_": .volumeDown
+            default: nil
             }
         }
-
-        guard let command else { return .ignored }
-        controller.press(command)
-        return .handled
     }
 }
 

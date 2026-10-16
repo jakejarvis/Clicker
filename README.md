@@ -55,7 +55,7 @@ While the panel is open you can leave the mouse alone:
 | ⌘, | Settings |
 | Esc | Close the panel |
 
-Hover over any button to see its shortcut.
+Hold an arrow key to keep moving, as you would hold the clickpad on the Siri Remote. Hover over any button to see its shortcut.
 
 ## Settings
 
