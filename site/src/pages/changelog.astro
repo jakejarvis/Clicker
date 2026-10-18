@@ -1,6 +1,10 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { fetchReleases } from "../lib/releases";
+import {
+  fetchReleases,
+  type ReleaseAsset,
+  type ReleaseDownloads,
+} from "../lib/releases";
 
 // Rendered at build time. A failed GitHub request throws and fails the build,
 // so a broken page is never deployed; redeploy (or push) to pick up a release.
@@ -12,6 +16,26 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   timeZone: "UTC",
 });
+
+// Decimal megabytes, as Finder counts them.
+const sizeFormatter = new Intl.NumberFormat("en-US", {
+  style: "unit",
+  unit: "megabyte",
+  maximumFractionDigits: 1,
+});
+
+function formatSize(bytes: number): string {
+  return sizeFormatter.format(bytes / 1_000_000);
+}
+
+function downloadLinks(
+  downloads: ReleaseDownloads,
+): { label: string; asset: ReleaseAsset }[] {
+  return [
+    { label: "DMG", asset: downloads.dmg },
+    { label: "ZIP", asset: downloads.zip },
+  ].flatMap(({ label, asset }) => (asset ? [{ label, asset }] : []));
+}
 ---
 
 <Layout
@@ -26,53 +50,76 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
         <p class="muted">No releases yet.</p>
       ) : (
         <div class="releases">
-          {releases.map((release) => (
-            <article id={release.tag_name} class="release">
-              <h2 class="release-tag">
-                <a href={`#${release.tag_name}`}>{release.tag_name}</a>
-              </h2>
+          {releases.map((release) => {
+            const downloads = downloadLinks(release.downloads);
+            return (
+              <article id={release.tag_name} class="release">
+                <h2 class="release-tag">
+                  <a href={`#${release.tag_name}`}>{release.tag_name}</a>
+                </h2>
 
-              <div class="release-meta">
-                {release.published_at && (
-                  <>
+                <div class="release-meta">
+                  {release.published_at && (
                     <time datetime={release.published_at}>
                       {dateFormatter.format(new Date(release.published_at))}
                     </time>
-                    <span class="slash" aria-hidden="true">
-                      /
-                    </span>
-                  </>
-                )}
-                <a href={release.html_url} target="_blank" rel="noopener">
-                  GitHub
-                </a>
-                {release.downloads.dmgUrl && (
-                  <>
-                    <span class="slash" aria-hidden="true">
-                      /
-                    </span>
-                    <a class="download-link" href={release.downloads.dmgUrl}>
-                      DMG
-                    </a>
-                  </>
-                )}
-                {release.downloads.zipUrl && (
-                  <>
-                    <span class="slash" aria-hidden="true">
-                      /
-                    </span>
-                    <a class="download-link" href={release.downloads.zipUrl}>
-                      ZIP
-                    </a>
-                  </>
-                )}
-              </div>
+                  )}
+                  {downloads.length > 0 && (
+                    <div class="release-downloads">
+                      {downloads.map(({ label, asset }) => (
+                        <a class="download-link" href={asset.url}>
+                          <svg
+                            viewBox="0 0 24 24"
+                            width="1em"
+                            height="1em"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 15V3" />
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <path d="m7 10 5 5 5-5" />
+                          </svg>
+                          {label}{" "}
+                          <span class="asset-size">{formatSize(asset.size)}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              {release.body_html && (
-                <div class="release-body" set:html={release.body_html} />
-              )}
-            </article>
-          ))}
+                {release.body_html && (
+                  <div class="release-body" set:html={release.body_html} />
+                )}
+
+                <a
+                  class="release-more"
+                  href={release.html_url}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  View on GitHub
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="1em"
+                    height="1em"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M7 7h10v10" />
+                    <path d="M7 17 17 7" />
+                  </svg>
+                </a>
+              </article>
+            );
+          })}
         </div>
       )
     }

@@ -206,7 +206,7 @@ footer p {
 
 .footer-credit span {
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 1px;
 }
 
 .footer-credit svg {
@@ -268,7 +268,8 @@ footer a:hover {
 }
 
 .release {
-  scroll-margin-top: 6rem;
+  container: release / inline-size;
+  scroll-margin-top: 2rem;
   padding-left: 1.25rem;
   border-left: 2px solid var(--faint);
 }
@@ -288,30 +289,108 @@ footer a:hover {
   color: rgb(237 237 237 / 80%);
 }
 
+/* The date over the downloads, or all of it on one line with slashes
+   between; never a wrapped mix. The switch is the widest the line gets:
+   "September 30, 2026" with two two-digit sizes measures about 304px at the
+   row's 12px. */
 .release-meta {
+  --separator-width: 0.75rem;
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem;
+  flex-direction: column;
+  align-items: flex-start;
   font-size: 0.75rem;
   color: var(--muted);
 }
 
-.release-meta a {
+.release-downloads {
+  display: flex;
+  align-items: baseline;
+  column-gap: var(--separator-width);
+}
+
+@container release (min-width: 19.5rem) {
+  .release-meta {
+    flex-direction: row;
+    align-items: baseline;
+    column-gap: var(--separator-width);
+  }
+}
+
+.release-meta > * + *,
+.release-downloads > * + * {
+  position: relative;
+}
+
+/* Hangs in the gap before the item, so it never takes part in wrapping. */
+.release-meta > * + *::before,
+.release-downloads > * + *::before {
+  content: "/" / "";
+  position: absolute;
+  right: 100%;
+  width: var(--separator-width);
+  text-align: center;
+  font-weight: 400;
+  color: rgb(237 237 237 / 35%);
+  pointer-events: none;
+}
+
+/* Between the date and the downloads only while they share a line. */
+.release-meta > * + *::before {
+  display: none;
+}
+
+@container release (min-width: 19.5rem) {
+  .release-meta > * + *::before {
+    display: block;
+  }
+}
+
+.download-link {
+  font-weight: 500;
+  color: rgb(237 237 237 / 75%);
+  white-space: nowrap;
   transition: color 0.15s;
 }
 
-.release-meta a:hover {
+.download-link:hover {
   color: var(--fg);
 }
 
-.release-meta .download-link {
-  font-weight: 500;
+/* The arrow and tray span y 3 to 21 of 24, so this drop puts the tray on the
+   baseline and the top near cap height, level with "DMG". */
+.download-link svg {
+  margin-right: 0.25em;
+  vertical-align: -0.125em;
+}
+
+/* One step dimmer than the label, and it brightens with it on hover. */
+.asset-size {
+  font-weight: 400;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+
+.download-link:hover .asset-size {
   color: rgb(237 237 237 / 75%);
 }
 
-.slash {
-  color: rgb(237 237 237 / 35%);
+.release-more {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+
+.release-more:hover {
+  color: var(--fg);
+}
+
+/* The arrow's strokes span y 7 to 17 of 24, so this lifts it to sit level
+   with the lowercase letters, like the footer's. */
+.release-more svg {
+  margin-left: 0.125rem;
+  vertical-align: -0.0625em;
 }
 
 .release-body {

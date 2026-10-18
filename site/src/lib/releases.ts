@@ -4,9 +4,15 @@ const FETCH_TIMEOUT_MS = 10_000;
 const MAX_RELEASE_TEXT_LENGTH = 200_000;
 const RELEASE_TAG_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 
+export interface ReleaseAsset {
+  url: string;
+  // In bytes.
+  size: number;
+}
+
 export interface ReleaseDownloads {
-  dmgUrl: string | null;
-  zipUrl: string | null;
+  dmg: ReleaseAsset | null;
+  zip: ReleaseAsset | null;
 }
 
 export interface Release {
@@ -27,7 +33,7 @@ export function fetchReleases(): Promise<Release[]> {
 // The newest release that has a DMG, or null when none does yet.
 export async function fetchLatestDownload(): Promise<{ tag_name: string; dmgUrl: string } | null> {
   for (const { tag_name, downloads } of await fetchReleases()) {
-    if (downloads.dmgUrl) return { tag_name, dmgUrl: downloads.dmgUrl };
+    if (downloads.dmg) return { tag_name, dmgUrl: downloads.dmg.url };
   }
   return null;
 }
@@ -87,25 +93,25 @@ function parseRelease(item: unknown): Release | null {
 
   return {
     tag_name: item.tag_name,
-    body_html: optionalText(item.body_html, MAX_RELEASE_TEXT_LENGTH),
+    body_html: withoutTitleLine(optionalText(item.body_html, MAX_RELEASE_TEXT_LENGTH)),
     published_at: optionalDate(item.published_at),
     html_url: item.html_url,
     downloads: {
-      dmgUrl: assetUrl(item.assets, ".dmg"),
-      zipUrl: assetUrl(item.assets, ".zip"),
+      dmg: findAsset(item.assets, ".dmg"),
+      zip: findAsset(item.assets, ".zip"),
     },
   };
 }
 
 // The release workflow attaches Clicker-X.Y.Z.dmg and Clicker-X.Y.Z.zip.
-function assetUrl(assets: unknown, extension: string): string | null {
+function findAsset(assets: unknown, extension: string): ReleaseAsset | null {
   if (!Array.isArray(assets)) return null;
 
   for (const asset of assets) {
     if (!isRecord(asset)) continue;
-    const { name, browser_download_url: url } = asset;
+    const { name, browser_download_url: url, size } = asset;
     if (typeof name !== "string" || !name.endsWith(extension)) continue;
-    if (isReleaseUrl(url)) return url;
+    if (isReleaseUrl(url) && typeof size === "number") return { url, size };
   }
 
   return null;
@@ -127,6 +133,14 @@ function optionalText(value: unknown, maxLength: number): string | null {
   if (typeof value !== "string") return null;
   if (value.length === 0 || value.length > maxLength) return null;
   return value;
+}
+
+// The tag message opens with "Clicker X.Y.Z", which the changelog's heading
+// already says.
+function withoutTitleLine(html: string | null): string | null {
+  if (html === null) return null;
+  const rest = html.replace(/^\s*<p>Clicker v?[\d.]+<\/p>\s*/, "");
+  return rest.length > 0 ? rest : null;
 }
 
 function optionalDate(value: unknown): string | null {
