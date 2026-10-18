@@ -204,7 +204,7 @@ footer p {
   gap: 0.75rem;
 }
 
-.footer-credit span {
+.footer-credit span:nth-of-type(2) {
   text-decoration: underline;
   text-underline-offset: 1px;
 }
