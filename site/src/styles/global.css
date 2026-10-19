@@ -38,11 +38,14 @@ a {
   text-decoration: none;
 }
 
+/* 42rem (624px of content) holds the Download button, "or" and the Homebrew
+   pill on one line with about 40px to spare; at 36rem the pill always wrapped
+   under the button. */
 .page {
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
-  max-width: 36rem;
+  max-width: 42rem;
   margin: 0 auto;
   padding: 3rem 1.5rem;
 }
@@ -144,6 +147,95 @@ header nav a:hover {
 
 .download:hover {
   opacity: 0.85;
+}
+
+/* The button and the Homebrew pill share a row, "or" between them, and the
+   pill and its "or" wrap below the button as one unit when the row is too
+   narrow for both (below about 630px wide). The row stays inside the column;
+   letting it run past the header's right edge was tried and rejected. */
+.install {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 0.875rem;
+}
+
+.install-alt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.or {
+  font-size: 0.8125rem;
+}
+
+.brew {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--faint);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.brew:hover,
+.brew:focus-visible {
+  color: var(--fg);
+  border-color: rgb(255 255 255 / 20%);
+}
+
+.brew:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* One line always: on a narrow phone the command scrolls sideways inside
+   the pill, without a scrollbar, and the glyph stays put at the end. */
+.brew code {
+  min-width: 0;
+  overflow-x: auto;
+  font: inherit;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.brew code::-webkit-scrollbar {
+  display: none;
+}
+
+.brew svg {
+  flex-shrink: 0;
+}
+
+.check-icon,
+.brew.copied .copy-icon {
+  display: none;
+}
+
+.brew.copied .check-icon {
+  display: block;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .requirements {
