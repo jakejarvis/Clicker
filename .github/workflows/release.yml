@@ -192,6 +192,12 @@ jobs:
             ]
           end
           EOF
+          # The runner image ships Homebrew; lint before anything is pushed.
+          if command -v brew >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew style Casks/clicker.rb
+          else
+            echo "::warning::brew is not installed; Casks/clicker.rb was not linted"
+          fi
           if git diff --quiet; then
             echo "Cask is already at $VERSION"
             exit 0
