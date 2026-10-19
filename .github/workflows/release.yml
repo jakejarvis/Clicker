@@ -160,14 +160,38 @@ jobs:
           git clone --quiet --depth 1 \
             "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/jakejarvis/homebrew-tap.git" "$RUNNER_TEMP/tap"
           cd "$RUNNER_TEMP/tap"
-          sed -i '' -E \
-            -e "s/^  version \"[^\"]*\"$/  version \"$VERSION\"/" \
-            -e "s/^  sha256 \"[^\"]*\"$/  sha256 \"$SHA256\"/" \
-            Casks/clicker.rb
-          grep -qx "  version \"$VERSION\"" Casks/clicker.rb && grep -qx "  sha256 \"$SHA256\"" Casks/clicker.rb || {
-            echo "Casks/clicker.rb no longer has the version and sha256 lines this step rewrites" >&2
-            exit 1
-          }
+          # The whole cask lives here so a change to what it installs or zaps
+          # ships with the release that needs it; edits made in the tap are
+          # overwritten.
+          cat > Casks/clicker.rb <<EOF
+          # Written by the release workflow in jakejarvis/Clicker; edit it there.
+          cask "clicker" do
+            version "$VERSION"
+            sha256 "$SHA256"
+
+            url "https://github.com/jakejarvis/Clicker/releases/download/v#{version}/Clicker-#{version}.dmg"
+            name "Clicker"
+            desc "Menu bar remote for Apple TV"
+            homepage "https://clicker.jarv.is/"
+
+            livecheck do
+              url "https://clicker.jarv.is/appcast.xml"
+              strategy :sparkle, &:short_version
+            end
+
+            auto_updates true
+            depends_on macos: :sequoia
+
+            app "Clicker.app"
+
+            uninstall quit: "com.jakejarvis.Clicker"
+
+            zap trash: [
+              "~/Library/Application Scripts/com.jakejarvis.Clicker",
+              "~/Library/Containers/com.jakejarvis.Clicker",
+            ]
+          end
+          EOF
           if git diff --quiet; then
             echo "Cask is already at $VERSION"
             exit 0
