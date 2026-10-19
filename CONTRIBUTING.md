@@ -35,7 +35,7 @@ swift format lint --strict --recursive --parallel Sources Tests Package.swift
 
 ### Pairing storage in development builds
 
-Signed release builds keep pairing credentials in the data protection keychain (one "Clicker: <TV name>" item per Apple TV). Ad-hoc signed development builds cannot use it and keep an owner-only file at `~/Library/Application Support/Clicker/pairings.json` instead. The two are not migrated, so a development build after a release build looks unpaired.
+Signed release builds keep pairing credentials in the data protection keychain (one "Clicker: <TV name>" item per Apple TV). Ad-hoc signed development builds cannot use it and keep an owner-only file at `~/Library/Containers/com.jakejarvis.Clicker/Data/Library/Application Support/Clicker/pairings.json` instead (the app is sandboxed, so Application Support and its preferences live in its container). The two are not migrated, so a development build after a release build looks unpaired.
 
 ## Demo mode and screenshots
 
@@ -49,7 +49,7 @@ open -n dist/Clicker.app --args --demo pin
 
 ## Releasing
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. It lints and tests first, then calls `script/release.sh`, which builds a universal app, signs it with the Developer ID certificate and the hardened runtime, notarizes and staples it, and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle `appcast.xml`. The appcast is the published one from `gh-pages` with the new version added on top, so every release stays listed (Sparkle needs the older items to offer the last compatible version to a Mac the newest one no longer supports; `BASE_APPCAST` overrides the source for a local run). The workflow publishes the DMG and zip as a GitHub release, commits the appcast to the `gh-pages` branch, bumps the Homebrew cask in `jakejarvis/homebrew-tap`, and asks Vercel to redeploy the site so its homepage download button and changelog (both built from the GitHub releases API at deploy time) show the release. `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) is a Vercel rewrite to that file (`site/vercel.json`). Every publish step is idempotent, so a run that failed partway can be re-run from the Actions tab (a release that is already published is kept, and the appcast is regenerated from its zip with `release.sh --appcast-only`); on failure the job keeps `dist/release` (notarytool's logs included) as an artifact.
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. It lints and tests first, then calls `script/release.sh`, which builds a universal app, signs it with the Developer ID certificate and the hardened runtime, notarizes and staples it, and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle `appcast.xml`. The appcast is the published one from `gh-pages` with the new version added on top, so every release stays listed (Sparkle needs the older items to offer the last compatible version to a Mac the newest one no longer supports; `BASE_APPCAST` overrides the source for a local run). The workflow publishes the DMG and zip as a GitHub release, commits the appcast to the `gh-pages` branch, writes the Homebrew cask (inlined in the workflow, so edit it there) to `jakejarvis/homebrew-tap`, and asks Vercel to redeploy the site so its homepage download button and changelog (both built from the GitHub releases API at deploy time) show the release. `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) is a Vercel rewrite to that file (`site/vercel.json`). Every publish step is idempotent, so a run that failed partway can be re-run from the Actions tab (a release that is already published is kept, and the appcast is regenerated from its zip with `release.sh --appcast-only`); on failure the job keeps `dist/release` (notarytool's logs included) as an artifact.
 
 ```bash
 git tag -a --cleanup=verbatim -F notes.md v1.2.3
@@ -68,7 +68,7 @@ The workflow reads these from the `release` environment (restricted to `v*` tags
 | `ASC_KEY_ID`, `ASC_ISSUER_ID` | That key's ID and issuer |
 | `SPARKLE_ED_PRIVATE_KEY` | Sparkle EdDSA key, from `generate_keys -x` |
 | `VERCEL_DEPLOY_HOOK_URL` | Optional. A deploy hook from the Vercel project's Git settings; without it the download button and changelog refresh on the next push to `main` |
-| `HOMEBREW_TAP_TOKEN` | Optional. A fine-grained token with Contents read and write on `jakejarvis/homebrew-tap` only, for bumping `Casks/clicker.rb` to the release's DMG; without it the cask stays at its last version (it says `auto_updates`, so Sparkle updates Homebrew installs anyway) |
+| `HOMEBREW_TAP_TOKEN` | Optional. A fine-grained token with Contents read and write on `jakejarvis/homebrew-tap` only, for writing `Casks/clicker.rb` with the release's DMG; without it the cask stays at its last version (it says `auto_updates`, so Sparkle updates Homebrew installs anyway) |
 
 `SUPublicEDKey` in `Resources/Info.plist` must be the public half of `SPARKLE_ED_PRIVATE_KEY`: a mismatch does not break the first release but makes every later update fail its signature check. Before the first release, compare it with what `generate_keys -p` prints for the key the secret was exported from (or sign any file with `sign_update --ed-key-file` and the secret, then check it against the plist key with `sign_update --verify`).
 

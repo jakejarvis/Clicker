@@ -160,14 +160,44 @@ jobs:
           git clone --quiet --depth 1 \
             "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/jakejarvis/homebrew-tap.git" "$RUNNER_TEMP/tap"
           cd "$RUNNER_TEMP/tap"
-          sed -i '' -E \
-            -e "s/^  version \"[^\"]*\"$/  version \"$VERSION\"/" \
-            -e "s/^  sha256 \"[^\"]*\"$/  sha256 \"$SHA256\"/" \
-            Casks/clicker.rb
-          grep -qx "  version \"$VERSION\"" Casks/clicker.rb && grep -qx "  sha256 \"$SHA256\"" Casks/clicker.rb || {
-            echo "Casks/clicker.rb no longer has the version and sha256 lines this step rewrites" >&2
-            exit 1
-          }
+          # The whole cask lives here so a change to what it installs or zaps
+          # ships with the release that needs it; edits made in the tap are
+          # overwritten.
+          cat > Casks/clicker.rb <<EOF
+          # Written by the release workflow in jakejarvis/Clicker; edit it there.
+          cask "clicker" do
+            version "$VERSION"
+            sha256 "$SHA256"
+
+            url "https://github.com/jakejarvis/Clicker/releases/download/v#{version}/Clicker-#{version}.dmg"
+            name "Clicker"
+            desc "Menu bar remote for Apple TV"
+            homepage "https://clicker.jarv.is/"
+
+            livecheck do
+              url "https://clicker.jarv.is/appcast.xml"
+              strategy :sparkle, &:short_version
+            end
+
+            auto_updates true
+            depends_on macos: :sequoia
+
+            app "Clicker.app"
+
+            uninstall quit: "com.jakejarvis.Clicker"
+
+            zap trash: [
+              "~/Library/Application Scripts/com.jakejarvis.Clicker",
+              "~/Library/Containers/com.jakejarvis.Clicker",
+            ]
+          end
+          EOF
+          # The runner image ships Homebrew; lint before anything is pushed.
+          if command -v brew >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew style Casks/clicker.rb
+          else
+            echo "::warning::brew is not installed; Casks/clicker.rb was not linted"
+          fi
           if git diff --quiet; then
             echo "Cask is already at $VERSION"
             exit 0
@@ -195,7 +225,7 @@ jobs:
       # submission or a failed verification without re-running the job.
       - name: Keep the release files for debugging
         if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-${{ github.ref_name }}
           path: dist/release
