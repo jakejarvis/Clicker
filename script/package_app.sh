@@ -141,6 +141,9 @@ if [[ "$APP_STORE" == 1 ]]; then
   for key in SUFeedURL SUPublicEDKey SUEnableAutomaticChecks SUAllowsAutomaticUpdates SUEnableInstallerLauncherService; do
     plutil -remove "$key" "$INFO_PLIST"
   done
+  # Export compliance: declared exempt so App Store Connect stops asking on
+  # every upload. A choice made before the first upload, not Apple's verdict.
+  plutil -insert ITSAppUsesNonExemptEncryption -bool NO "$INFO_PLIST"
 elif [[ "$IDENTITY" == "-" ]]; then
   plutil -remove SUFeedURL "$INFO_PLIST"
 fi
