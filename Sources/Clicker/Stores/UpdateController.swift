@@ -1,7 +1,10 @@
 import AppKit
 import ClickerCompanion
 import Observation
-import Sparkle
+
+#if Sparkle
+    import Sparkle
+#endif
 
 /// Sparkle updates, adapted to an app that lives in the menu bar.
 ///
@@ -11,9 +14,20 @@ import Sparkle
 /// the alert only appears when the user asks for it. While a Sparkle window is
 /// up the app becomes `.regular` so the window comes forward with a Dock icon,
 /// then returns to the activation policy it launched with.
+///
+/// The Mac App Store build is compiled without the `Sparkle` trait: the store
+/// updates the app and allows no other updater (rule 2.4.5(vii)), so Sparkle
+/// is left out entirely and the update UI disappears with `isIncluded`.
 @Observable
 final class UpdateController: NSObject {
-    /// False for development builds, whose Info.plist has no `SUFeedURL`.
+    #if Sparkle
+        static let isIncluded = true
+    #else
+        static let isIncluded = false
+    #endif
+
+    /// False for the App Store build and for development builds, whose
+    /// Info.plist has no `SUFeedURL`.
     let isEnabled: Bool
     private(set) var canCheckForUpdates = false
     /// Version of an update found in the background that the user hasn't seen.
@@ -24,28 +38,32 @@ final class UpdateController: NSObject {
     @ObservationIgnored var onWillPresent: () -> Void = {}
 
     @ObservationIgnored private let launchPolicy: NSApplication.ActivationPolicy
-    @ObservationIgnored private lazy var updaterController = SPUStandardUpdaterController(
-        startingUpdater: false,
-        updaterDelegate: self,
-        userDriverDelegate: self
-    )
-    @ObservationIgnored private var canCheckObservation: NSKeyValueObservation?
+    #if Sparkle
+        @ObservationIgnored private lazy var updaterController = SPUStandardUpdaterController(
+            startingUpdater: false,
+            updaterDelegate: self,
+            userDriverDelegate: self
+        )
+        @ObservationIgnored private var canCheckObservation: NSKeyValueObservation?
+    #endif
 
     init(launchPolicy: NSApplication.ActivationPolicy) {
         self.launchPolicy = launchPolicy
-        isEnabled = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil
+        isEnabled = Self.isIncluded && Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil
         super.init()
     }
 
     func start() {
-        guard isEnabled else { return }
-        let updater = updaterController.updater
-        let options: NSKeyValueObservingOptions = [.initial, .new]
-        canCheckObservation = updater.observe(\.canCheckForUpdates, options: options) { [weak self] updater, _ in
-            MainActor.assumeIsolated { self?.canCheckForUpdates = updater.canCheckForUpdates }
-        }
-        updaterController.startUpdater()
-        lastUpdateCheckDate = updaterController.updater.lastUpdateCheckDate
+        #if Sparkle
+            guard isEnabled else { return }
+            let updater = updaterController.updater
+            let options: NSKeyValueObservingOptions = [.initial, .new]
+            canCheckObservation = updater.observe(\.canCheckForUpdates, options: options) { [weak self] updater, _ in
+                MainActor.assumeIsolated { self?.canCheckForUpdates = updater.canCheckForUpdates }
+            }
+            updaterController.startUpdater()
+            lastUpdateCheckDate = updaterController.updater.lastUpdateCheckDate
+        #endif
     }
 
     #if DEMO
@@ -58,77 +76,89 @@ final class UpdateController: NSObject {
 
     /// User-initiated check. Also brings a pending update's alert forward.
     func checkForUpdates() {
-        guard isEnabled else { return }
-        presentForUpdate()
-        updaterController.checkForUpdates(nil)
+        #if Sparkle
+            guard isEnabled else { return }
+            presentForUpdate()
+            updaterController.checkForUpdates(nil)
+        #endif
     }
 
     // Sparkle persists this itself; only set it in response to the user.
 
-    var automaticallyChecksForUpdates: Bool {
-        get { isEnabled && updaterController.updater.automaticallyChecksForUpdates }
-        set { updaterController.updater.automaticallyChecksForUpdates = newValue }
-    }
-
-    private func presentForUpdate() {
-        onWillPresent()
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
-    }
-
-    private func endUpdateSession() {
-        pendingUpdateVersion = nil
-        NSApp.setActivationPolicy(launchPolicy)
-    }
-}
-
-extension UpdateController: SPUUpdaterDelegate {
-    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
-        if let error = error as NSError?,
-            error.code != Int(SUError.noUpdateError.rawValue),
-            error.code != Int(SUError.installationCanceledError.rawValue)
-        {
-            Log.updates.error("Update cycle failed: \(String(describing: error), privacy: .public)")
+    #if Sparkle
+        var automaticallyChecksForUpdates: Bool {
+            get { isEnabled && updaterController.updater.automaticallyChecksForUpdates }
+            set { updaterController.updater.automaticallyChecksForUpdates = newValue }
         }
-        lastUpdateCheckDate = updater.lastUpdateCheckDate
-        // Backstop for "up to date" and error alerts, which may not end a
-        // user driver session. A pending reminder keeps its session open.
-        if pendingUpdateVersion == nil {
+
+        private func presentForUpdate() {
+            onWillPresent()
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate()
+        }
+
+        private func endUpdateSession() {
+            pendingUpdateVersion = nil
             NSApp.setActivationPolicy(launchPolicy)
         }
-    }
+    #else
+        var automaticallyChecksForUpdates: Bool {
+            get { false }
+            set {}
+        }
+    #endif
 }
 
-// The user driver delegate protocol isn't annotated for the main actor, but
-// Sparkle only calls it on the main thread.
-extension UpdateController: @preconcurrency SPUStandardUserDriverDelegate {
-    var supportsGentleScheduledUpdateReminders: Bool { true }
+#if Sparkle
 
-    /// Never: a scheduled find only sets `pendingUpdateVersion`, so the panel
-    /// shows its notice and Sparkle's alert waits for a click on Update.
-    /// Immediate focus includes "just launched", which with Open at Login
-    /// would put the alert in front of whatever the user is doing.
-    func standardUserDriverShouldHandleShowingScheduledUpdate(
-        _ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool
-    ) -> Bool {
-        false
-    }
-
-    func standardUserDriverWillHandleShowingUpdate(
-        _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
-    ) {
-        if handleShowingUpdate {
-            presentForUpdate()
-        } else {
-            pendingUpdateVersion = update.displayVersionString
+    extension UpdateController: SPUUpdaterDelegate {
+        func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
+            if let error = error as NSError?,
+                error.code != Int(SUError.noUpdateError.rawValue),
+                error.code != Int(SUError.installationCanceledError.rawValue)
+            {
+                Log.updates.error("Update cycle failed: \(String(describing: error), privacy: .public)")
+            }
+            lastUpdateCheckDate = updater.lastUpdateCheckDate
+            // Backstop for "up to date" and error alerts, which may not end a
+            // user driver session. A pending reminder keeps its session open.
+            if pendingUpdateVersion == nil {
+                NSApp.setActivationPolicy(launchPolicy)
+            }
         }
     }
 
-    func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
-        pendingUpdateVersion = nil
-    }
+    // The user driver delegate protocol isn't annotated for the main actor, but
+    // Sparkle only calls it on the main thread.
+    extension UpdateController: @preconcurrency SPUStandardUserDriverDelegate {
+        var supportsGentleScheduledUpdateReminders: Bool { true }
 
-    func standardUserDriverWillFinishUpdateSession() {
-        endUpdateSession()
+        /// Never: a scheduled find only sets `pendingUpdateVersion`, so the panel
+        /// shows its notice and Sparkle's alert waits for a click on Update.
+        /// Immediate focus includes "just launched", which with Open at Login
+        /// would put the alert in front of whatever the user is doing.
+        func standardUserDriverShouldHandleShowingScheduledUpdate(
+            _ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool
+        ) -> Bool {
+            false
+        }
+
+        func standardUserDriverWillHandleShowingUpdate(
+            _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
+        ) {
+            if handleShowingUpdate {
+                presentForUpdate()
+            } else {
+                pendingUpdateVersion = update.displayVersionString
+            }
+        }
+
+        func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
+            pendingUpdateVersion = nil
+        }
+
+        func standardUserDriverWillFinishUpdateSession() {
+            endUpdateSession()
+        }
     }
-}
+#endif
