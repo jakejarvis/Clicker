@@ -92,4 +92,4 @@ script/package_app.sh --release --universal --app-store --version 1.2.3 \
   --sign "Apple Distribution: …" --installer "3rd Party Mac Developer Installer: …"
 ```
 
-That writes `dist/Clicker.pkg`, which is uploaded with Transporter. An App Store-signed app does not launch outside the store. App Review will likely have no Apple TV, so attach a short screen recording of pairing and using the remote to the review notes; `--demo` is compiled out of release builds.
+That writes `dist/Clicker.pkg`, which is uploaded with Transporter. App Store Connect refuses a build number it has already seen, and the build number comes from the version (1.2.3 → 10203), so to upload the same version again after a rejection add `--build 1` (then 2, and so on), which makes it 10203.1. An App Store-signed app does not launch outside the store. App Review will likely have no Apple TV, so attach a short screen recording of pairing and using the remote to the review notes; `--demo` is compiled out of release builds.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build Clicker and assemble a signed dist/Clicker.app with Sparkle embedded.
 # Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--native] [--sign <identity>] [--version X.Y.Z]
-#                              [--app-store [--installer <identity>]]
+#                              [--app-store [--installer <identity>] [--build N]]
 #   --release    optimized build; leaves out --demo unless --with-demo is also given
 #   --with-demo  compile the --demo scenarios in (debug builds always have them)
 #   --universal  arm64 + x86_64
@@ -21,6 +21,9 @@
 #                Resources/Clicker-AppStore.provisionprofile instead.
 #   --installer  Mac Installer Distribution identity; with --app-store, also writes
 #                dist/Clicker.pkg for upload with Transporter
+#   --build      with --app-store, resubmission number N: CFBundleVersion becomes
+#                the version's own (1.2.3 -> 10203) plus .N, so a rejected build
+#                can be uploaded again without a new version
 set -euo pipefail
 
 CONFIGURATION="debug"
@@ -30,6 +33,7 @@ NATIVE=0
 IDENTITY="-"
 APP_STORE=0
 INSTALLER=""
+RESUBMISSION=""
 VERSION="${CLICKER_VERSION:-0.1.0}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -41,8 +45,9 @@ while [[ $# -gt 0 ]]; do
     --version) VERSION="$2"; shift ;;
     --app-store) APP_STORE=1 ;;
     --installer) INSTALLER="$2"; shift ;;
+    --build) RESUBMISSION="$2"; shift ;;
     *)
-      echo "usage: $0 [--release] [--with-demo] [--universal] [--native] [--sign <identity>] [--version X.Y.Z] [--app-store [--installer <identity>]]" >&2
+      echo "usage: $0 [--release] [--with-demo] [--universal] [--native] [--sign <identity>] [--version X.Y.Z] [--app-store [--installer <identity>] [--build N]]" >&2
       exit 2
       ;;
   esac
@@ -56,6 +61,15 @@ if [[ -n "$INSTALLER" && "$IDENTITY" == "-" ]]; then
   echo "--installer needs --sign with an Apple Distribution identity" >&2
   exit 2
 fi
+if [[ -n "$RESUBMISSION" && "$APP_STORE" != 1 ]]; then
+  # Sparkle compares CFBundleVersion too; its builds keep the plain number.
+  echo "--build only applies to --app-store" >&2
+  exit 2
+fi
+if [[ -n "$RESUBMISSION" && ! "$RESUBMISSION" =~ ^[1-9][0-9]*$ ]]; then
+  echo "--build must be a positive integer: $RESUBMISSION" >&2
+  exit 2
+fi
 
 # Sparkle compares CFBundleVersion, so derive an integer that grows with the
 # version: 1.2.3 -> 10203. Minor and patch stay below 100 to keep it monotonic.
@@ -64,6 +78,11 @@ if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)$ ]]; th
   exit 2
 fi
 BUILD_NUMBER=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+# App Store Connect refuses a build number it has seen. 10203.1 sorts after
+# 10203 and before the next version's 10204.
+if [[ -n "$RESUBMISSION" ]]; then
+  BUILD_NUMBER="$BUILD_NUMBER.$RESUBMISSION"
+fi
 
 APP_NAME="Clicker"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
