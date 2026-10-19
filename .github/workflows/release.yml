@@ -1,8 +1,9 @@
 # Pushing a vX.Y.Z tag builds a universal, Developer ID-signed and notarized
 # Clicker, publishes the DMG and zip as a GitHub release, pushes the Sparkle
 # appcast to the gh-pages branch (served at clicker.jarv.is/appcast.xml
-# through the Vercel rewrite in site/vercel.json) and redeploys the site so
-# its download button and changelog pick up the release. Notes come from the annotated tag's
+# through the Vercel rewrite in site/vercel.json), bumps the Homebrew cask in
+# jakejarvis/homebrew-tap and redeploys the site so its download button and
+# changelog pick up the release. Notes come from the annotated tag's
 # message. The publish steps are idempotent, so a failed run can be re-run.
 name: Release
 
@@ -133,6 +134,48 @@ jobs:
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -m "Appcast for $GITHUB_REF_NAME"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+
+      # The cask installs the published DMG, so it takes that file's digest
+      # from GitHub rather than hashing dist/release, which a re-run rebuilds.
+      # HOMEBREW_TAP_TOKEN is a fine-grained token with Contents read and write
+      # on the tap only. Optional: without it the cask stays behind, which
+      # matters little since it says auto_updates and Sparkle takes over.
+      - name: Bump the Homebrew cask
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [[ -z "$HOMEBREW_TAP_TOKEN" ]]; then
+            echo "HOMEBREW_TAP_TOKEN is not set; the cask is not bumped"
+            exit 0
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          DIGEST="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq ".assets[] | select(.name == \"Clicker-$VERSION.dmg\") | .digest")"
+          SHA256="${DIGEST#sha256:}"
+          if [[ ! "$SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "no sha256 digest for Clicker-$VERSION.dmg: ${DIGEST:-none}" >&2
+            exit 1
+          fi
+          git clone --quiet --depth 1 \
+            "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/jakejarvis/homebrew-tap.git" "$RUNNER_TEMP/tap"
+          cd "$RUNNER_TEMP/tap"
+          sed -i '' -E \
+            -e "s/^  version \"[^\"]*\"$/  version \"$VERSION\"/" \
+            -e "s/^  sha256 \"[^\"]*\"$/  sha256 \"$SHA256\"/" \
+            Casks/clicker.rb
+          grep -qx "  version \"$VERSION\"" Casks/clicker.rb && grep -qx "  sha256 \"$SHA256\"" Casks/clicker.rb || {
+            echo "Casks/clicker.rb no longer has the version and sha256 lines this step rewrites" >&2
+            exit 1
+          }
+          if git diff --quiet; then
+            echo "Cask is already at $VERSION"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -am "Clicker $VERSION"
+          git push --quiet origin HEAD
 
       # The site's download button and changelog are built from the GitHub
       # releases API at deploy time, so a deploy hook (Vercel project settings ›

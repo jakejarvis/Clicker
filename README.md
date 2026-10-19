@@ -12,6 +12,12 @@ Requires macOS 15 or later.
 2. Open it and drag Clicker to your Applications folder.
 3. Open Clicker. Its icon appears in the menu bar and the remote opens under it the first time; there is no Dock icon or window.
 
+Or install it with [Homebrew](https://brew.sh):
+
+```bash
+brew install --cask jakejarvis/tap/clicker
+```
+
 The first time it runs, macOS asks whether Clicker may find devices on your local network. Allow it, or Clicker can't see your Apple TV.
 
 Clicker is signed with a Developer ID, notarized by Apple, and keeps itself up to date (see [Updates](#updates)).
