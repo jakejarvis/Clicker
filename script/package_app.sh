@@ -9,9 +9,10 @@
 #                under which AppKit draws some controls differently (see AGENTS.md)
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
-#                A real identity also embeds Resources/Clicker.provisionprofile and
-#                signs with Resources/Clicker.entitlements so the app can use the
-#                data protection keychain for pairings.
+#                Every build is sandboxed (Resources/Clicker.entitlements). A real
+#                identity also embeds Resources/Clicker.provisionprofile and keeps the
+#                file's keychain entitlements so the app can use the data protection
+#                keychain for pairings; ad-hoc builds sign without them.
 #   --version    marketing version; defaults to $CLICKER_VERSION or 0.1.0
 set -euo pipefail
 
@@ -95,6 +96,9 @@ xcrun actool "$ROOT_DIR/Resources/AppIcon.icon" --compile "$CONTENTS/Resources" 
 mkdir -p "$CONTENTS/Resources/StatusIcon"
 cp "$ROOT_DIR"/Resources/StatusIcon/*.pdf "$CONTENTS/Resources/StatusIcon/"
 ditto "$SHORTCUTS_BUNDLE" "$CONTENTS/Resources/$(basename "$SHORTCUTS_BUNDLE")"
+# Moves what an unsandboxed Clicker (0.2.x) kept in ~/Library into the new
+# container the first time a sandboxed one launches.
+cp "$ROOT_DIR/Resources/container-migration.plist" "$CONTENTS/Resources/"
 
 cp "$ROOT_DIR/Resources/Info.plist" "$INFO_PLIST"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$INFO_PLIST"
@@ -111,10 +115,14 @@ else
   cp "$PROFILE" "$CONTENTS/embedded.provisionprofile"
 fi
 
-# ditto keeps the framework's symlinks. The XPC services are only for sandboxed
-# apps, and headers are build-time only.
+# ditto keeps the framework's symlinks. A sandboxed app cannot launch Sparkle's
+# installer itself, so it keeps Installer.xpc (SUEnableInstallerLauncherService
+# in Info.plist, the -spks/-spki mach-lookup exceptions in the entitlements).
+# Downloader.xpc is only for apps without network.client, and headers are
+# build-time only.
 ditto "$SPARKLE_SOURCE" "$SPARKLE"
-for item in XPCServices Headers PrivateHeaders Modules; do
+rm -rf "$SPARKLE/Versions/B/XPCServices/Downloader.xpc"
+for item in Headers PrivateHeaders Modules; do
   rm -rf "${SPARKLE:?}/$item" "${SPARKLE:?}/Versions/B/$item"
 done
 
@@ -138,11 +146,20 @@ SIGN_FLAGS=(--force --sign "$IDENTITY")
 if [[ "$IDENTITY" != "-" ]]; then
   SIGN_FLAGS+=(--options runtime --timestamp)
 fi
-for item in "$SPARKLE/Versions/B/Autoupdate" "$SPARKLE/Versions/B/Updater.app" "$SPARKLE" \
+for item in "$SPARKLE/Versions/B/XPCServices/Installer.xpc" \
+  "$SPARKLE/Versions/B/Autoupdate" "$SPARKLE/Versions/B/Updater.app" "$SPARKLE" \
   "$CONTENTS/Resources/$(basename "$SHORTCUTS_BUNDLE")"; do
   codesign "${SIGN_FLAGS[@]}" "$item"
 done
-if [[ "$IDENTITY" != "-" ]]; then
+if [[ "$IDENTITY" == "-" ]]; then
+  # The restricted keychain entitlements would get an ad-hoc binary killed by
+  # AMFI; the sandbox ones are fine without a profile.
+  cp "$ENTITLEMENTS" "$ROOT_DIR/dist/AdHoc.entitlements"
+  for key in com.apple.application-identifier com.apple.developer.team-identifier keychain-access-groups; do
+    /usr/libexec/PlistBuddy -c "Delete :$key" "$ROOT_DIR/dist/AdHoc.entitlements"
+  done
+  SIGN_FLAGS+=(--entitlements "$ROOT_DIR/dist/AdHoc.entitlements")
+else
   SIGN_FLAGS+=(--entitlements "$ENTITLEMENTS")
 fi
 codesign "${SIGN_FLAGS[@]}" "$APP_BUNDLE"

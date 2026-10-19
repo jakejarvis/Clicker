@@ -35,7 +35,7 @@ swift format lint --strict --recursive --parallel Sources Tests Package.swift
 
 ### Pairing storage in development builds
 
-Signed release builds keep pairing credentials in the data protection keychain (one "Clicker: <TV name>" item per Apple TV). Ad-hoc signed development builds cannot use it and keep an owner-only file at `~/Library/Application Support/Clicker/pairings.json` instead. The two are not migrated, so a development build after a release build looks unpaired.
+Signed release builds keep pairing credentials in the data protection keychain (one "Clicker: <TV name>" item per Apple TV). Ad-hoc signed development builds cannot use it and keep an owner-only file at `~/Library/Containers/com.jakejarvis.Clicker/Data/Library/Application Support/Clicker/pairings.json` instead (the app is sandboxed, so Application Support and its preferences live in its container). The two are not migrated, so a development build after a release build looks unpaired.
 
 ## Demo mode and screenshots
 
