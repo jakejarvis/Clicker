@@ -1,0 +1,8 @@
+# The Mac App Store screenshots script/screenshots.sh shoots, in this order:
+# demo scenario | headline | subhead (optional). \n breaks a line.
+ready | Your Apple TV,\nin the menu bar | Click, swipe and press,\njust like the real remote.
+typing | Type with your\nreal keyboard | When a text field shows on the TV,\ntype into Clicker instead.
+apps | Open any app\nin a click | Star your favorites\nto keep them at the top.
+devices | Every Apple TV\nin the house | Switch between them\nfrom the top of the remote.
+pin | Pair once with\na four-digit code | After that, Clicker connects\non its own.
+settings | Made for\nyour Mac | A global shortcut, open at login\nand more.

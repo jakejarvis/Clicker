@@ -59,7 +59,25 @@ A processed build appears in TestFlight; an internal group with automatic distri
 
 Submitting for review is a click in App Store Connect: fill in What's New, choose the build, Add for Review, Submit, with manual release so approval doesn't publish on its own. Don't automate it from the workflow: every tag would go to App Review unattended, and a TestFlight install against a real TV is the check before it.
 
-The listing carries over between versions: screenshots (16:10, such as 2880×1800), description, the homepage as support URL, `https://clicker.jarv.is/privacy` as privacy policy, App Privacy "Data Not Collected", Utilities, 4+. App Review likely has no Apple TV, so the review notes say the app needs one on the same network and attach a short screen recording of pairing and using the remote; `--demo` lives in a separate development executable that no release includes.
+The listing carries over between versions: screenshots (see below), description, the homepage as support URL, `https://clicker.jarv.is/privacy` as privacy policy, App Privacy "Data Not Collected", Utilities, 4+. App Review likely has no Apple TV, so the review notes say the app needs one on the same network and attach a short screen recording of pairing and using the remote; `--demo` lives in a separate development executable that no release includes.
+
+## Screenshots
+
+`script/screenshots.sh` shoots the listing's screenshots into `dist/screenshots/`: one 2880×1800 PNG with no alpha channel for each line of `script/screenshots.txt` (a demo scenario, a headline and an optional subhead), in dark and light, plus the raw captures in `raw/`. Edit that file to change the set or the captions, and reshoot when the panel changes, since App Review wants screenshots of the current interface.
+
+```bash
+script/screenshots.sh                 # build, then shoot every line
+script/screenshots.sh --no-build apps # reshoot one
+script/screenshots.sh --appearance dark --out dist/screenshots-black # one set, kept beside the last
+```
+
+Each run replaces its output directory, `dist/screenshots/` unless `--out` names another.
+
+- It builds `--app-store --with-demo` at the latest tag's version (`--version` to override), so Settings shows the store build's sections and version.
+- Each frame is a 1440×900-point region of the real screen at its own scale, never resampled, with the caption drawn to the left of the panel. Full-display captures are the only ones that keep the panel's Liquid Glass ([testing.md](testing.md#looking-at-the-panel)). The glass shows what's behind it, so the wallpaper is part of the look and every frame shares it. The caption is white, so a dark or mid-tone wallpaper reads best.
+- The menu bar is emptied: each row is painted its median color, and Clicker's item is laid back from where it differs from a capture taken with Clicker not running. `--keep-menu-bar` keeps the menu bar as it was.
+- It needs Screen Recording for the terminal, a Retina display of at least 1440×900 points (1280×800 gives 2560×1600), and Dark Mode for the dark set; the light set is forced per process. It hides desktop icons for the run, quits a running Clicker and reopens it afterwards, and waits until no app has a window on the main display, listing the ones still open. Hide them, the terminal included, with ⌘H. `NSRunningApplication.hide()` on other apps did nothing, so the script doesn't hide them itself.
+- The `apps` scenario lists third-party apps (Netflix, Disney+, Plex and others). If App Review objects to the names, change `DemoScenario.apps` and its favorites and recents to Apple's own apps.
 
 ## Renewals
 
