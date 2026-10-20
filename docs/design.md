@@ -39,7 +39,7 @@ Inline notices (`InlineNoticeView`, built from `InlineNotice` values in `MenuBar
 A full-width control with a popover list; it is custom because a system `Menu` can't show subtitles.
 
 - Rows are in `RemoteController.pickerOrder`: paired and online, then paired but offline, then unpaired, by name within each group, like the Wi-Fi menu. The selected TV has a check mark and is not floated to the top, so the list never jumps when switching.
-- Hover and the arrow keys move one highlight (the `.selection` fill, like the Apps picker) and Return picks the highlighted TV; only arrows scroll. The keys ride a local `keyDown` monitor while the list is up. The rows and Rescan are `.focusable(false)`: a focusable row took focus when the list opened, unseen, and Space picked it whatever the highlight said.
+- Hover and the arrow keys move one highlight (the `.rowHighlight` fill, like the Apps picker) and Return picks the highlighted TV; only arrows scroll. The keys ride a local `keyDown` monitor while the list is up. The rows and Rescan are `.focusable(false)`: a focusable row took focus when the list opened, unseen, and Space picked it whatever the highlight said.
 - ⌥-click opens the same popover in details mode, like the Wi-Fi menu. The mode is read in the button action from the click event's own flags (`NSApp.currentEvent`, which synthetic clicks carry too) unioned with `NSEvent.modifierFlags`. The popover is `.popover(item:)` with the mode on the item (`DevicePickerPresentation`, held in `RemoteController.devicePickerPresentation` so `panelDidDisappear` drops it and Esc closes it). An `isPresented` popover whose content reads a second `@State` set in the same action renders with the stale value.
 - In details mode each row is followed by caption `Label: value` lines (`DeviceDetailsView`): Model, ID, Bluetooth, tvOS (connected TV only), Protocol, Flags, Interface, then for the connected TV Address and Session, then Power and Controls. The list widens to `PanelMetrics.width + 56` so a UUID fits, and a Rescan row sits at the bottom (see [protocol.md](protocol.md#discovery)). Rescan appears nowhere else; demo mode hides it.
 
@@ -49,7 +49,7 @@ A full-width control with a popover list; it is custom because a system `Menu` c
 
 - Favorites are starred bundle IDs per TV in the order starred (`favoriteAppIDsByDevice`). Recents are the last five launched per TV (`recentAppIDsByDevice`), minus the favorites. Both are keyed by device id, follow `rekey`, go on Forget and are resolved against the TV's current list. The Recents header has a tertiary Clear button (`RemoteController.clearRecents`, current TV only).
 - Every row ends in a star button (outline while the row is highlighted, yellow and filled once starred), a sibling of the launch button so a click on it never launches; the context menu offers the same toggle, and starring leaves the popover open.
-- Typing filters (prefix matches first) and highlights the top match so Return launches it. Hover and arrows move the highlight; only arrows scroll. Rows use the `.selection` fill like device rows.
+- Typing filters (prefix matches first) and highlights the top match so Return launches it. Hover and arrows move the highlight; only arrows scroll. Rows use the `.rowHighlight` fill like device rows.
 - The popover is centered on the Apps button so its arrow points at it, which puts the list past the panel's left edge. Anchoring it to a rect spanning the pad (arrow floating mid-pad) was rejected, and so was a system `Menu` (forty rows with scroll arrows and no search).
 
 ## Settings

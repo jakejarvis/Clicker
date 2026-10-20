@@ -281,7 +281,7 @@ private struct AppRow: View {
             .accessibilityLabel(isFavorite ? "Remove \(app.name) from Favorites" : "Add \(app.name) to Favorites")
         }
         .padding(.trailing, 2)
-        .background(shape.fill(isHighlighted ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear)))
+        .background(shape.fill(isHighlighted ? AnyShapeStyle(.rowHighlight) : AnyShapeStyle(.clear)))
         .foregroundStyle(isHighlighted ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
         .focusEffectDisabled()
         .contentShape(shape)
@@ -292,7 +292,7 @@ private struct AppRow: View {
     }
 
     /// A starred app's star is yellow until its row is highlighted, where
-    /// everything is white on the selection fill.
+    /// everything is white on the highlight fill.
     private var starStyle: AnyShapeStyle {
         if isHighlighted { return AnyShapeStyle(.white) }
         return isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary)

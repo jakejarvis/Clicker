@@ -248,7 +248,7 @@ private struct DeviceListView: View {
     }
 }
 
-/// Hover wash shared by the device rows and the Rescan row: the selection
+/// Hover wash shared by the device rows and the Rescan row: the highlight
 /// fill with white content, like a menu item.
 private struct PickerRowStyle: ViewModifier {
     let isHovered: Bool
@@ -263,7 +263,7 @@ private struct PickerRowStyle: ViewModifier {
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(isHovered ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
+                    .fill(isHovered ? AnyShapeStyle(.rowHighlight) : AnyShapeStyle(.clear))
             )
             .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
     }

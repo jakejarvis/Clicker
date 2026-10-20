@@ -154,3 +154,12 @@ struct SurfaceContainer<Content: View>: View {
         }
     }
 }
+
+extension ShapeStyle where Self == Color {
+    /// The fill behind a hovered or keyboard-highlighted popover row, as in a
+    /// menu: the emphasized selection color, which follows the accent color
+    /// and has its own high-contrast variants. Not `.selection`, which drew
+    /// the gray inactive fill in the popovers (they are never key), white on
+    /// near-white in light mode.
+    static var rowHighlight: Color { Color(nsColor: .selectedContentBackgroundColor) }
+}

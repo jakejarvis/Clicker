@@ -29,15 +29,11 @@ struct PlainPopoverAppearance: NSViewRepresentable {
 }
 
 extension View {
-    /// See `PlainPopoverAppearance`. Apply to a popover's root content. The
-    /// popover window is never key, and with the plain appearance `.selection`
-    /// would fall back to its gray inactive fill, so the content is told it
-    /// is active as the vibrant appearance implied.
+    /// See `PlainPopoverAppearance`. Apply to a popover's root content.
     @ViewBuilder
     func plainPopoverAppearance() -> some View {
         if #available(macOS 26, *) {
             background(PlainPopoverAppearance())
-                .environment(\.controlActiveState, .key)
         } else {
             self
         }
