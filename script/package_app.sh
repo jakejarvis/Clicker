@@ -2,8 +2,9 @@
 # Build Clicker and assemble a signed dist/Clicker.app with Sparkle embedded.
 # Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z]
 #                              [--app-store [--installer <identity>] [--build N]]
-#   --release    optimized build; leaves out --demo unless --with-demo is also given
-#   --with-demo  compile the --demo scenarios in (debug builds always have them)
+#   --release    optimized build
+#   --with-demo  stage the ClickerDemo executable (the app plus the --demo scenarios)
+#                instead of Clicker; ad hoc only, so it can never be released
 #   --universal  arm64 + x86_64
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
@@ -48,6 +49,10 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+if [[ "$WITH_DEMO" == 1 && "$IDENTITY" != "-" ]]; then
+  echo "--with-demo is for ad-hoc development builds; it can't be signed" >&2
+  exit 2
+fi
 if [[ -n "$INSTALLER" && "$APP_STORE" != 1 ]]; then
   echo "--installer only applies to --app-store" >&2
   exit 2
@@ -106,10 +111,6 @@ DEPLOYMENT_TARGET="$(swift package dump-package | plutil -extract platforms.0.ve
 SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
 BUILD_FLAGS=(-c "$CONFIGURATION"
   -Xlinker -platform_version -Xlinker macos -Xlinker "$DEPLOYMENT_TARGET" -Xlinker "$SDK_VERSION")
-if [[ "$WITH_DEMO" == 1 && "$CONFIGURATION" == "release" ]]; then
-  # Package.swift already defines DEMO for debug builds; this adds it to release ones.
-  BUILD_FLAGS+=(-Xswiftc -DDEMO)
-fi
 if [[ "$APP_STORE" == 1 ]]; then
   # The App Store updates the app, and rule 2.4.5(vii) allows no other updater,
   # so Sparkle stays out of the binary entirely, not just switched off.
@@ -123,9 +124,15 @@ if [[ "$UNIVERSAL" == 1 ]]; then
   BUILD_FLAGS+=(--arch arm64 --arch x86_64)
 fi
 
-swift build "${BUILD_FLAGS[@]}"
+# Clicker is what ships. ClickerDemo is the same app with the demo scenarios,
+# a separate executable so they never reach a release.
+PRODUCT="$APP_NAME"
+if [[ "$WITH_DEMO" == 1 ]]; then
+  PRODUCT="ClickerDemo"
+fi
+swift build "${BUILD_FLAGS[@]}" --product "$PRODUCT"
 BUILD_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
-BUILD_BINARY="$BUILD_DIR/$APP_NAME"
+BUILD_BINARY="$BUILD_DIR/$PRODUCT"
 # Every slice must record the SDK it was built against (docs/development.md).
 LINKED_SDKS="$(xcrun vtool -show-build "$BUILD_BINARY" | awk '$1 == "sdk" { print $2 }' | sort -u)"
 if [[ "$LINKED_SDKS" != "$SDK_VERSION" ]]; then

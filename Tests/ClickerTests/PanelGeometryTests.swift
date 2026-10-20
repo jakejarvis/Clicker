@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import Clicker
+@testable import ClickerApp
 
 @Suite struct PanelGeometryTests {
     let visible = NSRect(x: 0, y: 0, width: 1440, height: 875)

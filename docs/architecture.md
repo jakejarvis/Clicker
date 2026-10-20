@@ -9,19 +9,28 @@ The rest of the docs are listed in the [index](README.md).
 ## Layout
 
 ```
-Sources/Clicker                  the app
-├── App/        ClickerApp (@main, AppDelegate), StatusItemController, MenuBarPanel,
+Sources/Clicker                  the shipped executable: main.swift runs ClickerApp with .live
+Sources/ClickerDemo              the development executable: the same app plus --demo
+├── main.swift  parses --demo; without it, runs .live like Clicker
+├── DemoScenario                 every scenario as data: TVs, behavior, steps, timings
+├── DemoTV                       a made-up Apple TV: TXT record, endpoint, how it answers
+├── DemoWorld, DemoEnvironment   builds RemoteDependencies from a scenario; plays its steps
+└── DemoSession, DemoPairingSession, DemoDiscovery, DemoCredentialBackend, DemoSettings
+
+Sources/ClickerApp               the app, a library both executables run
+├── App/        ClickerApp (App, AppDelegate), AppEnvironment, StatusItemController, MenuBarPanel,
 │               PanelMetrics / PanelGeometry / PanelBackdropView, PanelHeightBridge,
 │               PanelOutsideClickMonitor, AboutPanel, PanelHotKey
 ├── Views/      MenuBarView (screen switch, notices), RemotePadView, ClickpadGeometry,
 │               DevicePickerMenu, AppPickerView, TVTextFieldView, PINCodeField,
 │               RemoteOverlayCards, InlineNoticeView, SettingsScreen, ShortcutRow,
 │               ActionMenus, Spinner, TrackpadSwipeMonitor
-├── Stores/     RemoteController (all UI-facing state), CredentialStore, IdentityStore,
-│               UpdateController (Sparkle)
-├── Services/   DeviceBrowser (NWBrowser), PortKnocker (Rescan's wake knock)
+├── Stores/     RemoteController (all UI-facing state), RemoteDependencies, ControllerSettings,
+│               CredentialStore, IdentityStore, UpdateController (Sparkle)
+├── Services/   DeviceDiscovery, RemoteSession, PairingSession (the seams), DeviceBrowser
+│               (NWBrowser), PortKnocker (Rescan's wake knock)
 ├── Support/    Surface (glass and material helpers, SurfaceButtonStyle)
-└── Models/     AppleTVDevice, RemoteCommand+Display, TrackpadSwipe, DemoScenario
+└── Models/     AppleTVDevice, RemoteCommand+Display, TrackpadSwipe
 
 Sources/ClickerCompanion         the protocol, a separate module the app imports
 ├── OPACK, TLV8                  Apple's OPACK serialization, HomeKit TLV8
@@ -46,13 +55,14 @@ Files are named after their primary type. AppKit bridging stays narrow and lives
 
 ## Modules and isolation
 
-`Package.swift` (tools 6.2) has one trait, `Sparkle`, on by default and off in the [Mac App Store build](app-store.md), and two targets with different defaults:
+`Package.swift` (tools 6.2) has one trait, `Sparkle`, on by default and off in the [Mac App Store build](app-store.md), and four targets:
 
-- `Clicker`, the app, builds with `.defaultIsolation(MainActor.self)`: everything is on the main actor unless it says otherwise, so `@MainActor` is not written on stores or views. Pure value types that SwiftUI or the tests use off the main actor (`ClickpadGeometry`, `PanelGeometry`, `TrackpadSwipe`, `AppleTVDevice`, `ConnectionInfo`, `DemoScenario`, `IdentityStore`, `PanelHeightEffect`) are marked `nonisolated`.
+- `ClickerApp`, the app, builds with `.defaultIsolation(MainActor.self)`: everything is on the main actor unless it says otherwise, so `@MainActor` is not written on stores or views. Pure value types that SwiftUI or the tests use off the main actor (`ClickpadGeometry`, `PanelGeometry`, `TrackpadSwipe`, `AppleTVDevice`, `ConnectionInfo`, `IdentityStore`, `PanelHeightEffect`) are marked `nonisolated`, as are the `RemoteSession` and `PairingSession` protocols the protocol module's actors conform to. What the executables need is `package`: `ClickerApp.run(in:)`, `AppEnvironment`, `RemoteDependencies` and its protocols, and the few `RemoteController` and `UpdateController` members a demo step touches.
+- `Clicker`, the shipped executable, is just a `main.swift`. `ClickerDemo` has its own `main.swift` plus the demo sources (scenarios and fakes); only it reads `--demo`, and nothing `Clicker` builds depends on it. See [development.md](development.md#demo-mode). Both build with the same Swift settings as `ClickerApp`.
 - `ClickerCompanion` keeps Swift's nonisolated default, so nothing in it is main-actor isolated. Its actors (the connection, the client, the pairing session) run on their own executors; a synchronous codec such as `TextInputArchive.session(from:)` runs on whatever actor calls it, which is the main actor when `RemoteController.listenForEvents` decodes an event. It exposes its API with `package` access: anything the app or the tests need must say `package`, inits of structs included, since memberwise inits are internal.
 
-Both targets enable the `NonisolatedNonsendingByDefault` and `InferIsolatedConformances` upcoming features: a nonisolated `async` function runs on its caller's actor unless it is `@concurrent`.
+All targets enable the `NonisolatedNonsendingByDefault` and `InferIsolatedConformances` upcoming features: a nonisolated `async` function runs on its caller's actor unless it is `@concurrent`.
 
 ## Where state lives
 
-`RemoteController` owns everything the UI shows: the device list (fed by `DeviceBrowser`), the selected TV, pairing state, the live `CompanionClient`, connection and power state, media-control flags, the text-input session, notices, and the transient UI flags other parts of the app consult (the Apps picker and device popover being open, shortcut recording, held keys). Commands go through `RemoteController.perform`, which serializes them. `CredentialStore` keeps pairings, `IdentityStore` the client's own identity, and `UpdateController` wraps Sparkle (compiled out of the App Store build, where `UpdateController.isIncluded` is false).
+`RemoteController` owns everything the UI shows: the device list (fed by `DeviceDiscovery`, which is `DeviceBrowser` in a real run), the selected TV, pairing state, the live `RemoteSession` (a `CompanionClient`), connection and power state, media-control flags, the text-input session, notices, and the transient UI flags other parts of the app consult (the Apps picker and device popover being open, shortcut recording, held keys). Commands go through `RemoteController.perform`, which serializes them. Everything it reaches outside the process goes through `RemoteDependencies`, built once at launch by the `AppEnvironment`; what it remembers between launches (selection, recents, favorites, last addresses) goes through `ControllerSettings`, which is user defaults in a real run. `CredentialStore` keeps pairings, `IdentityStore` the client's own identity, and `UpdateController` wraps Sparkle (compiled out of the App Store build, where `UpdateController.isIncluded` is false).

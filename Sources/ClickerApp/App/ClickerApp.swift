@@ -7,6 +7,9 @@ import SwiftUI
 /// panel's shape, placement and size. `LSUIElement` in Info.plist plus the
 /// `.accessory` activation policy make the no-Dock behavior explicit.
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Set by `ClickerApp.run(in:)` before the app starts.
+    fileprivate static var environment = AppEnvironment.live
+
     private var controller: RemoteController?
     private var updates: UpdateController?
     private var statusItemController: StatusItemController?
@@ -30,7 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             CommandLine.arguments.contains("--regular") ? .regular : .accessory
         NSApp.setActivationPolicy(policy)
 
-        let controller = RemoteController()
+        let environment = Self.environment
+        let controller = RemoteController(dependencies: environment.makeDependencies())
         self.controller = controller
         // Held here for the app's lifetime: Sparkle keeps its delegates weakly.
         let updates = UpdateController(launchPolicy: policy)
@@ -38,16 +42,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemController = StatusItemController(controller: controller, updates: updates)
         controller.start()
         updates.start()
+        environment.didLaunch(controller, updates)
 
-        #if DEMO
-            if let demo = controller.demo {
-                if let version = demo.pendingUpdateVersion { updates.previewPendingUpdate(version) }
-                // Demo runs open the panel themselves so a screenshot needs no click.
-                openPanelShortly()
-                return
-            }
-        #endif
-        if !UserDefaults.standard.bool(forKey: Self.firstLaunchKey) {
+        if environment.opensPanelAtLaunch {
+            openPanelShortly()
+        } else if !UserDefaults.standard.bool(forKey: Self.firstLaunchKey) {
             openPanelShortly(recordingFirstLaunch: true)
         }
     }
@@ -86,11 +85,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-@main
-struct ClickerApp: App {
+/// The app's SwiftUI entry point. The Clicker and ClickerDemo executables
+/// each call `run(in:)` with their environment.
+package struct ClickerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    var body: some Scene {
+    package init() {}
+
+    package static func run(in environment: AppEnvironment) {
+        AppDelegate.environment = environment
+        main()
+    }
+
+    package var body: some Scene {
         // SwiftUI needs one scene; an empty Settings scene never opens a window
         // on its own and keeps the app window-free.
         Settings {

@@ -3,7 +3,7 @@ import Foundation
 import Network
 import Testing
 
-@testable import Clicker
+@testable import ClickerApp
 
 @Suite struct LegacyPairingTests {
     private static let livingRoom = AppleTVDevice(

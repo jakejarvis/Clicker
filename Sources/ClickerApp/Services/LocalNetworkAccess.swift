@@ -13,8 +13,8 @@ import os
 /// connection to the network's gateway, a local address evaluated the same
 /// way, where a denial is the connection's own path's `unsatisfiedReason`.
 /// Nothing is sent: the probe is cancelled as soon as its path is known.
-nonisolated enum LocalNetworkAccess {
-    enum Status: Sendable, Equatable {
+package nonisolated enum LocalNetworkAccess {
+    package enum Status: Sendable, Equatable {
         case allowed
         case denied
         /// No gateway, or no answer in time. Treated as allowed: the connect

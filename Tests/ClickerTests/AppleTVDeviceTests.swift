@@ -2,7 +2,7 @@ import Foundation
 import Network
 import Testing
 
-@testable import Clicker
+@testable import ClickerApp
 
 @Suite struct AppleTVDeviceTests {
     private let endpoint = NWEndpoint.service(

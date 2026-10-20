@@ -20,7 +20,7 @@ import Observation
 /// updates the app and allows no other updater (rule 2.4.5(vii)), so Sparkle
 /// is left out entirely and the update UI disappears with `isIncluded`.
 @Observable
-final class UpdateController: NSObject {
+package final class UpdateController: NSObject {
     #if Sparkle
         static let isIncluded = true
     #else
@@ -31,8 +31,9 @@ final class UpdateController: NSObject {
     /// Info.plist has no `SUFeedURL`.
     let isEnabled: Bool
     private(set) var canCheckForUpdates = false
-    /// Version of an update found in the background that the user hasn't seen.
-    private(set) var pendingUpdateVersion: String?
+    /// Version of an update found in the background that the user hasn't
+    /// seen. Set from outside only by the demo build's `update` scenario.
+    package var pendingUpdateVersion: String?
     private(set) var lastUpdateCheckDate: Date?
     /// Called before Sparkle shows a window; the panel floats at pop-up menu
     /// level and would otherwise cover it.
@@ -66,14 +67,6 @@ final class UpdateController: NSObject {
             lastUpdateCheckDate = updaterController.updater.lastUpdateCheckDate
         #endif
     }
-
-    #if DEMO
-        /// Shows the gentle-reminder state (`--demo update`) without a feed:
-        /// the inline notice and the "Update to" menu items.
-        func previewPendingUpdate(_ version: String) {
-            pendingUpdateVersion = version
-        }
-    #endif
 
     /// User-initiated check. Also brings a pending update's alert forward.
     func checkForUpdates() {
@@ -113,7 +106,9 @@ final class UpdateController: NSObject {
 #if Sparkle
 
     extension UpdateController: SPUUpdaterDelegate {
-        func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
+        package func updater(
+            _ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?
+        ) {
             if let error = error as NSError?,
                 error.code != Int(SUError.noUpdateError.rawValue),
                 error.code != Int(SUError.installationCanceledError.rawValue)
@@ -132,19 +127,19 @@ final class UpdateController: NSObject {
     // The user driver delegate protocol isn't annotated for the main actor, but
     // Sparkle only calls it on the main thread.
     extension UpdateController: @preconcurrency SPUStandardUserDriverDelegate {
-        var supportsGentleScheduledUpdateReminders: Bool { true }
+        package var supportsGentleScheduledUpdateReminders: Bool { true }
 
         /// Never: a scheduled find only sets `pendingUpdateVersion`, so the panel
         /// shows its notice and Sparkle's alert waits for a click on Update.
         /// Immediate focus includes "just launched", which with Open at Login
         /// would put the alert in front of whatever the user is doing.
-        func standardUserDriverShouldHandleShowingScheduledUpdate(
+        package func standardUserDriverShouldHandleShowingScheduledUpdate(
             _ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool
         ) -> Bool {
             false
         }
 
-        func standardUserDriverWillHandleShowingUpdate(
+        package func standardUserDriverWillHandleShowingUpdate(
             _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
         ) {
             if handleShowingUpdate {
@@ -154,11 +149,11 @@ final class UpdateController: NSObject {
             }
         }
 
-        func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
+        package func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
             pendingUpdateVersion = nil
         }
 
-        func standardUserDriverWillFinishUpdateSession() {
+        package func standardUserDriverWillFinishUpdateSession() {
             endUpdateSession()
         }
     }

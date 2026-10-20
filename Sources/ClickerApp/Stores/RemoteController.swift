@@ -4,7 +4,7 @@ import Network
 import Observation
 import SwiftUI
 
-nonisolated enum ConnectionState: Equatable, Sendable {
+package nonisolated enum ConnectionState: Equatable, Sendable {
     case disconnected
     case connecting
     case connected
@@ -17,7 +17,7 @@ nonisolated enum ConnectionState: Equatable, Sendable {
     var isBusy: Bool { self == .connecting }
 }
 
-nonisolated enum PairingState: Equatable, Sendable {
+package nonisolated enum PairingState: Equatable, Sendable {
     case idle
     case starting
     case awaitingPIN
@@ -65,7 +65,7 @@ nonisolated struct ConnectionInfo: Hashable, Sendable {
 
 /// Which page the menu bar panel is showing. Settings replaces the remote in
 /// place; there is no separate window.
-nonisolated enum PanelScreen: Hashable, Sendable {
+package nonisolated enum PanelScreen: Hashable, Sendable {
     case remote
     case settings
 }
@@ -74,29 +74,37 @@ nonisolated enum PanelScreen: Hashable, Sendable {
 /// details mode. The mode rides on the item because an `isPresented`
 /// popover rendered its content with the previous mode when both changed
 /// in the same click.
-nonisolated struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
+package nonisolated struct DevicePickerPresentation: Identifiable, Hashable, Sendable {
     let showsDetails: Bool
-    var id: Bool { showsDetails }
+    package var id: Bool { showsDetails }
+
+    package init(showsDetails: Bool) {
+        self.showsDetails = showsDetails
+    }
 }
 
 /// App-wide remote control state: which Apple TV is selected, whether we are
 /// connected to it, and the actions the UI can trigger.
 @Observable
-final class RemoteController {
-    let browser = DeviceBrowser()
+package final class RemoteController {
     let credentialStore: CredentialStore
+    @ObservationIgnored private let dependencies: RemoteDependencies
+    /// The Apple TVs on the network; views read its rescan and error state.
+    var discovery: any DeviceDiscovery { dependencies.discovery }
+    private var settings: any ControllerSettings { dependencies.settings }
+    private var timings: RemoteTimings { dependencies.timings }
 
     private(set) var selectedDeviceID: String?
-    private(set) var connectionState: ConnectionState = .disconnected
+    package private(set) var connectionState: ConnectionState = .disconnected
     private(set) var powerState: PowerState = .unknown
     /// Where the live session landed, for the picker's details view.
     private(set) var connectionInfo: ConnectionInfo?
-    private(set) var pairingState: PairingState = .idle
+    package private(set) var pairingState: PairingState = .idle
     /// Why the selected TV is back to needing a pairing, shown on the pair
     /// card in place of the usual caption. Set when pair-verify finds the TV's
     /// identity changed and the stale credentials were dropped.
     private(set) var pairingNotice: String?
-    private(set) var apps: [AppleTVApp] = []
+    package private(set) var apps: [AppleTVApp] = []
     private(set) var isLoadingApps = false
     /// The selected TV's user profiles, from `refreshUserAccounts`.
     private(set) var userAccounts: [UserAccount] = []
@@ -126,21 +134,18 @@ final class RemoteController {
     /// Mute sets the volume level, which the Apple TV only owns for a HomePod,
     /// AirPlay or Bluetooth output. Over HDMI the volume buttons still work as
     /// CEC or IR presses, so only Mute is withheld.
-    var canMute: Bool { mediaControlFlags.contains(.volume) }
+    package var canMute: Bool { mediaControlFlags.contains(.volume) }
     /// How many `_iMC` events the session has delivered. A real volume change
     /// is followed by one; a placeholder level is not (see `confirmMute`).
     @ObservationIgnored private var mediaControlUpdates = 0
     @ObservationIgnored private var muteConfirmationTask: Task<Void, Never>?
-    /// How long a SetVolume gets to be echoed by an `_iMC` event; pyatv waits
-    /// the same.
-    static let muteConfirmationTimeout: Duration = .seconds(5)
     var screen: PanelScreen = .remote
     /// Whether the Apps picker popover is open. Esc closes it before
     /// anything else.
-    var isAppPickerPresented = false
+    package var isAppPickerPresented = false
     /// The device picker's popover while it is open. Kept here, not in the
     /// view, so hiding the panel can drop it and Esc can close it.
-    var devicePickerPresentation: DevicePickerPresentation?
+    package var devicePickerPresentation: DevicePickerPresentation?
     /// Whether either popover is open. The clickpad ignores keys and
     /// trackpad swipes while one is, since the panel stays key underneath
     /// and they would otherwise drive the TV behind the popover.
@@ -161,18 +166,14 @@ final class RemoteController {
     /// hidden waits for the next open, which connects anyway.
     private(set) var isPanelVisible = false
 
-    @ObservationIgnored private var client: CompanionClient?
+    @ObservationIgnored private var client: (any RemoteSession)?
     @ObservationIgnored private var clientDeviceID: String?
     @ObservationIgnored private var connectTask: Task<Void, Never>?
     @ObservationIgnored private var eventTask: Task<Void, Never>?
-    @ObservationIgnored private var pairingSession: CompanionPairingSession?
+    @ObservationIgnored private var pairingSession: (any PairingSession)?
     @ObservationIgnored private var pairingDeviceID: String?
     @ObservationIgnored private var commandQueue: Task<Void, Never>?
     @ObservationIgnored private var reconnectTask: Task<Void, Never>?
-    /// How long after a dropped session the panel waits before connecting
-    /// again, so a TV that is tearing down (sleep, a restart) is not hit at
-    /// once.
-    static let reconnectDelay: Duration = .seconds(1)
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
     /// The pad's keys currently held down on the TV. A key-down sends the
     /// button's down and its key-up the up, so tvOS repeats a held arrow and
@@ -197,73 +198,24 @@ final class RemoteController {
     /// before presenting windows the panel would otherwise float above.
     @ObservationIgnored var dismissPanel: () -> Void = {}
 
-    private static let selectedDeviceKey = "selectedDeviceID"
-    private static let recentAppsKey = "recentAppIDsByDevice"
-    private static let favoriteAppsKey = "favoriteAppIDsByDevice"
-    private static let lastAddressesKey = "lastAddressByDevice"
     private static let recentAppLimit = 5
 
-    #if DEMO
-        /// Canned state for screenshots (`--demo`); see `DemoScenario`. Debug
-        /// builds compile it in; release builds only with `--with-demo`.
-        let demo: DemoScenario?
-        var isDemo: Bool { demo != nil }
-
-        init(demo: DemoScenario? = DemoScenario.current) {
-            self.demo = demo
-            if let demo {
-                Log.remote.info("Demo mode: \(demo.rawValue, privacy: .public)")
-                DemoScenario.overrideDefaults()
-                let paired = demo.pairedDevices.map(DemoScenario.credentials(for:))
-                credentialStore = CredentialStore(backend: DemoCredentialBackend(initial: paired))
-                selectedDeviceID = demo.selectedDeviceID
-                pairingState = demo.pairingState
-                if demo.pairingState != .idle { pairingDeviceID = demo.selectedDeviceID }
-                pairingNotice = demo.pairingNotice
-                screen = demo.screen
-                if let selected = demo.selectedDeviceID {
-                    recentAppIDsByDevice = [selected: DemoScenario.recentAppIDs]
-                    favoriteAppIDsByDevice = [selected: DemoScenario.favoriteAppIDs]
-                }
-            } else {
-                credentialStore = CredentialStore()
-                restoreSavedState()
-            }
-            browser.onUpdate = { [weak self] devices in
-                self?.devicesDidChange(devices)
-            }
+    package init(dependencies: RemoteDependencies) {
+        self.dependencies = dependencies
+        credentialStore = CredentialStore(backend: dependencies.credentialBackend)
+        selectedDeviceID = dependencies.settings.selectedDeviceID
+        recentAppIDsByDevice = dependencies.settings.recentAppIDsByDevice
+        favoriteAppIDsByDevice = dependencies.settings.favoriteAppIDsByDevice
+        dependencies.discovery.onUpdate = { [weak self] devices in
+            self?.devicesDidChange(devices)
         }
-    #else
-        /// Release builds have no demo mode.
-        var isDemo: Bool { false }
-
-        init() {
-            credentialStore = CredentialStore()
-            restoreSavedState()
-            browser.onUpdate = { [weak self] devices in
-                self?.devicesDidChange(devices)
-            }
-        }
-    #endif
-
-    /// The selection and per-TV app lists from the last launch.
-    private func restoreSavedState() {
-        selectedDeviceID = UserDefaults.standard.string(forKey: Self.selectedDeviceKey)
-        recentAppIDsByDevice =
-            UserDefaults.standard.dictionary(forKey: Self.recentAppsKey) as? [String: [String]] ?? [:]
-        favoriteAppIDsByDevice =
-            UserDefaults.standard.dictionary(forKey: Self.favoriteAppsKey) as? [String: [String]] ?? [:]
     }
 
     // MARK: - Devices
 
     /// Online devices merged with paired devices that are not currently visible, in picker order.
     var devices: [AppleTVDevice] {
-        #if DEMO
-            var result = demo?.onlineDevices ?? browser.devices
-        #else
-            var result = browser.devices
-        #endif
+        var result = discovery.devices
         let onlineIDs = Set(result.map(\.id))
         for credentials in credentialStore.credentials where !onlineIDs.contains(credentials.deviceID) {
             result.append(AppleTVDevice(offline: credentials))
@@ -327,23 +279,16 @@ final class RemoteController {
         }
     }
 
-    func start() {
-        if !isDemo { browser.start() }
+    package func start() {
+        discovery.start()
         connectIfNeeded()
-        #if DEMO
-            presentDemoPopover()
-        #endif
     }
 
     /// Re-issues the Bonjour query (the picker's ⌥-click Rescan). Also knocks
     /// on the selected TV's last known address, in case it is asleep behind a
     /// Bonjour sleep proxy that wakes it when one of its ports is touched.
     func rescan() {
-        guard !isDemo else { return }
-        if let selectedDeviceID, let host = lastAddressByDevice[selectedDeviceID] {
-            PortKnocker.knock(host: host)
-        }
-        browser.restart()
+        discovery.rescan(knocking: selectedDeviceID.flatMap { lastAddressByDevice[$0] })
     }
 
     /// The host each TV was last connected at, keyed by device id, so Rescan
@@ -351,12 +296,12 @@ final class RemoteController {
     /// when a TV's id changes and goes when it is forgotten. A stale pairing
     /// keeps it: the TV is still there to knock on while it is paired again.
     private var lastAddressByDevice: [String: String] {
-        get { UserDefaults.standard.dictionary(forKey: Self.lastAddressesKey) as? [String: String] ?? [:] }
-        set { UserDefaults.standard.set(newValue, forKey: Self.lastAddressesKey) }
+        get { settings.lastAddressByDevice }
+        set { settings.lastAddressByDevice = newValue }
     }
 
     private func rememberAddress(of endpoint: NWEndpoint?, for deviceID: String) {
-        guard !isDemo, case .hostPort(let host, _)? = endpoint else { return }
+        guard case .hostPort(let host, _)? = endpoint else { return }
         lastAddressByDevice[deviceID] = String(describing: host)
     }
 
@@ -475,17 +420,16 @@ final class RemoteController {
         }
     }
 
-    /// Keeps the selection for the next launch; demo runs leave it alone.
+    /// Keeps the selection for the next launch.
     private func rememberSelection(_ deviceID: String?) {
-        guard !isDemo else { return }
-        UserDefaults.standard.set(deviceID, forKey: Self.selectedDeviceKey)
+        settings.selectedDeviceID = deviceID
     }
 
     // MARK: - Connection
 
     /// Called when the menu bar panel opens.
     func panelDidAppear() {
-        if !isDemo { browser.start() }
+        discovery.start()
         isPanelVisible = true
         lastActionError = nil
         panelAppearances += 1
@@ -500,12 +444,6 @@ final class RemoteController {
     static let retryConnectTimeout: Duration = .seconds(10)
 
     func connectIfNeeded(isRetry: Bool = false) {
-        #if DEMO
-            if let demo {
-                connectDemo(demo)
-                return
-            }
-        #endif
         guard connectTask == nil else { return }
         guard let device = selectedDevice, let endpoint = device.endpoint,
             let credentials = credentialStore.credentials(for: device.id)
@@ -514,8 +452,7 @@ final class RemoteController {
 
         disconnect()
         connectionState = .connecting
-        let identity = IdentityStore.identity()
-        let client = CompanionClient(endpoint: endpoint, credentials: credentials, identity: identity)
+        let client = dependencies.makeSession(endpoint, credentials, dependencies.identity())
         self.client = client
         clientDeviceID = device.id
 
@@ -559,7 +496,7 @@ final class RemoteController {
                 // probe opens a flow to the gateway, which a firewall such as
                 // Little Snitch asks about.
                 if case CompanionError.timeout = error {
-                    let access = await LocalNetworkAccess.check()
+                    let access = await self.dependencies.localNetworkAccess()
                     guard !Task.isCancelled else { return }
                     if access == .denied {
                         Log.remote.error("Local network access denied")
@@ -642,7 +579,7 @@ final class RemoteController {
 
     /// Clears every piece of session state and hands back the client that
     /// still needs closing, if any.
-    private func tearDownSession() -> CompanionClient? {
+    private func tearDownSession() -> (any RemoteSession)? {
         reconnectTask?.cancel()
         reconnectTask = nil
         connectTask?.cancel()
@@ -675,8 +612,9 @@ final class RemoteController {
     /// the banner's Retry as before.
     private func scheduleReconnect() {
         reconnectTask?.cancel()
+        let delay = timings.reconnectDelay
         reconnectTask = Task { [weak self] in
-            try? await Task.sleep(for: Self.reconnectDelay)
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self, self.isPanelVisible, self.connectionState == .disconnected else {
                 return
             }
@@ -708,7 +646,7 @@ final class RemoteController {
     /// ⌘, and the footer menu's Settings…. An open popover closes first:
     /// left to SwiftUI it would ride its anchor out with the remote screen
     /// and only drop once the anchor had unmounted.
-    func showSettings() {
+    package func showSettings() {
         isAppPickerPresented = false
         devicePickerPresentation = nil
         withAnimation(.snappy(duration: 0.3)) { screen = .settings }
@@ -737,7 +675,7 @@ final class RemoteController {
         return false
     }
 
-    private func listenForEvents(from client: CompanionClient) {
+    private func listenForEvents(from client: any RemoteSession) {
         eventTask?.cancel()
         eventTask = Task { [weak self] in
             for await event in client.events {
@@ -854,7 +792,7 @@ final class RemoteController {
 
     /// Mutes by remembering the current volume and setting it to zero, since
     /// the Companion button set has no mute. Unmute restores the saved level.
-    func toggleMute() {
+    package func toggleMute() {
         guard canMute else { return }
         if isMuted {
             Log.remote.info("Unmute")
@@ -890,10 +828,11 @@ final class RemoteController {
     /// after the timeout the mute is undone and withheld like an output that
     /// never claimed it. A later `_iMC` with the volume bit re-enables it.
     private func confirmMute(updatesSince: Int) {
-        guard !isDemo, isMuted, lastActionError == nil else { return }
+        guard isMuted, lastActionError == nil else { return }
         muteConfirmationTask?.cancel()
+        let timeout = timings.muteConfirmationTimeout
         muteConfirmationTask = Task { [weak self] in
-            try? await Task.sleep(for: Self.muteConfirmationTimeout)
+            try? await Task.sleep(for: timeout)
             guard !Task.isCancelled, let self, self.isMuted, self.mediaControlUpdates == updatesSince else { return }
             self.abandonMute()
         }
@@ -1030,8 +969,7 @@ final class RemoteController {
     }
 
     private func rememberRecents() {
-        guard !isDemo else { return }
-        UserDefaults.standard.set(recentAppIDsByDevice, forKey: Self.recentAppsKey)
+        settings.recentAppIDsByDevice = recentAppIDsByDevice
     }
 
     /// The current TV's starred apps, in the order they were starred; an
@@ -1060,8 +998,7 @@ final class RemoteController {
     }
 
     private func rememberFavorites() {
-        guard !isDemo else { return }
-        UserDefaults.standard.set(favoriteAppIDsByDevice, forKey: Self.favoriteAppsKey)
+        settings.favoriteAppIDsByDevice = favoriteAppIDsByDevice
     }
 
     func refreshApps() {
@@ -1091,7 +1028,7 @@ final class RemoteController {
     /// Runs an action against the connected client. Actions are serialized so a
     /// button "down" is always delivered before its "up".
     private func perform(
-        _ action: @escaping @MainActor @Sendable (CompanionClient) async throws -> Void,
+        _ action: @escaping @MainActor @Sendable (any RemoteSession) async throws -> Void,
         completion: (@MainActor () -> Void)? = nil
     ) {
         let previous = commandQueue
@@ -1123,7 +1060,7 @@ final class RemoteController {
     /// is not repeated per command: the banner's Retry, the next panel open
     /// and `scheduleReconnect` reconnect, and a queue of presses would
     /// otherwise run one full attempt each and replay once the TV answered.
-    private func readyClient() async -> CompanionClient? {
+    private func readyClient() async -> (any RemoteSession)? {
         if connectTask == nil {
             switch connectionState {
             case .failed, .localNetworkDenied: return nil
@@ -1143,13 +1080,7 @@ final class RemoteController {
 
     // MARK: - Pairing
 
-    func beginPairing() {
-        #if DEMO
-            if isDemo {
-                beginDemoPairing()
-                return
-            }
-        #endif
+    package func beginPairing() {
         guard let device = selectedDevice, let endpoint = device.endpoint else { return }
         guard !device.pairingDisabled else {
             pairingState = .failed(CompanionError.pairingDisabled.localizedDescription)
@@ -1160,7 +1091,7 @@ final class RemoteController {
         pairingNotice = nil
         pairingState = .starting
         pairingDeviceID = device.id
-        let session = CompanionPairingSession(endpoint: endpoint)
+        let session = dependencies.makePairingSession(endpoint)
         pairingSession = session
         Task { [weak self] in
             do {
@@ -1178,7 +1109,7 @@ final class RemoteController {
                 // timeout.
                 var denied = false
                 if case CompanionError.timeout = error {
-                    denied = await LocalNetworkAccess.check() == .denied
+                    denied = await self.dependencies.localNetworkAccess() == .denied
                     guard self.pairingSession === session else { return }
                 }
                 if denied {
@@ -1192,13 +1123,7 @@ final class RemoteController {
         }
     }
 
-    func submitPIN(_ pin: String) {
-        #if DEMO
-            if isDemo {
-                submitDemoPIN()
-                return
-            }
-        #endif
+    package func submitPIN(_ pin: String) {
         guard let session = pairingSession, let device = selectedDevice, device.id == pairingDeviceID else {
             Log.pairing.info("Ignoring PIN: no pairing in progress for the selected device")
             return
@@ -1210,7 +1135,8 @@ final class RemoteController {
         }
         Log.pairing.info("Submitting PIN to \(device.name, privacy: .public)")
         pairingState = .finishing
-        let clientName = IdentityStore.identity().name
+        let clientName = dependencies.identity().name
+        let successHold = timings.pairingSuccessHold
         Task { [weak self] in
             do {
                 let credentials = try await session.finish(
@@ -1233,7 +1159,7 @@ final class RemoteController {
                 self.pairingDeviceID = nil
                 self.pairingState = .succeeded
                 self.connectIfNeeded()
-                try? await Task.sleep(for: .seconds(1.2))
+                try? await Task.sleep(for: successHold)
                 if self.pairingState == .succeeded { self.pairingState = .idle }
             } catch {
                 guard let self, self.pairingSession === session else { return }
@@ -1269,74 +1195,3 @@ final class RemoteController {
     nonisolated static let localNetworkDeniedMessage =
         "Clicker isn't allowed on the local network. Turn it on under Privacy & Security › Local Network."
 }
-
-#if DEMO
-    // MARK: - Demo
-
-    extension RemoteController {
-        /// Stands in for a connection in demo mode: a paired, online TV is ready
-        /// at once, with the scenario's power state, apps and text field.
-        private func connectDemo(_ demo: DemoScenario) {
-            guard let device = selectedDevice, device.isOnline, isPaired(device) else { return }
-            // Re-applied on every panel open, which clears the notice first.
-            lastActionError = demo.actionError
-            guard connectionState != .connected else { return }
-            connectionState = demo.connectionState
-            guard connectionState == .connected else { return }
-            powerState = demo.powerState
-            mediaControlFlags = demo.mediaControlFlags
-            connectionInfo = ConnectionInfo(
-                address: "192.168.1.42", port: 49153, sessionID: 0x5C1A_7E2B, osVersion: "26.0.1")
-            apps = DemoScenario.apps
-            if let session = demo.keyboardSession {
-                adoptKeyboardSession(session)
-            }
-        }
-
-        /// Opens the scenario's popover once, after the panel is on screen (it
-        /// opens half a second after launch), so the popover has an anchor and
-        /// the clickpad has taken its focus. Not from `connectDemo`, which runs
-        /// again whenever a TV is picked and would reopen it.
-        func presentDemoPopover() {
-            guard let demo, demo == .appPicker || demo == .devices else { return }
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1))
-                if demo == .appPicker {
-                    self?.isAppPickerPresented = true
-                } else {
-                    self?.devicePickerPresentation = DevicePickerPresentation(showsDetails: false)
-                }
-            }
-        }
-
-        /// Demo pairing: the TV "shows a code" after a second.
-        private func beginDemoPairing() {
-            guard let device = selectedDevice else { return }
-            pairingDeviceID = device.id
-            pairingState = .starting
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1))
-                guard let self, self.pairingState == .starting, self.pairingDeviceID == device.id else {
-                    return
-                }
-                self.pairingState = .awaitingPIN
-            }
-        }
-
-        /// Demo pairing: any code is accepted, then the usual check and connect.
-        private func submitDemoPIN() {
-            guard let device = selectedDevice, pairingState == .awaitingPIN else { return }
-            pairingState = .finishing
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1))
-                guard let self, self.pairingState == .finishing else { return }
-                try? self.credentialStore.save(DemoScenario.credentials(for: device))
-                self.pairingDeviceID = nil
-                self.pairingState = .succeeded
-                self.connectIfNeeded()
-                try? await Task.sleep(for: .seconds(1.2))
-                if self.pairingState == .succeeded { self.pairingState = .idle }
-            }
-        }
-    }
-#endif

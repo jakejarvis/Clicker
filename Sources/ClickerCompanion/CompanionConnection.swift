@@ -5,6 +5,11 @@ import Network
 package struct CompanionEvent: Sendable {
     package let name: String
     package let content: OPACKValue
+
+    package init(name: String, content: OPACKValue) {
+        self.name = name
+        self.content = content
+    }
 }
 
 /// A framed, optionally encrypted TCP connection to a Companion service.
