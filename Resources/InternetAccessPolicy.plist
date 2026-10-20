@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DeveloperName</key>
+	<string>Jake Jarvis</string>
+	<key>Website</key>
+	<string>https://clicker.jarv.is</string>
+	<key>ApplicationDescription</key>
+	<string>Clicker is a menu bar remote for Apple TV. It talks directly to Apple TVs on your local network.</string>
+	<key>Connections</key>
+	<array>
+		<dict>
+			<key>Host</key>
+			<string>local-net</string>
+			<key>NetworkProtocol</key>
+			<string>TCP</string>
+			<key>Relevance</key>
+			<string>Essential</string>
+			<key>Purpose</key>
+			<string>Clicker pairs with and controls Apple TVs on your local network over Apple's Companion protocol. When you rescan, it also briefly knocks on the selected Apple TV's ports to wake it.</string>
+			<key>DenyConsequences</key>
+			<string>Clicker can't connect to or control any Apple TV.</string>
+		</dict>
+		<dict>
+			<key>Host</key>
+			<string>local-net</string>
+			<key>NetworkProtocol</key>
+			<string>UDP</string>
+			<key>Port</key>
+			<string>9</string>
+			<key>Purpose</key>
+			<string>When a connection to an Apple TV times out, Clicker opens a short-lived flow toward your router to check whether macOS is blocking its local network access. Nothing is sent.</string>
+			<key>DenyConsequences</key>
+			<string>Clicker can't tell you when macOS is blocking its local network access.</string>
+		</dict>
+		<dict>
+			<key>Host</key>
+			<string>clicker.jarv.is</string>
+			<key>NetworkProtocol</key>
+			<string>TCP</string>
+			<key>Port</key>
+			<string>443</string>
+			<key>Purpose</key>
+			<string>Clicker checks for new versions.</string>
+			<key>DenyConsequences</key>
+			<string>Clicker won't find out about updates.</string>
+		</dict>
+		<dict>
+			<key>Host</key>
+			<string>github.com, *.githubusercontent.com</string>
+			<key>NetworkProtocol</key>
+			<string>TCP</string>
+			<key>Port</key>
+			<string>443</string>
+			<key>Purpose</key>
+			<string>Clicker downloads updates from its [GitHub releases](https://github.com/jakejarvis/Clicker/releases).</string>
+			<key>DenyConsequences</key>
+			<string>Updates can't be downloaded.</string>
+		</dict>
+	</array>
+</dict>
+</plist>

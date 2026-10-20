@@ -167,6 +167,17 @@ cp "$ROOT_DIR/Resources/PrivacyInfo.xcprivacy" "$CONTENTS/Resources/"
 # Moves what an unsandboxed Clicker (0.2.x) kept in ~/Library into the new
 # container the first time a sandboxed one launches.
 cp "$ROOT_DIR/Resources/container-migration.plist" "$CONTENTS/Resources/"
+# Little Snitch's description of each connection. The App Store build has no
+# Sparkle, so it drops the last two entries (update feed and download).
+IAP="$CONTENTS/Resources/InternetAccessPolicy.plist"
+cp "$ROOT_DIR/Resources/InternetAccessPolicy.plist" "$IAP"
+if [[ "$APP_STORE" == 1 ]]; then
+  /usr/libexec/PlistBuddy -c "Delete :Connections:3" -c "Delete :Connections:2" "$IAP"
+  if /usr/libexec/PlistBuddy -c "Print :Connections" "$IAP" | grep -q "jarv.is\|github"; then
+    echo "InternetAccessPolicy.plist still describes Sparkle's connections" >&2
+    exit 1
+  fi
+fi
 
 cp "$ROOT_DIR/Resources/Info.plist" "$INFO_PLIST"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$INFO_PLIST"

@@ -38,6 +38,12 @@ Every build is sandboxed, ad-hoc ones included. `Resources/Clicker.entitlements`
 
 Sparkle's service names come from the running bundle ID, so a copy under another bundle ID has those lookups denied unless its entitlements are edited to match. That doesn't matter in practice: an ad-hoc copy has no feed, and a Developer ID copy under another ID wouldn't match the profile, so the update path can only be tested with the real ID.
 
+## Little Snitch
+
+`Resources/InternetAccessPolicy.plist` is the [Internet Access Policy](https://help.obdev.at/littlesnitch6/adv-iap-developer) Little Snitch shows in its connection prompts and Network Monitor. It describes every connection Clicker's own process makes (Sparkle's Downloader.xpc is removed, so update downloads run in the app too): the Companion session and `PortKnocker` (`local-net`, TCP, any port, since the Companion port comes from Bonjour), `LocalNetworkAccess`'s probe (`local-net`, UDP 9), the appcast at `clicker.jarv.is` and the update download from `github.com`, which redirects to `*.githubusercontent.com`. Bonjour browsing goes through mDNSResponder, not Clicker, so it has no entry. Add an entry when code starts connecting somewhere new.
+
+`package_app.sh` copies it into `Contents/Resources` before signing, since Little Snitch ignores a policy the bundle's signature doesn't cover. The Mac App Store build drops the last two entries, the Sparkle ones, so keep those at the end. `DeveloperName` is set explicitly because Little Snitch can only read it from a Developer ID or Development certificate, not an App Store one.
+
 ## Preferences and container migration
 
 User defaults (in the container's `Preferences/com.jakejarvis.Clicker.plist`) hold the client identity (`clientDeviceID`), `favoriteAppIDsByDevice`, `recentAppIDsByDevice`, the shortcut (`KeyboardShortcuts_togglePanel`), `hasCompletedFirstLaunch`, the Invert Swipes setting and Sparkle's state.

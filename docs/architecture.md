@@ -44,7 +44,8 @@ Sources/ClickerCompanion         the protocol, a separate module the app imports
 Tests/ClickerTests, Tests/ClickerCompanionTests   see testing.md
 Resources/      Info.plist, Clicker.entitlements, Clicker.provisionprofile,
                 Clicker-AppStore.provisionprofile, PrivacyInfo.xcprivacy,
-                container-migration.plist, AppIcon.icon, StatusIcon/
+                container-migration.plist, InternetAccessPolicy.plist, AppIcon.icon,
+                StatusIcon/
 script/         build_and_run.sh, package_app.sh, release.sh, render_icon.sh,
                 make_status_icons.swift
 .github/        ci.yml (lint, test, package both builds), release.yml (on v* tags), dependabot.yml
