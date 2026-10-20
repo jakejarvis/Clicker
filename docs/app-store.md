@@ -41,7 +41,7 @@ From the release workflow, when `APP_STORE_P12_BASE64` and `APP_STORE_P12_PASSWO
 
 - The credentials step imports the Apple Distribution and Mac Installer Distribution identities into the job's keychain with the Developer ID one.
 - The last step, "Upload the App Store build", packages at the tag's version and uploads with `xcrun altool --upload-package`, using the API key notarization uses (a Developer-role team key can upload builds). altool finds the key by file name, so the step copies it to `AuthKey_<id>.p8` in a directory named by `API_PRIVATE_KEYS_DIR`.
-- It uses the long form of `--upload-package` (`--type macos`, `--apple-id` from `APP_STORE_APPLE_ID` in the workflow, and the bundle ID and versions) with camelCase `--apiKey` and `--apiIssuer`, which is what Xcode 26's altool documents; CI pins Xcode 26.6, and Xcode 27's altool accepts the same form.
+- It uses the long form of `--upload-package` (`--type macos`, `--apple-id` from `APP_STORE_APPLE_ID` in the workflow, and the bundle ID and versions) with camelCase `--apiKey` and `--apiIssuer`, which is what Xcode 26's altool documents; CI pins Xcode 27.1, whose altool accepts the same form.
 - It runs last, so a failure leaves the GitHub release, appcast, cask and site published, and because it replaces `dist/Clicker.app`.
 - An `ERROR:` line fails the step even if altool exits 0. On a re-run, an error naming a duplicate (`Redundant Binary Upload`, `has already been used`, `DUPLICATE`) counts as done. A bare "must be higher than the previously uploaded version" fails, since it can mean a later build is there and this version has none.
 - Without the secret the step does nothing.

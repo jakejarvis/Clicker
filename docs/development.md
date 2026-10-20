@@ -13,7 +13,6 @@ The script kills a running copy, calls `script/package_app.sh` to build with Swi
 ```bash
 ./script/build_and_run.sh --install    # copy to /Applications and launch from there
 ./script/build_and_run.sh --release    # optimized build; SRP pairing math is much faster
-./script/build_and_run.sh --native     # SwiftPM's native build system, which links the real SDK like CI (see below)
 ./script/build_and_run.sh --telemetry  # launch and stream com.jakejarvis.Clicker logs
 ./script/build_and_run.sh --logs       # launch and stream every log line from the process
 ./script/build_and_run.sh --verify     # launch and confirm the process exists
@@ -32,9 +31,14 @@ Ad-hoc builds leave out `SUFeedURL`, so they never update themselves and Setting
 
 `swift build` fails in a sandboxed agent shell (the module cache, and git cloning the dependencies), so run SwiftPM and the scripts outside the sandbox. `log show` inside the sandbox prints nothing at all, with no error, so read logs outside it too; an empty log read inside the sandbox means nothing.
 
-### Linked SDK and control looks
+### Linked SDK and toolchain
 
-Swift 6.4's default build system (Swift Build) records `sdk 15.0` in the binary's `LC_BUILD_VERSION`, while the native build system and CI's toolchain record the real SDK. AppKit and SwiftUI choose some control looks by linked SDK, so a default local build can look different from what users get. Review any new AppKit-backed control with `--native` (on either script). CI's package step uploads the zipped app, so a release-look build can also be downloaded from a CI run.
+AppKit and SwiftUI pick some looks and behaviors by the SDK a binary records in `LC_BUILD_VERSION` (the shortcut recorder's bezel was one; see [panel.md](panel.md#global-shortcut)), so a build that records a different SDK from the shipped one looks different. Two rules keep local builds identical to releases:
+
+- `package_app.sh` passes `-platform_version macos <deployment target> <SDK>` to the linker and fails if any slice records an SDK other than `xcrun --show-sdk-version`. Swift Build, SwiftPM 6.4's default, records the deployment target (`sdk 15.0`) whatever SDK it compiles against. Don't switch to `--build-system native` instead: it is deprecated in 6.4, and universal builds go through Swift Build anyway. The deployment target is read from `Package.swift`, so raising it there is enough. Plain `swift build` and `swift test` don't get the flag, which is fine for tests but not for judging how anything looks.
+- CI and `release.yml` run on the `xcode-27` runner image with `DEVELOPER_DIR` pinned to the same Xcode as local development (27.1). When updating Xcode locally, move both workflows' `DEVELOPER_DIR` with it.
+
+Linking the newest SDK doesn't narrow compatibility: the deployment target (`.macOS(.v15)`, `minos 15.0`) decides where the app runs, and macOS 15 draws it with its own 15-era looks whatever SDK it was linked against. Check anything version-dependent on a macOS 15 machine or VM, and keep newer APIs behind `#available`.
 
 ## Formatting
 
@@ -65,7 +69,7 @@ Use the full path: zsh has a `log` builtin that swallows the arguments.
 open -n dist/Clicker.app --args --demo pin
 ```
 
-Scenarios: `ready` (the default), `asleep`, `typing`, `settings`, `pair`, `pin`, `paired`, `offline`, `searching` and `choose`, plus the trouble states `pairingdisabled`, `reset` (stale pairing dropped after a factory reset), `removed` (stale pairing dropped after Clicker was removed from the TV's Remotes and Devices), `pairingfailed` (wrong code), `savefailed` (the TV accepted the pairing but storage refused it), `connectionfailed`, `disconnected`, `hdmi` (Mute just failed and is disabled), `update` (a pending update) and `notices` (a failed connection and a pending update, stacked). Every overlay card, inline notice and the pending-update state has one, so check wording on screen there rather than against a TV.
+Scenarios: `ready` (the default), `asleep`, `typing`, `settings`, `apps` (the Apps picker open), `pair`, `pin`, `paired`, `offline`, `searching` and `choose`, plus the trouble states `pairingdisabled`, `reset` (stale pairing dropped after a factory reset), `removed` (stale pairing dropped after Clicker was removed from the TV's Remotes and Devices), `pairingfailed` (wrong code), `savefailed` (the TV accepted the pairing but storage refused it), `connectionfailed`, `disconnected`, `hdmi` (Mute just failed and is disabled), `update` (a pending update) and `notices` (a failed connection and a pending update, stacked). Every overlay card, inline notice and the pending-update state has one, so check wording on screen there rather than against a TV.
 
 Demo mode is compiled only under the `DEMO` condition. `Package.swift` defines it for debug builds (so `swift test` sees it), `package_app.sh --release --with-demo` adds it to a release build (`build_and_run.sh` always passes `--with-demo`), and `release.sh` and CI's package step never do, so a published Clicker.app has no `DemoScenario`, no `RemoteController.demo` and ignores `--demo`. In code, `RemoteController.isDemo` is the always-present check (`false` in release); anything that reads the scenario itself goes in `#if DEMO`, and the demo-only controller methods live in the `#if DEMO` extension at the end of `RemoteController.swift`. A new card, notice or state should get a scenario.
 
@@ -75,7 +79,7 @@ Signed release builds keep pairings in the data protection keychain; ad-hoc buil
 
 ## Icons
 
-The app icon is `Resources/AppIcon.icon`, an Icon Composer document: `icon.json` plus the SVG layers in `Assets/`. Open it in Icon Composer to adjust the glass, or edit the SVGs. `package_app.sh` compiles it with `actool` into `Assets.car` (the Liquid Glass icon macOS 26 and later render live, with dark, clear and tinted variants) and an `AppIcon.icns` fallback for macOS 15. Keep the document to Icon Composer 1.x keys so CI's Xcode 26 `actool` accepts it.
+The app icon is `Resources/AppIcon.icon`, an Icon Composer document: `icon.json` plus the SVG layers in `Assets/`. Open it in Icon Composer to adjust the glass, or edit the SVGs. `package_app.sh` compiles it with `actool` into `Assets.car` (the Liquid Glass icon macOS 26 and later render live, with dark, clear and tinted variants) and an `AppIcon.icns` fallback for macOS 15.
 
 ```bash
 ./script/render_icon.sh                # render every appearance with ictool and refresh the site's icon PNGs

@@ -60,6 +60,7 @@ struct DevicePickerMenu: View {
                 controller.select(device)
                 controller.devicePickerPresentation = nil
             }
+            .plainPopoverAppearance()
         }
     }
 

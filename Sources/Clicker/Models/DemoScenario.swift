@@ -18,6 +18,8 @@ import Security
         case typing
         /// The Settings screen over a ready remote.
         case settings
+        /// The Apps picker open over a ready remote.
+        case appPicker = "apps"
         /// Living Room found but not paired yet.
         case pair
         /// Pairing with Living Room, waiting for the code.

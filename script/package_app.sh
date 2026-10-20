@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 # Build Clicker and assemble a signed dist/Clicker.app with Sparkle embedded.
-# Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--native] [--sign <identity>] [--version X.Y.Z]
+# Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z]
 #                              [--app-store [--installer <identity>] [--build N]]
 #   --release    optimized build; leaves out --demo unless --with-demo is also given
 #   --with-demo  compile the --demo scenarios in (debug builds always have them)
 #   --universal  arm64 + x86_64
-#   --native     SwiftPM's native build system, which links against the installed
-#                SDK like CI does; the default (Swift Build on 6.4) records sdk 15.0,
-#                under which AppKit draws some controls differently (see docs/development.md)
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
 #                Every build is sandboxed (Resources/Clicker.entitlements). A real
@@ -29,7 +26,6 @@ set -euo pipefail
 CONFIGURATION="debug"
 WITH_DEMO=0
 UNIVERSAL=0
-NATIVE=0
 IDENTITY="-"
 APP_STORE=0
 INSTALLER=""
@@ -40,14 +36,13 @@ while [[ $# -gt 0 ]]; do
     --release) CONFIGURATION="release" ;;
     --with-demo) WITH_DEMO=1 ;;
     --universal) UNIVERSAL=1 ;;
-    --native) NATIVE=1 ;;
     --sign) IDENTITY="$2"; shift ;;
     --version) VERSION="$2"; shift ;;
     --app-store) APP_STORE=1 ;;
     --installer) INSTALLER="$2"; shift ;;
     --build) RESUBMISSION="$2"; shift ;;
     *)
-      echo "usage: $0 [--release] [--with-demo] [--universal] [--native] [--sign <identity>] [--version X.Y.Z] [--app-store [--installer <identity>] [--build N]]" >&2
+      echo "usage: $0 [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z] [--app-store [--installer <identity>] [--build N]]" >&2
       exit 2
       ;;
   esac
@@ -99,7 +94,18 @@ PROFILE_KIND="Developer ID"
 SIGNING_ENTITLEMENTS="$ROOT_DIR/dist/$APP_NAME.entitlements"
 PKG="$ROOT_DIR/dist/$APP_NAME.pkg"
 
-BUILD_FLAGS=(-c "$CONFIGURATION")
+cd "$ROOT_DIR"
+# AppKit and SwiftUI pick some looks by the SDK recorded in LC_BUILD_VERSION,
+# and Swift Build (SwiftPM 6.4's default) records the deployment target there
+# instead of the SDK it compiled against. Pass the real pair to the linker so
+# local builds look like the ones users get; the check after the build keeps
+# it that way.
+[[ "$(swift package dump-package | plutil -extract platforms.0.platformName raw -o - -)" == "macos" ]] ||
+  { echo "expected macOS as the package's first platform" >&2; exit 1; }
+DEPLOYMENT_TARGET="$(swift package dump-package | plutil -extract platforms.0.version raw -o - -)"
+SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+BUILD_FLAGS=(-c "$CONFIGURATION"
+  -Xlinker -platform_version -Xlinker macos -Xlinker "$DEPLOYMENT_TARGET" -Xlinker "$SDK_VERSION")
 if [[ "$WITH_DEMO" == 1 && "$CONFIGURATION" == "release" ]]; then
   # Package.swift already defines DEMO for debug builds; this adds it to release ones.
   BUILD_FLAGS+=(-Xswiftc -DDEMO)
@@ -116,14 +122,16 @@ fi
 if [[ "$UNIVERSAL" == 1 ]]; then
   BUILD_FLAGS+=(--arch arm64 --arch x86_64)
 fi
-if [[ "$NATIVE" == 1 ]]; then
-  BUILD_FLAGS+=(--build-system native)
-fi
 
-cd "$ROOT_DIR"
 swift build "${BUILD_FLAGS[@]}"
 BUILD_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 BUILD_BINARY="$BUILD_DIR/$APP_NAME"
+# Every slice must record the SDK it was built against (docs/development.md).
+LINKED_SDKS="$(xcrun vtool -show-build "$BUILD_BINARY" | awk '$1 == "sdk" { print $2 }' | sort -u)"
+if [[ "$LINKED_SDKS" != "$SDK_VERSION" ]]; then
+  echo "$APP_NAME records sdk $(echo $LINKED_SDKS) but was built with the $SDK_VERSION SDK" >&2
+  exit 1
+fi
 # KeyboardShortcuts localizes its recorder from a SwiftPM resource bundle whose
 # generated accessor looks only in Contents/Resources and crashes without it.
 SHORTCUTS_BUNDLE="$BUILD_DIR/KeyboardShortcuts_KeyboardShortcuts.bundle"
@@ -141,7 +149,7 @@ cp "$BUILD_BINARY" "$APP_BINARY"
 # (the Liquid Glass icon macOS 26+ renders live) plus AppIcon.icns for macOS 15.
 xcrun actool "$ROOT_DIR/Resources/AppIcon.icon" --compile "$CONTENTS/Resources" \
   --app-icon AppIcon --include-all-app-icons \
-  --platform macosx --minimum-deployment-target 15.0 \
+  --platform macosx --minimum-deployment-target "$DEPLOYMENT_TARGET" \
   --output-partial-info-plist "$ROOT_DIR/dist/AppIcon-Info.plist" \
   --output-format human-readable-text >/dev/null
 mkdir -p "$CONTENTS/Resources/StatusIcon"

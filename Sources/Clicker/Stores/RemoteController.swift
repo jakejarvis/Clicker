@@ -1224,6 +1224,13 @@ final class RemoteController {
             if let session = demo.keyboardSession {
                 adoptKeyboardSession(session)
             }
+            if demo == .appPicker {
+                // After the panel is on screen, so the popover has an anchor.
+                Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(0.5))
+                    self?.isAppPickerPresented = true
+                }
+            }
         }
 
         /// Demo pairing: the TV "shows a code" after a second.

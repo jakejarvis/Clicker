@@ -21,14 +21,14 @@ concurrency:
 
 jobs:
   release:
-    runs-on: macos-26
+    runs-on: xcode-27
     # Notarization waits up to 45 minutes per submission, and there are two.
     timeout-minutes: 120
     environment: release
     permissions:
       contents: write
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       SIGNING_IDENTITY: "Developer ID Application: Jake Jarvis (B5ZWKBCUTU)"
       APP_STORE_IDENTITY: "Apple Distribution: Jake Jarvis (B5ZWKBCUTU)"
       APP_STORE_INSTALLER_IDENTITY: "3rd Party Mac Developer Installer: Jake Jarvis (B5ZWKBCUTU)"

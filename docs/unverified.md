@@ -15,6 +15,7 @@ What is reasoned out or documented but not yet confirmed. When you confirm one, 
 
 - The first-launch panel open alongside the Local Network prompt: whether the prompt's click closes the panel, and whether that reads badly.
 - The macOS 15 vibrancy fallback: the development machine runs macOS 27 and nothing has been run on 15.
+- `PlainPopoverAppearance` in light mode and with Increase Contrast: only dark mode has been looked at.
 - Open at Login actually opening the app at the next login. Registration itself works: the toggle from `/Applications/Clicker.app` leaves `sfltool dumpbtm` showing Clicker `[enabled, allowed, notified]`.
 - The update notice with a real feed. In short launches against a local feed, Sparkle 2.10 never ran its scheduled check, with or without a backdated `SULastCheckTime`; the cause wasn't chased. The manual path (Check for Updates…, download, signature check, install, relaunch) works.
 

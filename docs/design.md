@@ -44,7 +44,7 @@ A full-width control with a popover list; it is custom because a system `Menu` c
 
 ## Apps picker
 
-`AppPickerView` is a popover: a search field over a list capped at 300 pt, with Favorites, Recents and All Apps groups.
+`AppPickerView` is a popover: a search field over a list capped at 300 pt, with Favorites, Recents and All Apps groups. The list spans the popover edge to edge and insets only its content (`contentMargins(.horizontal, 6, for: .scrollContent)`), so the overlay scroller rides in the popover's margin instead of covering the stars. A fixed trailing gutter for the scroller was rejected: overlay scrollers hide when idle, which left the rows off-center.
 
 - Favorites are starred bundle IDs per TV in the order starred (`favoriteAppIDsByDevice`). Recents are the last five launched per TV (`recentAppIDsByDevice`), minus the favorites. Both are keyed by device id, follow `rekey`, go on Forget and are resolved against the TV's current list. The Recents header has a tertiary Clear button (`RemoteController.clearRecents`, current TV only).
 - Every row ends in a star button (outline while the row is highlighted, yellow and filled once starred), a sibling of the launch button so a click on it never launches; the context menu offers the same toggle, and starring leaves the popover open.

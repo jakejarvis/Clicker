@@ -26,11 +26,14 @@ struct AppPickerView: View {
     @FocusState private var isSearchFocused: Bool
 
     private static let maxListHeight: CGFloat = 300
+    /// Space between the popover's edge and its content.
+    private static let inset: CGFloat = 6
 
     var body: some View {
         let rows = rows
         VStack(spacing: 6) {
             searchField
+                .padding(.horizontal, Self.inset)
             if controller.apps.isEmpty {
                 placeholder(controller.isLoadingApps ? "Loading apps…" : "No apps found")
             } else if rows.isEmpty {
@@ -39,7 +42,7 @@ struct AppPickerView: View {
                 list(rows)
             }
         }
-        .padding(6)
+        .padding(.vertical, Self.inset)
         .frame(width: MenuBarView.panelWidth - 28)
         .onAppear {
             DispatchQueue.main.async { isSearchFocused = true }
@@ -175,6 +178,10 @@ struct AppPickerView: View {
                     }
                 }
             }
+            // The list spans the popover edge to edge and insets only its
+            // content, so the overlay scroller rides in the popover's margin
+            // instead of covering the stars.
+            .contentMargins(.horizontal, Self.inset, for: .scrollContent)
             .frame(maxHeight: Self.maxListHeight)
             .onChange(of: keyboardRowID) { _, id in
                 if let id { proxy.scrollTo(id) }
