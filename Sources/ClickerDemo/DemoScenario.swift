@@ -27,8 +27,8 @@ nonisolated struct DemoScenario: Sendable {
     var paired: [DemoTV] = [.livingRoom, .bedroom]
     /// The selection remembered from the "last launch".
     var selected: DemoTV? = .livingRoom
-    /// The keychain refuses to store a new pairing, as it does for a signed
-    /// build without a validated profile.
+    /// The keychain refuses to store a new pairing (a missing-entitlement
+    /// error from the add itself, after the availability probe passed).
     var refusesStore = false
     var pendingUpdateVersion: String?
     var steps: [Step] = []
@@ -43,7 +43,7 @@ nonisolated struct DemoScenario: Sendable {
 
     /// Living Room as this scenario has it, wherever it appears.
     var livingRoom: DemoTV {
-        get { online.first { $0.uuid == DemoTV.livingRoom.uuid } ?? .livingRoom }
+        get { (online + paired).first { $0.uuid == DemoTV.livingRoom.uuid } ?? .livingRoom }
         set {
             online = online.map { $0.uuid == newValue.uuid ? newValue : $0 }
             paired = paired.map { $0.uuid == newValue.uuid ? newValue : $0 }

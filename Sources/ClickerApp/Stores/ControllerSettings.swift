@@ -13,14 +13,18 @@ package protocol ControllerSettings: AnyObject {
     var lastAddressByDevice: [String: String] { get set }
 }
 
-/// `ControllerSettings` in the standard user defaults.
+/// `ControllerSettings` in user defaults, the standard ones in a real run.
 final class DefaultsControllerSettings: ControllerSettings {
     private static let selectedDeviceKey = "selectedDeviceID"
     private static let recentAppsKey = "recentAppIDsByDevice"
     private static let favoriteAppsKey = "favoriteAppIDsByDevice"
     private static let lastAddressesKey = "lastAddressByDevice"
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     var selectedDeviceID: String? {
         get { defaults.string(forKey: Self.selectedDeviceKey) }

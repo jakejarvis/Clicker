@@ -21,7 +21,7 @@ script/package_app.sh --app-store
 script/package_app.sh --release --universal --app-store --version 1.2.3 --sign <Apple Distribution SHA-1> --installer "3rd Party Mac Developer Installer: Jake Jarvis (B5ZWKBCUTU)"
 ```
 
-The first is ad hoc and runs locally, which is enough to look at it (`open -n dist/Clicker.app --args --demo settings`). The second signs with Apple Distribution, embeds the profile and wraps the app in `dist/Clicker.pkg` with `productbuild`. `package_app.sh` refuses a signing certificate the profile doesn't list.
+The first is ad hoc and runs locally, which is enough to look at it; add `--with-demo` to stage the demo build and open it in a state (`open -n dist/Clicker.app --args --demo settings`). The second signs with Apple Distribution, embeds the profile and wraps the app in `dist/Clicker.pkg` with `productbuild`. `package_app.sh` refuses a signing certificate the profile doesn't list.
 
 - Resolving with the trait off rewrites `Package.resolved` without Sparkle's pin, so the App Store build also passes `--force-resolved-versions`. Don't drop it: a local App Store build would quietly unpin Sparkle in the next commit.
 - `package_app.sh` clears every extended attribute from the bundle before signing. A file downloaded in a browser, such as a fresh provisioning profile, carries `com.apple.quarantine`; `cp` copies it into the bundle, and App Store Connect rejects the package for it (error 91109). `com.apple.provenance` stays: the system sets it, it can't be removed, and App Store Connect doesn't reject it.

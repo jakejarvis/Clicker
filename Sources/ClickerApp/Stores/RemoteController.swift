@@ -97,7 +97,7 @@ package final class RemoteController {
     /// card in place of the usual caption. Set when pair-verify finds the TV's
     /// identity changed and the stale credentials were dropped.
     private(set) var pairingNotice: String?
-    private(set) var apps: [AppleTVApp] = []
+    package private(set) var apps: [AppleTVApp] = []
     private(set) var isLoadingApps = false
     /// The selected TV's user profiles, from `refreshUserAccounts`.
     private(set) var userAccounts: [UserAccount] = []

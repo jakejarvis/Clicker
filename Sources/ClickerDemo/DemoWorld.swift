@@ -57,6 +57,8 @@ final class DemoWorld {
             case .showSettings:
                 controller.showSettings()
             case .openApps:
+                // Opened once the list is in, so the picker isn't caught empty.
+                await until { !controller.apps.isEmpty }
                 controller.isAppPickerPresented = true
             case .openDevices:
                 controller.devicePickerPresentation = DevicePickerPresentation(showsDetails: false)

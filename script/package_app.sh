@@ -4,7 +4,7 @@
 #                              [--app-store [--installer <identity>] [--build N]]
 #   --release    optimized build
 #   --with-demo  stage the ClickerDemo executable (the app plus the --demo scenarios)
-#                instead of Clicker; for development only, never for a release
+#                instead of Clicker; ad hoc only, so it can never be released
 #   --universal  arm64 + x86_64
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
@@ -49,8 +49,8 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
-if [[ "$WITH_DEMO" == 1 && ( "$IDENTITY" != "-" || "$APP_STORE" == 1 ) ]]; then
-  echo "--with-demo is for ad-hoc development builds; it can't be signed or built for the App Store" >&2
+if [[ "$WITH_DEMO" == 1 && "$IDENTITY" != "-" ]]; then
+  echo "--with-demo is for ad-hoc development builds; it can't be signed" >&2
   exit 2
 fi
 if [[ -n "$INSTALLER" && "$APP_STORE" != 1 ]]; then

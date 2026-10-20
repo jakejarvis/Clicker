@@ -54,7 +54,9 @@ import Testing
 
     @Test func screenAndPopoverScenariosOpenThem() async throws {
         #expect(try await DemoRun("settings").controller.screen == .settings)
-        #expect(try await DemoRun("apps").controller.isAppPickerPresented)
+        let apps = try await DemoRun("apps").controller
+        #expect(apps.isAppPickerPresented)
+        #expect(!apps.apps.isEmpty)
         #expect(try await DemoRun("devices").controller.devicePickerPresentation?.showsDetails == false)
     }
 
