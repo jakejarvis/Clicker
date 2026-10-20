@@ -20,6 +20,7 @@ struct SettingsScreen: View {
 
     @AppStorage(IdentityStore.clientNameKey) private var clientName = IdentityStore.defaultClientName
     @AppStorage(TrackpadSwipe.reversedKey) private var reversesSwipes = false
+    @AppStorage(PanelAlignment.defaultsKey) private var panelAlignment = PanelAlignment.right
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
     @State private var checksForUpdates = false
@@ -101,6 +102,8 @@ struct SettingsScreen: View {
             "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair."
         let swipeHelp =
             "Two-finger swipes over the clickpad move the TV's focus the way your fingers move, like the Siri Remote. Turn this on to move it the other way."
+        let positionHelp =
+            "Which side of the Clicker icon in the menu bar this panel opens toward, or centered under it."
         return SettingsSection("This Mac", footer: launchAtLoginError) {
             SettingsRow("Name", help: nameHelp) {
                 TextField("Name", text: $clientName)
@@ -116,6 +119,18 @@ struct SettingsScreen: View {
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)
+            }
+            SettingsDivider()
+            SettingsRow("Panel Position", help: positionHelp) {
+                Picker("Panel Position", selection: $panelAlignment) {
+                    Text("Left").tag(PanelAlignment.left)
+                    Text("Center").tag(PanelAlignment.center)
+                    Text("Right").tag(PanelAlignment.right)
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .controlSize(.small)
+                .fixedSize()
             }
             SettingsDivider()
             SettingsRow("Open at Login") {

@@ -60,5 +60,5 @@ A full-width control with a popover list; it is custom because a system `Menu` c
 - The Name field is the system `.roundedBorder` text field, the only text field in Settings; the shortcut is a button ([panel.md](panel.md#global-shortcut)).
 - A row's action is a hover-revealed, highlight-only glyph button with a matching context-menu item (Forget's `xmark.circle.fill`). Every toggle is a small `.switch`.
 - Explanations go in section footers, or behind a row's `info.circle` with a `.help` tooltip (`SettingsRow(help:)`, used by Name and Shortcut) when they belong to one row. Never inline text.
-- This Mac is Name, Shortcut, Invert Swipes and Open at Login (named to match System Settings › Login Items).
+- This Mac is Name, Shortcut, Invert Swipes, Panel Position and Open at Login (named to match System Settings › Login Items). Panel Position is a small `.menu` picker (Left, Center, Right).
 - Full-width actions at the end use `PanelActionButton` (30 pt, callout, primary text); Check for Updates lives there. Settings only offers Check Automatically for updates ([releasing.md](releasing.md#updates-in-the-app)).

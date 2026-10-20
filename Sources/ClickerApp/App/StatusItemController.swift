@@ -23,6 +23,8 @@ final class StatusItemController: NSObject {
     /// height pushed for a hidden panel goes nowhere.
     private var anchorTopLeft: NSPoint?
     private var anchorScreen: NSScreen?
+    private var anchorAlignment = PanelAlignment.right
+    private var defaultsObserver: NSObjectProtocol?
     private var shadowSettleTask: Task<Void, Never>?
 
     init(controller: RemoteController, updates: UpdateController) {
@@ -58,6 +60,13 @@ final class StatusItemController: NSObject {
         // The content's height, one frame at a time (see PanelHeightBridge).
         PanelHeightBridge.apply = { [weak self] height in
             self?.applyHeight(height)
+        }
+        // Settings changes the alignment while the panel is open, so move it
+        // there at once rather than on the next open.
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.followAlignmentChange() }
         }
     }
 
@@ -279,13 +288,8 @@ final class StatusItemController: NSObject {
     }
 
     private func showPanel() {
-        guard let button = statusItem.button, let buttonWindow = button.window else { return }
-        let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
-        let screen = NSScreen.screens.first { $0.frame.intersects(buttonRect) } ?? NSScreen.main
+        guard let button = statusItem.button, updateAnchor() else { return }
         PanelHeightBridge.invalidate()
-        anchorScreen = screen
-        anchorTopLeft = PanelGeometry.topLeft(
-            below: buttonRect, width: PanelMetrics.width, visibleFrame: screen?.visibleFrame)
 
         controller.panelDidAppear()
         // Open at the content's own height so the first frame needs no resize.
@@ -301,6 +305,25 @@ final class StatusItemController: NSObject {
         panel.makeFirstResponder(nil)
         button.highlight(true)
         outsideClickMonitor.start()
+    }
+
+    /// Places the anchor under the status item on the side Settings asks
+    /// for. False while the status item has no window yet.
+    private func updateAnchor() -> Bool {
+        guard let button = statusItem.button, let buttonWindow = button.window else { return false }
+        let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        let screen = NSScreen.screens.first { $0.frame.intersects(buttonRect) } ?? NSScreen.main
+        anchorScreen = screen
+        anchorAlignment = PanelAlignment.current
+        anchorTopLeft = PanelGeometry.topLeft(
+            below: buttonRect, width: PanelMetrics.width, alignment: anchorAlignment,
+            visibleFrame: screen?.visibleFrame)
+        return true
+    }
+
+    private func followAlignmentChange() {
+        guard panel.isVisible, PanelAlignment.current != anchorAlignment, updateAnchor() else { return }
+        applyHeight(panel.frame.height)
     }
 
     private func hidePanel() {

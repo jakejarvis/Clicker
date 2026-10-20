@@ -18,16 +18,39 @@ nonisolated enum PanelMetrics {
     static let headerControlHeight: CGFloat = 46
 }
 
+/// Which way the panel opens from the status item, named for the side of the
+/// icon it extends toward. Right, the default, is a status item menu's placement.
+nonisolated enum PanelAlignment: String, CaseIterable, Sendable {
+    case left
+    case center
+    case right
+
+    /// The user-defaults key for the Settings picker.
+    static let defaultsKey = "panelAlignment"
+
+    static var current: PanelAlignment {
+        UserDefaults.standard.string(forKey: defaultsKey).flatMap(PanelAlignment.init(rawValue:)) ?? .right
+    }
+}
+
 /// Pure panel geometry, separate from the window so it can be unit tested.
 nonisolated enum PanelGeometry {
     static let topGap: CGFloat = 5
     static let screenMargin: CGFloat = 8
     static let minimumHeight: CGFloat = 120
 
-    /// Hangs the panel from the status item's left edge, like a status item's
-    /// menu, kept inside the screen.
-    static func topLeft(below buttonRect: NSRect, width: CGFloat, visibleFrame: NSRect?) -> NSPoint {
-        var x = buttonRect.minX
+    /// Hangs the panel from the status item: from its left edge like a status
+    /// item's menu (`.right`), centered under it, or from its right edge
+    /// (`.left`), kept inside the screen.
+    static func topLeft(
+        below buttonRect: NSRect, width: CGFloat, alignment: PanelAlignment = .right, visibleFrame: NSRect?
+    ) -> NSPoint {
+        var x: CGFloat
+        switch alignment {
+        case .right: x = buttonRect.minX
+        case .center: x = buttonRect.midX - width / 2
+        case .left: x = buttonRect.maxX - width
+        }
         if let visibleFrame {
             x = min(max(x, visibleFrame.minX + screenMargin), visibleFrame.maxX - width - screenMargin)
         }

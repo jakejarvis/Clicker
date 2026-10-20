@@ -46,7 +46,7 @@ Sparkle's service names come from the running bundle ID, so a copy under another
 
 ## Preferences and container migration
 
-User defaults (in the container's `Preferences/com.jakejarvis.Clicker.plist`) hold the client identity (`clientDeviceID`), `favoriteAppIDsByDevice`, `recentAppIDsByDevice`, the shortcut (`KeyboardShortcuts_togglePanel`), `hasCompletedFirstLaunch`, the Invert Swipes setting and Sparkle's state.
+User defaults (in the container's `Preferences/com.jakejarvis.Clicker.plist`) hold the client identity (`clientDeviceID`), `favoriteAppIDsByDevice`, `recentAppIDsByDevice`, the shortcut (`KeyboardShortcuts_togglePanel`), `hasCompletedFirstLaunch`, the Invert Swipes and Panel Position settings and Sparkle's state.
 
 Releases before the sandbox kept these, and Application Support, outside any container. `Resources/container-migration.plist` moves `${Library}/Preferences/com.jakejarvis.Clicker.plist` and `${ApplicationSupport}/Clicker` into `~/Library/Containers/com.jakejarvis.Clicker` on the first sandboxed launch. Keeping `clientDeviceID` is what lets existing pairings verify afterwards. Keychain items aren't in the container and need nothing.
 

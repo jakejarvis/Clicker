@@ -71,6 +71,7 @@ Open Settings from the ••• menu in the bottom corner of the panel, by righ
 - start Clicker when you log in,
 - set a keyboard shortcut that opens or closes Clicker from any app,
 - invert which way two-finger swipes over the clickpad move,
+- choose whether the panel opens to the left of the menu bar icon, centered under it, or to its right (the default),
 - forget an Apple TV you've paired, and
 - choose whether to check for updates automatically.
 

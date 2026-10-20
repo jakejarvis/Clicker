@@ -13,10 +13,25 @@ import Testing
         #expect(topLeft.y == 876 - PanelGeometry.topGap)
     }
 
+    @Test func centersUnderTheStatusItem() {
+        let button = NSRect(x: 700, y: 876, width: 30, height: 22)
+        let topLeft = PanelGeometry.topLeft(below: button, width: 264, alignment: .center, visibleFrame: visible)
+        #expect(topLeft.x == 583)
+    }
+
+    @Test func hangsFromTheStatusItemsRightEdge() {
+        let button = NSRect(x: 700, y: 876, width: 30, height: 22)
+        let topLeft = PanelGeometry.topLeft(below: button, width: 264, alignment: .left, visibleFrame: visible)
+        #expect(topLeft.x == 466)
+    }
+
     @Test func staysInsideTheScreen() {
         let button = NSRect(x: 1420, y: 876, width: 30, height: 22)
         let topLeft = PanelGeometry.topLeft(below: button, width: 264, visibleFrame: visible)
         #expect(topLeft.x == 1440 - 264 - PanelGeometry.screenMargin)
+        let leftmost = NSRect(x: 4, y: 876, width: 30, height: 22)
+        let leftTopLeft = PanelGeometry.topLeft(below: leftmost, width: 264, alignment: .left, visibleFrame: visible)
+        #expect(leftTopLeft.x == PanelGeometry.screenMargin)
     }
 
     @Test func clampsHeightToAvailableRoom() {
