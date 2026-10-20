@@ -18,7 +18,7 @@ Every key but M is held like an on-screen button: key-down sends the press (`Rem
 
 The pad's shortcuts need SwiftUI focus; when nothing has it the panel window is its own first responder and every key beeps. The pad first appears while the panel is still hidden (the hosting view is loaded at init), and `showPanel` clears the first responder, so focus taken on appear is gone by the first click. Instead `RemoteController.panelAppearances` is bumped on every open, and the pad (`takeFocusIfFree`), the TV text field or the pairing `PINCodeField` (both through a `focusToken`) takes focus from it a turn later, after the clear. `padFocusRequests` hands focus back to the pad when Esc resigns the text field, since resigning alone strands it.
 
-While either popover is open (`RemoteController.isPopoverPresented`: the Apps picker or the device list), the pad ignores keys, since the panel stays key underneath. The Apps picker also takes focus from the pad, so typing reaches its search field, and installs its own local `keyDown` monitor on appear for arrows and Return; `onKeyPress` on its `TextField` never fires in a popover here. The device list leaves the pad focused and only releases held keys.
+While either popover is open (`RemoteController.isPopoverPresented`: the Apps picker or the device list), the pad ignores keys, since the panel stays key underneath. The Apps picker also takes focus from the pad, so typing reaches its search field, and installs its own local `keyDown` monitor on appear for arrows and Return; `onKeyPress` on its `TextField` never fires in a popover here. The device list leaves the pad focused, releases held keys and moves its highlight with its own arrow and Return monitor ([design.md](design.md#device-picker)).
 
 ## Trackpad swipes
 

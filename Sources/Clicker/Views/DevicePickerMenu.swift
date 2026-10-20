@@ -106,10 +106,20 @@ struct DeviceIcon: View {
     }
 }
 
+/// Arrow keys move the highlight and Return picks the highlighted TV, like
+/// the Apps picker. The panel stays the key window under the popover, so the
+/// keys ride a local monitor installed while the list is up (the clickpad
+/// stands down meanwhile) and Esc stays with the panel's own monitor.
 private struct DeviceListView: View {
     let controller: RemoteController
     let showsDetails: Bool
     let onSelect: (AppleTVDevice) -> Void
+
+    @State private var keyMonitor: Any?
+    @State private var highlightedDeviceID: String?
+    /// Set only by the arrow keys, so the list scrolls to follow the
+    /// keyboard but never jumps under the pointer.
+    @State private var keyboardDeviceID: String?
 
     /// Details mode is wider so a UUID fits on one caption line.
     static let detailsWidth: CGFloat = PanelMetrics.width + 56
@@ -120,18 +130,23 @@ private struct DeviceListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(controller.devices) { device in
-                        row(for: device)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(controller.devices) { device in
+                            row(for: device)
+                        }
                     }
+                    .padding([.horizontal, .top], 6)
+                    .padding(.bottom, showsRescan ? 0 : 6)
                 }
-                .padding([.horizontal, .top], 6)
-                .padding(.bottom, showsRescan ? 0 : 6)
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(maxHeight: Self.maxListHeight)
+                .fixedSize(horizontal: false, vertical: true)
+                .onChange(of: keyboardDeviceID) { _, id in
+                    if let id { proxy.scrollTo(id) }
+                }
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .frame(maxHeight: Self.maxListHeight)
-            .fixedSize(horizontal: false, vertical: true)
             if showsRescan {
                 Divider()
                     .padding(.vertical, 2)
@@ -143,6 +158,8 @@ private struct DeviceListView: View {
             }
         }
         .frame(width: showsDetails ? Self.detailsWidth : MenuBarView.panelWidth - 28)
+        .onAppear(perform: installKeyMonitor)
+        .onDisappear(perform: removeKeyMonitor)
     }
 
     private var showsRescan: Bool { showsDetails && !controller.isDemo }
@@ -156,10 +173,18 @@ private struct DeviceListView: View {
             subtitle: subtitle(for: device),
             isSelected: isSelected,
             isConnected: isConnected,
-            isPaired: controller.isPaired(device)
+            isPaired: controller.isPaired(device),
+            isHighlighted: device.id == highlightedDeviceID
         ) {
             onSelect(device)
+        } onHover: { hovering in
+            if hovering {
+                highlightedDeviceID = device.id
+            } else if highlightedDeviceID == device.id {
+                highlightedDeviceID = nil
+            }
         }
+        .id(device.id)
         if showsDetails {
             DeviceDetailsView(
                 device: device,
@@ -177,6 +202,49 @@ private struct DeviceListView: View {
         if !device.isOnline { return "\(device.shortModelName) · Offline" }
         // Unpaired rows carry a Pair badge, which already says it.
         return controller.isPaired(device) ? device.modelDisplayName : device.shortModelName
+    }
+
+    // MARK: - Keys
+
+    private func installKeyMonitor() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.modifierFlags.intersection([.command, .option, .control]).isEmpty else { return event }
+            let handled = MainActor.assumeIsolated { () -> Bool in
+                switch event.keyCode {
+                case 126: return moveHighlight(by: -1)
+                case 125: return moveHighlight(by: 1)
+                case 36, 76:  // Return, keypad Enter
+                    guard let device = controller.devices.first(where: { $0.id == highlightedDeviceID }) else {
+                        return false
+                    }
+                    onSelect(device)
+                    return true
+                default: return false
+                }
+            }
+            return handled ? nil : event
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
+    }
+
+    /// From no highlight, Down starts at the top and Up at the bottom.
+    private func moveHighlight(by offset: Int) -> Bool {
+        let devices = controller.devices
+        guard !devices.isEmpty else { return false }
+        let next: Int
+        if let current = devices.firstIndex(where: { $0.id == highlightedDeviceID }) {
+            next = min(max(current + offset, 0), devices.count - 1)
+        } else {
+            next = offset > 0 ? 0 : devices.count - 1
+        }
+        highlightedDeviceID = devices[next].id
+        keyboardDeviceID = devices[next].id
+        return true
     }
 }
 
@@ -207,9 +275,10 @@ private struct DeviceRow: View {
     let isSelected: Bool
     let isConnected: Bool
     let isPaired: Bool
+    /// Hovered, or reached with the arrow keys.
+    let isHighlighted: Bool
     let action: () -> Void
-
-    @State private var isHovered = false
+    let onHover: (Bool) -> Void
 
     var body: some View {
         Button(action: action) {
@@ -221,14 +290,16 @@ private struct DeviceRow: View {
                         .lineLimit(1)
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundStyle(isHovered ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(
+                            isHighlighted ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary)
+                        )
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(isHovered ? AnyShapeStyle(.white) : AnyShapeStyle(Color.accentColor))
+                        .foregroundStyle(isHighlighted ? AnyShapeStyle(.white) : AnyShapeStyle(Color.accentColor))
                 } else if !isPaired, device.isOnline {
                     Text("Pair")
                         .font(.caption.weight(.semibold))
@@ -237,12 +308,16 @@ private struct DeviceRow: View {
                         .background(.quaternary, in: Capsule())
                 }
             }
-            .modifier(PickerRowStyle(isHovered: isHovered))
+            .modifier(PickerRowStyle(isHovered: isHighlighted))
         }
         .buttonStyle(.plain)
+        // The arrows and Return are the list's keys (`DeviceListView`). A
+        // focusable row took focus when the list opened, unseen, and Space
+        // picked it whatever the highlight said.
+        .focusable(false)
         .focusEffectDisabled()
         .opacity(device.isOnline ? 1 : 0.6)
-        .onHover { isHovered = $0 }
+        .onHover(perform: onHover)
         .accessibilityLabel("\(device.name), \(subtitle)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -335,6 +410,7 @@ private struct RescanRow: View {
             .modifier(style)
         }
         .buttonStyle(.plain)
+        .focusable(false)
         .focusEffectDisabled()
         .disabled(isRescanning)
         .onHover { isHovered = $0 }
