@@ -3,6 +3,22 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.4</title>
+            <pubDate>Tue, 20 Oct 2026 16:34:19 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>304</sparkle:version>
+            <sparkle:shortVersionString>0.3.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.4
+
+- When macOS doesn't allow Clicker on the local network, pairing now says so too, instead of ending on "The Apple TV didn't respond in time". The card explains where to turn it on and has a button that opens Privacy & Security.
+- The device list's header no longer counts paired Apple TVs that are offline as found.
+- If you use Little Snitch, it now explains what each of Clicker's connections is for and what blocking it would break.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.4/Clicker-0.3.4.zip" length="5186712" type="application/octet-stream" sparkle:edSignature="dkOr8MC12uPy4wmzWyqVwbPEeLzRhudXUy4bWPGuadp3ZFqTCAxsJyhRqw5eml3OJRgmKClYpt8M7u7wqGNVDQ=="/>
+        </item>
+        <item>
             <title>0.3.3</title>
             <pubDate>Tue, 20 Oct 2026 15:55:28 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
