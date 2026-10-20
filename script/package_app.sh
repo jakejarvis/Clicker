@@ -7,7 +7,7 @@
 #   --universal  arm64 + x86_64
 #   --native     SwiftPM's native build system, which links against the installed
 #                SDK like CI does; the default (Swift Build on 6.4) records sdk 15.0,
-#                under which AppKit draws some controls differently (see AGENTS.md)
+#                under which AppKit draws some controls differently (see docs/development.md)
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
 #                Every build is sandboxed (Resources/Clicker.entitlements). A real
@@ -18,7 +18,7 @@
 #   --app-store  Mac App Store flavor: built without the Sparkle trait (no updater,
 #                no framework, no SU* keys) and signed without Sparkle's mach-lookup
 #                exceptions. A real identity (Apple Distribution) embeds
-#                Resources/Clicker-AppStore.provisionprofile instead.
+#                Resources/Clicker-AppStore.provisionprofile instead. See docs/app-store.md.
 #   --installer  Mac Installer Distribution identity; with --app-store, also writes
 #                dist/Clicker.pkg for upload with Transporter
 #   --build      with --app-store, resubmission number N (1-99): CFBundleVersion becomes

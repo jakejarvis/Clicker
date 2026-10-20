@@ -74,7 +74,7 @@ else
   : >"$NOTES"
 fi
 if [[ ! -s "$NOTES" || -z "$(tr -d '[:space:]' <"$NOTES")" ]]; then
-  echo "no release notes: v$VERSION must be an annotated tag with a message, or set NOTES_FILE (see CONTRIBUTING.md)" >&2
+  echo "no release notes: v$VERSION must be an annotated tag with a message, or set NOTES_FILE (see docs/releasing.md)" >&2
   exit 1
 fi
 
@@ -137,7 +137,7 @@ build_sign_and_notarize() {
   xcrun stapler validate "$DMG"
   # notarytool's verdict is the one that counts: syspolicy_check has answered a
   # generic "Gatekeeper rejected this file" for an app notarytool accepted (see
-  # AGENTS.md), so it only warns here.
+  # docs/releasing.md), so it only warns here.
   syspolicy_check distribution "$APP" || echo "warning: syspolicy_check rejected the app; trusting notarytool" >&2
   spctl --assess --type open --context context:primary-signature --verbose "$DMG"
 }
