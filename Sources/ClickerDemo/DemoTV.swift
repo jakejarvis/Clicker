@@ -28,6 +28,8 @@ nonisolated struct DemoTV: Sendable {
     var connectError: CompanionError?
     /// False answers any code as the TV does a wrong one.
     var acceptsCode = true
+    /// Thrown by pair-setup's start, before a code shows; nil shows one.
+    var pairingStartError: CompanionError?
     /// False leaves a connect waiting. Unlike a real session it never times
     /// out, so the Connecting… state holds for a screenshot.
     var answersConnect = true

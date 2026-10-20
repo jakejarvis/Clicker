@@ -107,6 +107,13 @@ nonisolated struct DemoScenario: Sendable {
             $0.livingRoom.acceptsCode = false
             $0.steps = [.beginPairing, .enterCode("1234")]
         },
+        // Pair-setup timed out because macOS refused the local network.
+        DemoScenario("pairinglocalnetwork") {
+            $0.paired = [.bedroom]
+            $0.livingRoom.pairingStartError = .timeout
+            $0.localNetworkDenied = true
+            $0.steps = [.beginPairing]
+        },
         // The TV accepted the pairing but the keychain refused to store it.
         DemoScenario("savefailed") {
             $0.paired = [.bedroom]

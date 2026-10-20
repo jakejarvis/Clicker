@@ -100,6 +100,15 @@ import Testing
         #expect(controller.pairingNotice == nil)
     }
 
+    /// A timed-out pair-setup asks about the local network too.
+    @Test func aDeniedLocalNetworkBlocksPairing() async throws {
+        let controller = try await DemoRun("pairinglocalnetwork").controller
+        #expect(await eventually { controller.pairingState == .localNetworkDenied })
+
+        let allowed = try await DemoRun("pairinglocalnetwork") { $0.localNetworkDenied = false }.controller
+        #expect(await eventually { allowed.pairingState == .failed(CompanionError.timeout.localizedDescription) })
+    }
+
     @Test func aWrongCodeFailsThePairing() async throws {
         let run = try await DemoRun("pairingfailed")
         #expect(await eventually { run.controller.pairingState == .failed(TLV8.ErrorCode.authentication.message) })

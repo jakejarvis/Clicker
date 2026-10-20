@@ -102,14 +102,28 @@ struct PairingCard: View {
         case .failed(let message):
             CardTitle("Pairing failed")
             CardCaption(message)
-            HStack(spacing: 8) {
-                Button("Cancel") { cancel() }
-                Button("Try Again") {
-                    pin = ""
-                    controller.beginPairing()
-                }
-                .prominentActionStyle()
+            retryButtons
+
+        case .localNetworkDenied:
+            CardTitle("No local network access")
+            CardCaption(RemoteController.localNetworkDeniedMessage)
+            // Opening Settings closes the panel (an outside click); the card
+            // is still here on the next open, for Try Again.
+            Button("Open Privacy & Security") { SystemSettings.openLocalNetworkPrivacy() }
+                .buttonStyle(.link)
+                .font(.caption)
+            retryButtons
+        }
+    }
+
+    private var retryButtons: some View {
+        HStack(spacing: 8) {
+            Button("Cancel") { cancel() }
+            Button("Try Again") {
+                pin = ""
+                controller.beginPairing()
             }
+            .prominentActionStyle()
         }
     }
 

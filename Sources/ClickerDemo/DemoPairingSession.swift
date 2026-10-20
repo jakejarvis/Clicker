@@ -14,6 +14,7 @@ actor DemoPairingSession: PairingSession {
 
     func start() async throws {
         try await Task.sleep(for: latency)
+        if let error = tv.pairingStartError { throw error }
     }
 
     func finish(
