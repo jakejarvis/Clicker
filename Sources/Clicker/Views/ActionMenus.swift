@@ -22,7 +22,7 @@ struct AppsMenu: View {
         .accessibilityHint("Opens the list of apps")
         .popover(isPresented: $controller.isAppPickerPresented, arrowEdge: .bottom) {
             AppPickerView(controller: controller)
-                .plainPopoverAppearance()
+                .popoverAppearance()
         }
     }
 }

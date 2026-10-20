@@ -10,7 +10,7 @@ import SwiftUI
 /// comes out solid near-black (`#141414`) and its knob opaque gray, where the
 /// plain appearance draws them translucent white. macOS 15 keeps the vibrant
 /// appearance, which its popover material does blend.
-struct PlainPopoverAppearance: NSViewRepresentable {
+struct PopoverAppearance: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView { WindowAppearanceView() }
     func updateNSView(_ nsView: NSView, context: Context) {}
 
@@ -29,11 +29,11 @@ struct PlainPopoverAppearance: NSViewRepresentable {
 }
 
 extension View {
-    /// See `PlainPopoverAppearance`. Apply to a popover's root content.
+    /// See `PopoverAppearance`. Apply to a popover's root content.
     @ViewBuilder
-    func plainPopoverAppearance() -> some View {
+    func popoverAppearance() -> some View {
         if #available(macOS 26, *) {
-            background(PlainPopoverAppearance())
+            background(PopoverAppearance())
         } else {
             self
         }
