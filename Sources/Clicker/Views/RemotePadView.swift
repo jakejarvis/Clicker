@@ -332,7 +332,7 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             // Esc in the TV text field: the field resigns and the pad takes
             // over, with the field left on screen for a click.
             .onChange(of: controller.padFocusRequests) {
-                guard !controller.isAppPickerPresented else { return }
+                guard !controller.isPopoverPresented else { return }
                 DispatchQueue.main.async { isFocused = true }
             }
             // When the TV text field goes away (the TV lost its field, or
@@ -340,10 +340,11 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             .onChange(of: controller.isTextFieldShown) { _, shown in
                 if !shown { takeFocusIfFree() }
             }
-            // The panel stays key under the Apps popover, so without this the
-            // pad would swallow the keys meant for its search field.
-            .onChange(of: controller.isAppPickerPresented) { _, pickerOpen in
-                if pickerOpen {
+            // The panel stays key under a popover, so without this the pad
+            // would swallow the keys meant for the Apps search field and
+            // drive the TV behind the device list.
+            .onChange(of: controller.isPopoverPresented) { _, popoverOpen in
+                if popoverOpen {
                     isFocused = false
                 } else {
                     takeFocusIfFree()
@@ -360,11 +361,11 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             }
     }
 
-    /// Takes keyboard focus unless the TV text field or the Apps picker
-    /// should have it. Deferred a turn so it lands after whatever cleared the
+    /// Takes keyboard focus unless the TV text field or a popover should
+    /// have it. Deferred a turn so it lands after whatever cleared the
     /// first responder in the same pass (the panel's own show, for one).
     private func takeFocusIfFree() {
-        guard !controller.isTextFieldShown, !controller.isAppPickerPresented else { return }
+        guard !controller.isTextFieldShown, !controller.isPopoverPresented else { return }
         DispatchQueue.main.async { isFocused = true }
     }
 
@@ -381,7 +382,7 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             return .handled
         }
         guard press.modifiers.isDisjoint(with: [.command, .control, .option]) else { return .ignored }
-        guard !controller.isAppPickerPresented else { return .ignored }
+        guard !controller.isPopoverPresented else { return .ignored }
 
         if press.characters.lowercased() == "m" {
             guard controller.canMute else { return .ignored }

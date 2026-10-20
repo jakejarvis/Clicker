@@ -13,8 +13,9 @@ extension View {
 /// Apps picker's arrows: SwiftUI has no scroll-wheel gesture outside a
 /// `ScrollView`, and AppKit sends gesture scrolls to the window under the
 /// pointer whether or not the app is active. The monitor acts only while the
-/// pointer is over the pad in the panel itself; a scroll over the device or
-/// Apps popover belongs to that popover's list and passes through.
+/// pointer is over the pad in the panel itself and neither popover is open;
+/// a scroll over the device or Apps popover belongs to that popover's list
+/// and passes through.
 ///
 /// Each event is hit-tested against the pad's own bounds rather than a
 /// hover flag: an inert pad takes no hit tests and so gets no hover events,
@@ -70,7 +71,7 @@ private struct TrackpadSwipeMonitor: ViewModifier {
     private func handle(_ event: NSEvent) -> Bool {
         guard tracking.isEnabled, let pad = tracking.padView, event.window === pad.window else { return false }
         let overPad = pad.bounds.contains(pad.convert(event.locationInWindow, from: nil))
-        guard tracking.swipe.isActive || (overPad && !controller.isAppPickerPresented) else { return false }
+        guard tracking.swipe.isActive || (overPad && !controller.isPopoverPresented) else { return false }
         if let action = tracking.swipe.translate(TrackpadSwipe.Event(event)) {
             controller.handleTrackpadSwipe(action)
         }

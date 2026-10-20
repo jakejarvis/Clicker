@@ -128,13 +128,16 @@ final class RemoteController {
     /// the same.
     static let muteConfirmationTimeout: Duration = .seconds(5)
     var screen: PanelScreen = .remote
-    /// Whether the Apps picker popover is open. The panel stays the key
-    /// window underneath a popover, so the clickpad's shortcuts stand down
-    /// while this is set and Esc closes the picker before anything else.
+    /// Whether the Apps picker popover is open. Esc closes it before
+    /// anything else.
     var isAppPickerPresented = false
     /// The device picker's popover while it is open. Kept here, not in the
     /// view, so hiding the panel can drop it and Esc can close it.
     var devicePickerPresentation: DevicePickerPresentation?
+    /// Whether either popover is open. The clickpad's keys and trackpad
+    /// swipes stand down while one is, since the panel stays key underneath
+    /// and they would otherwise drive the TV behind the popover.
+    var isPopoverPresented: Bool { isAppPickerPresented || devicePickerPresentation != nil }
     /// Whether the Settings shortcut row is taking a chord (`ShortcutRow`).
     /// The panel's key monitor leaves every key alone while this is set.
     var isRecordingShortcut = false
