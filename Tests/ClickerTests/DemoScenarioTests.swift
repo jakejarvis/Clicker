@@ -214,7 +214,8 @@ import Testing
         let bedroom = try #require(controller.devices.first { $0.name == "Bedroom" })
         controller.select(bedroom)
         #expect(run.settings.selectedDeviceID == bedroom.id)
-        #expect(await eventually { controller.connectionState == .connected })
+        // The address and apps arrive a few hops after the state flips.
+        #expect(await run.connected())
         #expect(controller.connectionInfo?.addressDescription == "192.168.1.43:49153")
         let netflix = try #require(controller.apps.first { $0.name == "Netflix" })
         controller.launch(netflix)
