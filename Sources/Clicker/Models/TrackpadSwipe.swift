@@ -47,7 +47,8 @@ nonisolated struct TrackpadSwipe: Sendable {
     /// MacBook), so parity would be 6; from a center press that leaves 16 mm
     /// before the edge. At 3 a full-pad swipe takes about 33 mm of finger
     /// travel and a quick flick still arrives well above 3000 units/s, which
-    /// tvOS reads as a flick. Not yet tuned against a TV.
+    /// tvOS reads as a flick. Confirmed against a TV: one tile per slow
+    /// swipe, several per flick, no runaway in a long list.
     static let gain: CGFloat = 3
 
     /// The user-defaults key for the Settings switch that reverses swipes.

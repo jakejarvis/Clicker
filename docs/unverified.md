@@ -4,8 +4,6 @@ What is reasoned out or documented but not yet confirmed. When you confirm one, 
 
 ## Against a TV
 
-- Held keys: whether tvOS auto-repeats a direction held over `_hidC` (as it does for the Siri Remote's clickpad), and how a held Return or Delete behaves. Before keys were held, holds only ever came from the on-screen buttons (Siri).
-- Trackpad swipes: the direction sign (a downward two-finger scroll must move Home Screen focus down, with Natural scrolling on and off) and `TrackpadSwipe.gain` (one tile per slow swipe, several per flick, no runaway in a long list). Tune the constant there.
 - The identity-change path (stale credentials dropped, pair card with notice) against a factory-reset TV.
 - The pairing-lost path (`CompanionError.pairingLost`) against a TV that had Clicker removed from Remotes and Devices. It is reasoned from HAP pair-verify, where M4 carries error 2 for an unknown controller.
 - Whether port knocking on Rescan ever wakes an Apple TV. The Living Room TV has not been seen to drop off Bonjour.
