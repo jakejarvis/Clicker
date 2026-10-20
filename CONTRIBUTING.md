@@ -85,7 +85,7 @@ Sparkle's tools (`generate_keys`, `sign_update`, `generate_appcast`) are in `.bu
 
 `script/package_app.sh --app-store` builds the App Store flavor. SwiftPM's default `Sparkle` trait is turned off (`--disable-default-traits`), so the updater, its UI, Sparkle.framework and the `SU*` Info.plist keys are all left out; the store updates the app and allows no other updater. It is signed with `Resources/Clicker.entitlements` minus Sparkle's mach-lookup exceptions, so it runs in the same sandbox container, with the same keychain group, as the direct download, and someone switching between the two keeps their pairings. Without `--sign` it is ad-hoc signed like any dev build, which is enough to try it locally.
 
-For a submission, put a Mac App Store distribution profile for `com.jakejarvis.Clicker` at `Resources/Clicker-AppStore.provisionprofile` and run:
+The Mac App Store profile is `Resources/Clicker-AppStore.provisionprofile` (it lists one Apple Distribution certificate and expires 2027-10-19; replace it there when renewed). For a submission, run:
 
 ```bash
 script/package_app.sh --release --universal --app-store --version 1.2.3 \
