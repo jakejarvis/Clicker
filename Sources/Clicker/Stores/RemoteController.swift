@@ -9,6 +9,10 @@ nonisolated enum ConnectionState: Equatable, Sendable {
     case connecting
     case connected
     case failed(String)
+    /// macOS refused the local network (System Settings › Privacy &
+    /// Security › Local Network), found by `LocalNetworkAccess` while the
+    /// connect was still waiting.
+    case localNetworkDenied
 
     var isBusy: Bool { self == .connecting }
 }
@@ -309,6 +313,7 @@ final class RemoteController {
         switch connectionState {
         case .connecting: return "Connecting…"
         case .failed: return "Connection failed"
+        case .localNetworkDenied: return "No local network access"
         case .disconnected: return "Not connected"
         case .connected:
             // "Ready" means connected and the TV is on; only sleep is called out.
@@ -545,6 +550,21 @@ final class RemoteController {
                 Log.remote.error("Connect failed: \(String(describing: error), privacy: .public)")
                 self.client = nil
                 self.clientDeviceID = nil
+                // A denied local network never fails the connect, it only
+                // times out, so ask then (`LocalNetworkAccess`) and skip the
+                // retry. Not on every connect: when access is allowed the
+                // probe opens a flow to the gateway, which a firewall such as
+                // Little Snitch asks about.
+                if case CompanionError.timeout = error {
+                    let access = await LocalNetworkAccess.check()
+                    guard !Task.isCancelled else { return }
+                    if access == .denied {
+                        Log.remote.error("Local network access denied")
+                        self.connectTask = nil
+                        self.connectionState = .localNetworkDenied
+                        return
+                    }
+                }
                 // A TV that just dropped another session often ignores the
                 // very next connection; one quiet retry covers that. The task
                 // stays in `connectTask` through the pause: `tearDownSession`
@@ -1101,7 +1121,12 @@ final class RemoteController {
     /// and `scheduleReconnect` reconnect, and a queue of presses would
     /// otherwise run one full attempt each and replay once the TV answered.
     private func readyClient() async -> CompanionClient? {
-        if connectTask == nil, case .failed = connectionState { return nil }
+        if connectTask == nil {
+            switch connectionState {
+            case .failed, .localNetworkDenied: return nil
+            default: break
+            }
+        }
         connectIfNeeded()
         while let task = connectTask {
             await task.value
@@ -1222,6 +1247,11 @@ final class RemoteController {
     nonisolated static func connectFailedMessage(_ deviceName: String) -> String {
         "Couldn't connect to \(deviceName)."
     }
+
+    /// The notice's button opens Privacy & Security, not the Local Network
+    /// list itself (see docs/protocol.md), so the message names the row.
+    nonisolated static let localNetworkDeniedMessage =
+        "Clicker isn't allowed on the local network. Turn it on under Privacy & Security › Local Network."
 }
 
 #if DEMO

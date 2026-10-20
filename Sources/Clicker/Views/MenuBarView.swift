@@ -167,6 +167,15 @@ struct MenuBarView: View {
                     InlineNotice(
                         id: "connection", kind: .warning, message: "Not connected.",
                         action: .init(title: "Connect") { controller.retryConnection() }))
+            case .localNetworkDenied:
+                // Opening Settings closes the panel (an outside click), and
+                // the next open connects again.
+                notices.append(
+                    InlineNotice(
+                        id: "connection", kind: .warning, message: RemoteController.localNetworkDeniedMessage,
+                        action: .init(title: "Open Privacy & Security", placement: .below) {
+                            SystemSettings.openLocalNetworkPrivacy()
+                        }))
             case .connecting, .connected:
                 if let error = controller.lastActionError {
                     notices.append(InlineNotice(id: "action-error", kind: .warning, message: error))

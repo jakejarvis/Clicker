@@ -48,6 +48,8 @@ import Security
         case connecting
         /// Living Room paired and online but the connection failed.
         case connectionfailed
+        /// macOS refused Clicker the local network.
+        case localnetwork
         /// Living Room paired and online, connection closed.
         case disconnected
         /// Living Room over HDMI: Mute just failed and is now disabled.
@@ -140,6 +142,7 @@ import Security
             case .connectionfailed, .notices:
                 return .failed(RemoteController.connectFailedMessage(Self.livingRoom.name))
             case .connecting: return .connecting
+            case .localnetwork: return .localNetworkDenied
             case .disconnected: return .disconnected
             default: return .connected
             }

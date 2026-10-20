@@ -29,7 +29,15 @@ struct InlineNotice: Identifiable {
     }
 
     struct Action {
+        /// Beside the message, the usual place, or under it at full width
+        /// for a message that needs the room.
+        enum Placement {
+            case trailing
+            case below
+        }
+
         let title: String
+        var placement: Placement = .trailing
         let perform: () -> Void
     }
 
@@ -44,19 +52,28 @@ struct InlineNoticeView: View {
     let notice: InlineNotice
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: notice.kind.symbol)
-                .foregroundStyle(notice.kind.tint)
-            Text(notice.message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(3)
-                // Wrap rather than truncate when the panel's height is pinned.
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if let action = notice.action {
-                Button(action.title, action: action.perform)
-                    .controlSize(.small)
+        VStack(spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: notice.kind.symbol)
+                    .foregroundStyle(notice.kind.tint)
+                Text(notice.message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    // Wrap rather than truncate when the panel's height is pinned.
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let action = notice.action, action.placement == .trailing {
+                    Button(action.title, action: action.perform)
+                        .controlSize(.small)
+                }
+            }
+            if let action = notice.action, action.placement == .below {
+                Button(action: action.perform) {
+                    Text(action.title)
+                        .frame(maxWidth: .infinity)
+                }
+                .controlSize(.small)
             }
         }
         .padding(8)
