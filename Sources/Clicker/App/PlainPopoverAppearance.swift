@@ -18,7 +18,9 @@ struct PlainPopoverAppearance: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             guard let window else { return }
-            let plain = window.effectiveAppearance.bestMatch(from: [
+            // The app's appearance, not the window's: once set, the window's
+            // own would only echo back what an earlier presentation pinned.
+            let plain = NSApp.effectiveAppearance.bestMatch(from: [
                 .aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua,
             ])
             window.appearance = plain.flatMap(NSAppearance.init(named:))

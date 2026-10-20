@@ -35,8 +35,7 @@ jobs:
       - name: Package a universal app
         run: script/package_app.sh --release --universal
 
-      # Zipped with ditto so Sparkle.framework's symlinks survive. docs/development.md
-      # points at this when a control looks different locally and in CI.
+      # Zipped with ditto so Sparkle.framework's symlinks survive.
       - name: Zip the app
         run: ditto -c -k --keepParent dist/Clicker.app dist/Clicker.app.zip
 
