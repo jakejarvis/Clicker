@@ -3,6 +3,21 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.3</title>
+            <pubDate>Tue, 20 Oct 2026 15:55:28 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>303</sparkle:version>
+            <sparkle:shortVersionString>0.3.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.3
+
+- When macOS doesn't allow Clicker on the local network, Clicker now says so after the first attempt, instead of retrying and ending on "Couldn't connect". The notice explains where to turn it on, under Privacy & Security › Local Network, and has a button that opens Privacy & Security.
+- The remote is dimmed and can't be pressed until Clicker is connected to the Apple TV. Presses made while it was still connecting used to look like they worked, and were lost if the connection failed.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.3/Clicker-0.3.3.zip" length="5110797" type="application/octet-stream" sparkle:edSignature="ZTw649gT7t2Hk7MJbTPloGhQETJ0RnnTrCBZbkV4WV9ThgdVSCJf1Je3U+Xu5TdScB0ajCGLT9sxYCiqQE3MBg=="/>
+        </item>
+        <item>
             <title>0.3.2</title>
             <pubDate>Tue, 20 Oct 2026 14:48:36 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
