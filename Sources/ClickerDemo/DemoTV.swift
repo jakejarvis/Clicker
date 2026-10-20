@@ -28,6 +28,9 @@ nonisolated struct DemoTV: Sendable {
     var connectError: CompanionError?
     /// False answers any code as the TV does a wrong one.
     var acceptsCode = true
+    /// False leaves a connect waiting. Unlike a real session it never times
+    /// out, so the Connecting… state holds for a screenshot.
+    var answersConnect = true
 
     static let livingRoom = DemoTV(
         name: "Living Room", model: "AppleTV14,1", host: "192.168.1.42", bluetoothAddress: "A4:83:E7:2C:91:0D",

@@ -30,6 +30,8 @@ nonisolated struct DemoScenario: Sendable {
     /// The keychain refuses to store a new pairing (a missing-entitlement
     /// error from the add itself, after the availability probe passed).
     var refusesStore = false
+    /// macOS has Clicker turned off under Privacy & Security › Local Network.
+    var localNetworkDenied = false
     var pendingUpdateVersion: String?
     var steps: [Step] = []
     /// Stretched where the real timing would move the panel on before a
@@ -111,8 +113,16 @@ nonisolated struct DemoScenario: Sendable {
             $0.refusesStore = true
             $0.steps = [.beginPairing, .enterCode("1234")]
         },
+        // Living Room paired and online, the connection still being set up.
+        DemoScenario("connecting") { $0.livingRoom.answersConnect = false },
         // Living Room paired and online but the connection failed.
         DemoScenario("connectionfailed") { $0.livingRoom.connectError = .connectionFailed(.posix(.ECONNREFUSED)) },
+        // macOS refused Clicker the local network: the connect times out
+        // and the probe that follows reports the denial.
+        DemoScenario("localnetwork") {
+            $0.livingRoom.connectError = .timeout
+            $0.localNetworkDenied = true
+        },
         // The TV closed the session while the panel was open; the reconnect
         // is held off so the notice stays.
         DemoScenario("disconnected") {

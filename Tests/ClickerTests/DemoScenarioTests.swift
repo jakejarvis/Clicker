@@ -125,6 +125,26 @@ import Testing
         #expect(run.controller.selectedStateDescription == "Connection failed")
     }
 
+    @Test func connectingHoldsWhileTheTVIsSilent() async throws {
+        let controller = try await DemoRun("connecting").controller
+        #expect(await eventually { controller.connectionState == .connecting })
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(controller.selectedStateDescription == "Connecting…")
+    }
+
+    /// A timed-out connect asks about the local network and, denied, skips
+    /// the retry.
+    @Test func aDeniedLocalNetworkIsNamed() async throws {
+        let controller = try await DemoRun("localnetwork").controller
+        #expect(await eventually { controller.connectionState == .localNetworkDenied })
+        #expect(controller.selectedStateDescription == "No local network access")
+    }
+
+    @Test func aTimeoutWithTheLocalNetworkAllowedRetriesThenFails() async throws {
+        let controller = try await DemoRun("localnetwork") { $0.localNetworkDenied = false }.controller
+        #expect(await eventually { controller.connectionState == .failed("Couldn't connect to Living Room.") })
+    }
+
     @Test func aDroppedSessionWaitsToReconnect() async throws {
         let run = try await DemoRun("disconnected")
         #expect(await eventually { run.controller.connectionState == .disconnected })

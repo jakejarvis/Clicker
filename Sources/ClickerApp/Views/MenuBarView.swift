@@ -89,15 +89,21 @@ struct MenuBarView: View {
 
     /// The remote is always drawn. When an overlay applies it is dimmed,
     /// blurred and inert under the card, so the panel keeps its shape and
-    /// pairing reveals the remote in place.
+    /// pairing reveals the remote in place. Without a session (connecting,
+    /// failed or closed) it is dimmed less and inert with no card: the
+    /// device picker says which, and a notice offers Retry. Presses made
+    /// then went nowhere until the session came up, or nowhere at all.
     private var content: some View {
         let overlay = overlay
         let isLive = overlay == nil
+        let isConnected = controller.connectionState == .connected
+        let isUsable = isLive && isConnected
         return VStack(spacing: 14) {
-            RemotePadView(controller: controller, isInteractive: isLive)
-                .opacity(isLive ? 1 : 0.35)
+            RemotePadView(controller: controller, isInteractive: isUsable)
+                .opacity(isLive ? (isConnected ? 1 : 0.5) : 0.35)
                 .blur(radius: isLive ? 0 : 2)
-                .allowsHitTesting(isLive)
+                .allowsHitTesting(isUsable)
+                .disabled(!isUsable)
                 .accessibilityHidden(!isLive)
                 .overlay(alignment: .top) {
                     if let overlay {
@@ -122,6 +128,7 @@ struct MenuBarView: View {
             }
         }
         .animation(.snappy(duration: 0.3), value: overlay)
+        .animation(.snappy(duration: 0.3), value: isConnected)
     }
 
     @ViewBuilder
@@ -160,6 +167,15 @@ struct MenuBarView: View {
                     InlineNotice(
                         id: "connection", kind: .warning, message: "Not connected.",
                         action: .init(title: "Connect") { controller.retryConnection() }))
+            case .localNetworkDenied:
+                // Opening Settings closes the panel (an outside click), and
+                // the next open connects again.
+                notices.append(
+                    InlineNotice(
+                        id: "connection", kind: .warning, message: RemoteController.localNetworkDeniedMessage,
+                        action: .init(title: "Open Privacy & Security", placement: .below) {
+                            SystemSettings.openLocalNetworkPrivacy()
+                        }))
             case .connecting, .connected:
                 if let error = controller.lastActionError {
                     notices.append(InlineNotice(id: "action-error", kind: .warning, message: error))

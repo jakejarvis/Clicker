@@ -12,6 +12,9 @@ package struct RemoteDependencies {
     package var identity: () -> ClientIdentity
     package var makeSession: (NWEndpoint, PairingCredentials, ClientIdentity) -> any RemoteSession
     package var makePairingSession: (NWEndpoint) -> any PairingSession
+    /// Whether macOS lets Clicker on the local network, asked after a
+    /// connect times out.
+    package var localNetworkAccess: () async -> LocalNetworkAccess.Status
     package var timings: RemoteTimings
 
     package init(
@@ -21,6 +24,7 @@ package struct RemoteDependencies {
         identity: @escaping () -> ClientIdentity,
         makeSession: @escaping (NWEndpoint, PairingCredentials, ClientIdentity) -> any RemoteSession,
         makePairingSession: @escaping (NWEndpoint) -> any PairingSession,
+        localNetworkAccess: @escaping () async -> LocalNetworkAccess.Status,
         timings: RemoteTimings = RemoteTimings()
     ) {
         self.discovery = discovery
@@ -29,11 +33,12 @@ package struct RemoteDependencies {
         self.identity = identity
         self.makeSession = makeSession
         self.makePairingSession = makePairingSession
+        self.localNetworkAccess = localNetworkAccess
         self.timings = timings
     }
 
-    /// Bonjour, the Companion protocol, the keychain (or its file fallback)
-    /// and user defaults.
+    /// Bonjour, the Companion protocol, the keychain (or its file fallback),
+    /// user defaults and the local network probe.
     static var live: RemoteDependencies {
         RemoteDependencies(
             discovery: DeviceBrowser(),
@@ -41,7 +46,8 @@ package struct RemoteDependencies {
             settings: DefaultsControllerSettings(),
             identity: IdentityStore.identity,
             makeSession: { CompanionClient(endpoint: $0, credentials: $1, identity: $2) },
-            makePairingSession: { CompanionPairingSession(endpoint: $0) }
+            makePairingSession: { CompanionPairingSession(endpoint: $0) },
+            localNetworkAccess: LocalNetworkAccess.check
         )
     }
 }

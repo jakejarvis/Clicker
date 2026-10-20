@@ -23,6 +23,7 @@ actor DemoSession: RemoteSession {
     var osVersion: String? { "26.0.1" }
 
     func connect(timeout: Duration) async throws {
+        if !tv.answersConnect { try await Task.sleep(for: .seconds(86_400)) }
         if let error = tv.connectError { throw error }
         // A real TV reports its output's controls right after the session
         // starts.

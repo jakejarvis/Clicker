@@ -40,6 +40,7 @@ final class DemoWorld {
             makePairingSession: { endpoint in
                 DemoPairingSession(tv: self.tv(endpoint: endpoint), latency: self.latency)
             },
+            localNetworkAccess: { [scenario] in scenario.localNetworkDenied ? .denied : .allowed },
             timings: scenario.timings
         )
     }
