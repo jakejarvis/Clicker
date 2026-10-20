@@ -203,6 +203,12 @@ if [[ "$APP_STORE" != 1 ]]; then
   install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BINARY"
 fi
 
+# Files copied from Resources keep their extended attributes, and a profile
+# downloaded in a browser carries com.apple.quarantine, which App Store
+# Connect rejects (error 91109). Nothing in the bundle needs any, so clear them
+# all before signing.
+xattr -cr "$APP_BUNDLE"
+
 # Sign inside out and never with --deep (Sparkle's and Apple's guidance). A real
 # identity gets the hardened runtime and a secure timestamp for notarization;
 # ad-hoc keeps TCC (local network) and launch at login stable between dev runs.
