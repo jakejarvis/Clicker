@@ -59,7 +59,7 @@ A processed build appears in TestFlight; an internal group with automatic distri
 
 Submitting for review is a click in App Store Connect: fill in What's New, choose the build, Add for Review, Submit, with manual release so approval doesn't publish on its own. Don't automate it from the workflow: every tag would go to App Review unattended, and a TestFlight install against a real TV is the check before it.
 
-The listing carries over between versions: screenshots (16:10, such as 2880×1800), description, the homepage as support URL, `https://clicker.jarv.is/privacy` as privacy policy, App Privacy "Data Not Collected", Utilities, 4+. App Review likely has no Apple TV, so the review notes say the app needs one on the same network and attach a short screen recording of pairing and using the remote; `--demo` is compiled out of release builds.
+The listing carries over between versions: screenshots (16:10, such as 2880×1800), description, the homepage as support URL, `https://clicker.jarv.is/privacy` as privacy policy, App Privacy "Data Not Collected", Utilities, 4+. App Review likely has no Apple TV, so the review notes say the app needs one on the same network and attach a short screen recording of pairing and using the remote; `--demo` lives in a separate development executable that no release includes.
 
 ## Renewals
 

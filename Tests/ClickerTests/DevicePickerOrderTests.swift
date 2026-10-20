@@ -2,7 +2,7 @@ import Foundation
 import Network
 import Testing
 
-@testable import Clicker
+@testable import ClickerApp
 
 @Suite struct DevicePickerOrderTests {
     private static func device(_ name: String, online: Bool) -> AppleTVDevice {

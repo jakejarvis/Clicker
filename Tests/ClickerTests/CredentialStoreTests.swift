@@ -2,7 +2,7 @@ import ClickerCompanion
 import Foundation
 import Testing
 
-@testable import Clicker
+@testable import ClickerApp
 
 @Suite struct CredentialStoreTests {
     private func makeCredentials(id: String, name: String = "Living Room") -> PairingCredentials {

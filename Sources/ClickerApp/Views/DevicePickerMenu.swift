@@ -66,6 +66,8 @@ struct DevicePickerMenu: View {
 
     @ViewBuilder
     private var subtitle: some View {
+        // Paired TVs that are offline are listed but not "found".
+        let online = controller.devices.count(where: \.isOnline)
         if let device = controller.selectedDevice {
             // A long state ("Connection failed") would cut the model down to
             // "Apple…"; drop the model instead of truncating it.
@@ -78,13 +80,13 @@ struct DevicePickerMenu: View {
                 Text(controller.selectedStateDescription)
                     .truncationMode(.tail)
             }
-        } else if controller.devices.isEmpty {
+        } else if online > 0 {
+            Text("\(online) found")
+        } else {
             HStack(spacing: 5) {
                 Spinner(size: 11)
                 Text("Searching…")
             }
-        } else {
-            Text("\(controller.devices.count) found")
         }
     }
 }
@@ -138,7 +140,7 @@ private struct DeviceListView: View {
                         }
                     }
                     .padding([.horizontal, .top], 6)
-                    .padding(.bottom, showsRescan ? 0 : 6)
+                    .padding(.bottom, showsDetails ? 0 : 6)
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(maxHeight: Self.maxListHeight)
@@ -147,11 +149,11 @@ private struct DeviceListView: View {
                     if let id { proxy.scrollTo(id) }
                 }
             }
-            if showsRescan {
+            if showsDetails {
                 Divider()
                     .padding(.vertical, 2)
                     .padding(.horizontal, 6)
-                RescanRow(isRescanning: controller.browser.isRescanning) {
+                RescanRow(isRescanning: controller.discovery.isRescanning) {
                     controller.rescan()
                 }
                 .padding([.horizontal, .bottom], 6)
@@ -161,8 +163,6 @@ private struct DeviceListView: View {
         .onAppear(perform: installKeyMonitor)
         .onDisappear(perform: removeKeyMonitor)
     }
-
-    private var showsRescan: Bool { showsDetails && !controller.isDemo }
 
     @ViewBuilder
     private func row(for device: AppleTVDevice) -> some View {

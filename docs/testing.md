@@ -2,7 +2,7 @@
 
 ## Unit tests
 
-`swift test` runs two targets. `ClickerCompanionTests` covers the protocol: OPACK and TLV8 codecs, the crypto and SRP, the text-input archive, and `CompanionConnection` cancellation against a silent loopback listener. `ClickerTests` covers the app's pure logic: panel and clickpad geometry, trackpad swipe translation, device TXT parsing, the credential store, demo scenarios, app favorites and recents, media-control flags, device picker order and legacy pairing adoption. Keep new logic testable the same way: pure, `nonisolated` value types where the UI allows.
+`swift test` runs two targets. `ClickerCompanionTests` covers the protocol: OPACK and TLV8 codecs, the crypto and SRP, the text-input archive, and `CompanionConnection` cancellation against a silent loopback listener. `ClickerTests` covers the app's pure logic: panel and clickpad geometry, trackpad swipe translation, device TXT parsing, the credential store, device picker order and legacy pairing adoption. It also drives the real `RemoteController` against the demo target's made-up TVs (`DemoRun`, with pair-setup taking no time): every `--demo` scenario, pairing and re-pairing, stale pairings, mute confirmation on a real and an HDMI output, app favorites and recents, and what gets remembered for the next launch. Keep new logic testable the same way: pure, `nonisolated` value types where the UI allows, and controller behavior through `RemoteDependencies` fakes. State changes take a few task hops, so those tests wait with `eventually`.
 
 ## Looking at the panel
 

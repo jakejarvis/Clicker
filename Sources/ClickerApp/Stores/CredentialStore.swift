@@ -19,7 +19,7 @@ final class CredentialStore {
     }
 
     /// The keychain when this build can use it, otherwise the file.
-    private static func defaultBackend() -> any CredentialBackend {
+    static func defaultBackend() -> any CredentialBackend {
         switch KeychainCredentialBackend.availability() {
         case .available:
             Log.storage.info("Storing pairings in the keychain")
@@ -107,7 +107,7 @@ final class CredentialStore {
 }
 
 /// Where credentials live. `store` replaces any entry with the same device ID.
-protocol CredentialBackend {
+package protocol CredentialBackend {
     func loadAll() throws -> [PairingCredentials]
     func store(_ credentials: PairingCredentials) throws
     func delete(deviceID: String) throws
@@ -116,24 +116,29 @@ protocol CredentialBackend {
 /// One generic-password item per Apple TV in the data protection keychain.
 /// Items are scoped to the keychain access group from the app's entitlements,
 /// so other processes cannot read the long-term keys.
-struct KeychainCredentialBackend: CredentialBackend {
+package struct KeychainCredentialBackend: CredentialBackend {
     enum Availability: Equatable {
         case available
         case missingEntitlement
         case failed(OSStatus)
     }
 
-    struct KeychainError: Error, CustomStringConvertible, LocalizedError {
+    package struct KeychainError: Error, CustomStringConvertible, LocalizedError {
         let operation: String
         let status: OSStatus
 
-        var description: String {
+        package init(operation: String, status: OSStatus) {
+            self.operation = operation
+            self.status = status
+        }
+
+        package var description: String {
             let message = SecCopyErrorMessageString(status, nil) as String? ?? "unknown"
             return "\(operation) failed: \(message) (\(status))"
         }
 
         /// Shown on the pair card when a save fails.
-        var errorDescription: String? {
+        package var errorDescription: String? {
             let message = SecCopyErrorMessageString(status, nil) as String? ?? "unknown keychain error"
             return "\(message) (\(status))"
         }
@@ -174,7 +179,7 @@ struct KeychainCredentialBackend: CredentialBackend {
         ]
     }
 
-    func loadAll() throws -> [PairingCredentials] {
+    package func loadAll() throws -> [PairingCredentials] {
         var query = Self.baseQuery
         query[kSecMatchLimit as String] = kSecMatchLimitAll
         query[kSecReturnData as String] = true
@@ -198,7 +203,7 @@ struct KeychainCredentialBackend: CredentialBackend {
         }
     }
 
-    func store(_ credentials: PairingCredentials) throws {
+    package func store(_ credentials: PairingCredentials) throws {
         let data = try JSONEncoder().encode(credentials)
         let attributes: [String: Any] = [
             kSecValueData as String: data,
@@ -220,7 +225,7 @@ struct KeychainCredentialBackend: CredentialBackend {
         guard addStatus == errSecSuccess else { throw KeychainError(operation: "add", status: addStatus) }
     }
 
-    func delete(deviceID: String) throws {
+    package func delete(deviceID: String) throws {
         var query = Self.baseQuery
         query[kSecAttrAccount as String] = deviceID
         let status = SecItemDelete(query as CFDictionary)

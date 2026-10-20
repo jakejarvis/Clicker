@@ -136,7 +136,7 @@ struct MenuBarView: View {
                 }
             }
         case .searching:
-            SearchingCard(message: controller.browser.errorMessage)
+            SearchingCard(message: controller.discovery.errorMessage)
         case .choose:
             ChooseDeviceCard()
         }

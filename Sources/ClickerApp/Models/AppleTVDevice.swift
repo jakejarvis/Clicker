@@ -4,11 +4,11 @@ import Network
 
 /// An Apple TV discovered on the local network, or one we have credentials for
 /// that is not currently advertising.
-nonisolated struct AppleTVDevice: Identifiable, Hashable, Sendable {
+package nonisolated struct AppleTVDevice: Identifiable, Hashable, Sendable {
     /// The `rpMRtID` UUID from the TXT record, which tvOS keeps stable. The
     /// `rpBA` address rotates, so it is only a fallback, then the Bonjour name.
-    let id: String
-    var name: String
+    package let id: String
+    package var name: String
     var model: String?
     var endpoint: NWEndpoint?
     var pairingDisabled: Bool
@@ -74,7 +74,7 @@ nonisolated struct AppleTVDevice: Identifiable, Hashable, Sendable {
 
     // MARK: - Initializers
 
-    init(
+    package init(
         id: String,
         name: String,
         model: String?,
@@ -107,7 +107,7 @@ nonisolated struct AppleTVDevice: Identifiable, Hashable, Sendable {
 
     /// The parsing half of `init?(result:)`, separated so tests can feed a
     /// TXT dictionary without an `NWBrowser.Result`.
-    init?(name: String, txt record: [String: String], endpoint: NWEndpoint?, interfaces: [String]) {
+    package init?(name: String, txt record: [String: String], endpoint: NWEndpoint?, interfaces: [String]) {
         var txt: [String: String] = [:]
         for (key, value) in record { txt[key.lowercased()] = value }
 

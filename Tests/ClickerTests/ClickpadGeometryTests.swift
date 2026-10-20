@@ -1,7 +1,7 @@
 import SwiftUI
 import Testing
 
-@testable import Clicker
+@testable import ClickerApp
 
 @Suite struct ClickpadGeometryTests {
     typealias Direction = ClickpadGeometry.Direction

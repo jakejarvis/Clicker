@@ -1,11 +1,6 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
-// `--demo` (DemoScenario and the controller's canned state) is compiled into
-// debug builds only. Release builds leave it out; script/package_app.sh
-// --with-demo adds -DDEMO for the screenshot build.
-let demoSettings: [SwiftSetting] = [.define("DEMO", .when(configuration: .debug))]
-
 // Swift 6.2's approachable concurrency: a nonisolated async function runs on
 // its caller's actor unless marked `@concurrent`, and a conformance of a
 // main-actor type is main-actor isolated.
@@ -28,17 +23,33 @@ let package = Package(
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "1.17.0"),
     ],
     targets: [
-        // The app: UI, stores, discovery. Main actor by default, like any app
-        // module; code that runs elsewhere says `nonisolated`.
+        // The app as shipped: a thin entry point that runs ClickerApp against
+        // the real network, keychain and defaults.
         .executableTarget(
             name: "Clicker",
+            dependencies: ["ClickerApp"],
+            path: "Sources/Clicker",
+            swiftSettings: concurrencySettings + [.defaultIsolation(MainActor.self)]
+        ),
+        // The development build: the same app with `--demo [scenario]`, which
+        // swaps in made-up Apple TVs. Nothing in Clicker depends on it.
+        .executableTarget(
+            name: "ClickerDemo",
+            dependencies: ["ClickerApp", "ClickerCompanion"],
+            path: "Sources/ClickerDemo",
+            swiftSettings: concurrencySettings + [.defaultIsolation(MainActor.self)]
+        ),
+        // The app: UI, stores, discovery. Main actor by default, like any app
+        // module; code that runs elsewhere says `nonisolated`.
+        .target(
+            name: "ClickerApp",
             dependencies: [
                 "ClickerCompanion",
                 .product(name: "Sparkle", package: "Sparkle", condition: .when(traits: ["Sparkle"])),
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
-            path: "Sources/Clicker",
-            swiftSettings: demoSettings + concurrencySettings + [.defaultIsolation(MainActor.self)]
+            path: "Sources/ClickerApp",
+            swiftSettings: concurrencySettings + [.defaultIsolation(MainActor.self)]
         ),
         // The Companion protocol: codecs, pairing crypto and the session
         // actors. Nonisolated by default, so callers decide where work runs.
@@ -50,9 +61,9 @@ let package = Package(
         ),
         .testTarget(
             name: "ClickerTests",
-            dependencies: ["Clicker", "ClickerCompanion"],
+            dependencies: ["ClickerApp", "ClickerDemo", "ClickerCompanion"],
             path: "Tests/ClickerTests",
-            swiftSettings: demoSettings + concurrencySettings
+            swiftSettings: concurrencySettings
         ),
         .testTarget(
             name: "ClickerCompanionTests",

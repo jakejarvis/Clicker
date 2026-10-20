@@ -2,8 +2,8 @@ import ClickerCompanion
 import Foundation
 
 /// Stable identity for this install, kept in user defaults.
-nonisolated enum IdentityStore {
-    static let clientNameKey = "clientName"
+package nonisolated enum IdentityStore {
+    package static let clientNameKey = "clientName"
     private static let deviceIDKey = "clientDeviceID"
 
     static var defaultClientName: String {
