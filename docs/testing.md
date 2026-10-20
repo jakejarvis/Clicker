@@ -14,6 +14,8 @@ With computer-use tools: they cannot see or grant a menu-bar-only app, so
 2. Grant "Clicker" and "Finder", and bring Finder forward so the frontmost app is allowed. Zoom on the menu bar to find the remote-glyph status item (its position shifts with other status items), click it, and zoom on the panel below it.
 3. Relaunch without `--regular` when done (`--install` again).
 
+Light mode without touching the system setting: add `-NSRequiresAquaSystemAppearance YES` to the launch arguments, which forces Aqua for that process only. Increase Contrast has no such switch.
+
 A demo panel can also be captured in the background with the computer-use `app_screenshot` tool on the app's one window, with no clicking or Finder.
 
 Things that look like bugs but are not: zooms taken while a mouse button is held after a `wait` come back black (a capture artifact, not the panel closing), so verify presses from the `remote` log category instead. Synthetic pointer moves do trigger `.onHover`.
