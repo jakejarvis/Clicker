@@ -3,6 +3,24 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.2</title>
+            <pubDate>Tue, 20 Oct 2026 14:48:36 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>302</sparkle:version>
+            <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.2
+
+- The device list now works from the keyboard like the Apps picker: Up and Down move the highlight and Return picks the TV.
+- While the device list is open, the remote's keys and trackpad swipes no longer reach the Apple TV behind it, and Space no longer picks a TV you didn't highlight.
+- Highlighted rows in the Apps picker and the device list use your accent color, so they're easy to read in Light mode.
+- Opening Settings with ⌘, closes an open popover first instead of carrying it along with the remote.
+- Rescan again tries the last known address of an Apple TV that was paired with an earlier version of Clicker.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.2/Clicker-0.3.2.zip" length="5088924" type="application/octet-stream" sparkle:edSignature="ZVqnR/3OayxRmoxzkG10oaK8dh8HGMK2WpRfOsytdOmpXKcycW7XYOjoGmmbA12eL6ViuoCuDUwm5g9NeL72Cw=="/>
+        </item>
+        <item>
             <title>0.3.1</title>
             <pubDate>Tue, 20 Oct 2026 04:58:13 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
