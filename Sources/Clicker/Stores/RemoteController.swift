@@ -134,8 +134,8 @@ final class RemoteController {
     /// The device picker's popover while it is open. Kept here, not in the
     /// view, so hiding the panel can drop it and Esc can close it.
     var devicePickerPresentation: DevicePickerPresentation?
-    /// Whether either popover is open. The clickpad's keys and trackpad
-    /// swipes stand down while one is, since the panel stays key underneath
+    /// Whether either popover is open. The clickpad ignores keys and
+    /// trackpad swipes while one is, since the panel stays key underneath
     /// and they would otherwise drive the TV behind the popover.
     var isPopoverPresented: Bool { isAppPickerPresented || devicePickerPresentation != nil }
     /// Whether the Settings shortcut row is taking a chord (`ShortcutRow`).
@@ -322,6 +322,9 @@ final class RemoteController {
     func start() {
         if !isDemo { browser.start() }
         connectIfNeeded()
+        #if DEMO
+            presentDemoPopover()
+        #endif
     }
 
     /// Re-issues the Bonjour query (the picker's ⌥-click Rescan). Also knocks
@@ -1242,11 +1245,20 @@ final class RemoteController {
             if let session = demo.keyboardSession {
                 adoptKeyboardSession(session)
             }
-            if demo == .appPicker {
-                // After the panel is on screen, so the popover has an anchor.
-                Task { [weak self] in
-                    try? await Task.sleep(for: .seconds(0.5))
+        }
+
+        /// Opens the scenario's popover once, after the panel is on screen (it
+        /// opens half a second after launch), so the popover has an anchor and
+        /// the clickpad has taken its focus. Not from `connectDemo`, which runs
+        /// again whenever a TV is picked and would reopen it.
+        func presentDemoPopover() {
+            guard let demo, demo == .appPicker || demo == .devices else { return }
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                if demo == .appPicker {
                     self?.isAppPickerPresented = true
+                } else {
+                    self?.devicePickerPresentation = DevicePickerPresentation(showsDetails: false)
                 }
             }
         }

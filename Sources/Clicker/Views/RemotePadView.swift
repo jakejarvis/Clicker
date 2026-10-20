@@ -332,7 +332,7 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             // Esc in the TV text field: the field resigns and the pad takes
             // over, with the field left on screen for a click.
             .onChange(of: controller.padFocusRequests) {
-                guard !controller.isPopoverPresented else { return }
+                guard !controller.isAppPickerPresented else { return }
                 DispatchQueue.main.async { isFocused = true }
             }
             // When the TV text field goes away (the TV lost its field, or
@@ -340,15 +340,19 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             .onChange(of: controller.isTextFieldShown) { _, shown in
                 if !shown { takeFocusIfFree() }
             }
-            // The panel stays key under a popover, so without this the pad
-            // would swallow the keys meant for the Apps search field and
-            // drive the TV behind the device list.
-            .onChange(of: controller.isPopoverPresented) { _, popoverOpen in
-                if popoverOpen {
+            // The panel stays key under the Apps popover, so without this the
+            // pad would swallow the keys meant for its search field.
+            .onChange(of: controller.isAppPickerPresented) { _, pickerOpen in
+                if pickerOpen {
                     isFocused = false
                 } else {
                     takeFocusIfFree()
                 }
+            }
+            // The device list has no field, so the pad keeps focus under it
+            // and only ignores keys (`handle`); a hold in progress is let go.
+            .onChange(of: controller.devicePickerPresentation != nil) { _, listOpen in
+                if listOpen { controller.releaseHeldKeys() }
             }
             // Without focus the key-ups go elsewhere, and so does the rest of
             // a hold.
@@ -361,13 +365,18 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             }
     }
 
-    /// Takes keyboard focus unless the TV text field or a popover should
-    /// have it. Deferred a turn so it lands after whatever cleared the
-    /// first responder in the same pass (the panel's own show, for one).
+    /// Takes keyboard focus unless the TV text field or the Apps picker
+    /// should have it. Deferred a turn so it lands after whatever cleared the
+    /// first responder in the same pass (the panel's own show, for one), and
+    /// checked again then in case the picker opened in between.
     private func takeFocusIfFree() {
-        guard !controller.isTextFieldShown, !controller.isPopoverPresented else { return }
-        DispatchQueue.main.async { isFocused = true }
+        guard isFocusFree else { return }
+        DispatchQueue.main.async {
+            if isFocusFree { isFocused = true }
+        }
     }
+
+    private var isFocusFree: Bool { !controller.isTextFieldShown && !controller.isAppPickerPresented }
 
     /// Keys send the button's down on key-down and its up on key-up, like
     /// the on-screen buttons, so a held arrow scrolls and a held Return
