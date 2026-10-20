@@ -175,7 +175,7 @@ header nav a:hover {
 .brew {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   min-width: 0;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--faint);
@@ -241,6 +241,65 @@ header nav a:hover {
 .requirements {
   margin: 1rem 0 0;
   font-size: 0.8125rem;
+}
+
+/* A crop of the top-right of a Mac with a black wallpaper, at 1px per point:
+   the bar runs the width of the column, whose right edge stands in for the
+   screen's. The panel (a 2x capture with 4pt of margin) is centred on the
+   page rather than hanging under Clicker's item as it would on screen. */
+.shot {
+  margin: 2rem 0 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.shot img {
+  display: block;
+  margin: 5px auto 0;
+  max-width: 100%;
+  height: auto;
+  -webkit-user-drag: none;
+}
+
+.menu-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 22px;
+  height: 34px;
+  padding-right: 16px;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 6%);
+  color: #ebebeb;
+  mask-image: linear-gradient(to right, transparent, #000 3rem);
+}
+
+.menu-bar svg {
+  flex-shrink: 0;
+}
+
+/* The pill behind an open status item, measured from a capture: 36×23pt,
+   about 19% white, with 12pt clear before the next item. The negative
+   margins fold the rest of its width back into the glyph spacing. */
+.menu-bar-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 23px;
+  margin: 0 -8px 0 -14.4px;
+  border-radius: 11.5px;
+  background: rgb(255 255 255 / 18%);
+}
+
+.menu-bar-clock {
+  position: relative;
+  margin-left: -4.5px;
+  font-family: -apple-system, BlinkMacSystemFont, var(--sans);
+  font-size: 13.5px;
+  white-space: nowrap;
 }
 
 .prose h1 {

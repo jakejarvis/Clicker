@@ -1,4 +1,7 @@
 ---
+import { Image } from "astro:assets";
+import panel from "../assets/panel.png";
+import MenuBar from "../components/MenuBar.astro";
 import Layout from "../layouts/Layout.astro";
 import { fetchLatestDownload } from "../lib/releases";
 
@@ -39,8 +42,8 @@ const brewCommand = "brew install --cask jakejarvis/tap/clicker";
     <a class="download" href={downloadUrl}>
       <svg
         viewBox="0 0 384 512"
-        width="1em"
-        height="1em"
+        width="1.1em"
+        height="1.1em"
         fill="currentColor"
         aria-hidden="true"
       >
@@ -87,6 +90,18 @@ const brewCommand = "brew install --cask jakejarvis/tap/clicker";
   </div>
 
   <p class="requirements muted">Requires macOS 15 or later. Free and open source.</p>
+
+  <figure class="shot">
+    <MenuBar />
+    <Image
+      src={panel}
+      alt="Clicker's panel open under its menu bar icon, with the Living Room Apple TV ready"
+      width={272}
+      densities={[1, 2]}
+      priority
+      draggable="false"
+    />
+  </figure>
 </Layout>
 
 <script>
