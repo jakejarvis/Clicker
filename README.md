@@ -70,6 +70,7 @@ Open Settings from the ••• menu in the bottom corner of the panel, by righ
 - change the name your Apple TV shows for this Mac under Remotes and Devices,
 - start Clicker when you log in,
 - set a keyboard shortcut that opens or closes Clicker from any app,
+- invert which way two-finger swipes over the clickpad move,
 - forget an Apple TV you've paired, and
 - choose whether to check for updates automatically.
 
