@@ -275,7 +275,10 @@ jobs:
           if [[ $STATUS -eq 0 ]] && ! grep -q 'ERROR:' <<<"$OUTPUT"; then
             exit 0
           fi
-          if grep -qE 'Redundant Binary Upload|has already been used|must be higher than the previously uploaded' <<<"$OUTPUT"; then
+          # Only a duplicate of this very build counts as done. "Must be higher"
+          # alone can mean a later build is already there, which would leave
+          # this version without one, so that stays a failure.
+          if grep -qE 'Redundant Binary Upload|has already been used|DUPLICATE' <<<"$OUTPUT"; then
             echo "Build $BUILD of $VERSION is already in App Store Connect"
             exit 0
           fi

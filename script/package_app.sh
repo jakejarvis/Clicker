@@ -21,7 +21,7 @@
 #                Resources/Clicker-AppStore.provisionprofile instead.
 #   --installer  Mac Installer Distribution identity; with --app-store, also writes
 #                dist/Clicker.pkg for upload with Transporter
-#   --build      with --app-store, resubmission number N: CFBundleVersion becomes
+#   --build      with --app-store, resubmission number N (1-99): CFBundleVersion becomes
 #                the version's own (1.2.3 -> 10203) plus .N, so a rejected build
 #                can be uploaded again without a new version
 set -euo pipefail
@@ -66,8 +66,9 @@ if [[ -n "$RESUBMISSION" && "$APP_STORE" != 1 ]]; then
   echo "--build only applies to --app-store" >&2
   exit 2
 fi
-if [[ -n "$RESUBMISSION" && ! "$RESUBMISSION" =~ ^[1-9][0-9]*$ ]]; then
-  echo "--build must be a positive integer: $RESUBMISSION" >&2
+# Two digits keep CFBundleVersion short (10203.99 at most) and are plenty.
+if [[ -n "$RESUBMISSION" && ! "$RESUBMISSION" =~ ^[1-9][0-9]?$ ]]; then
+  echo "--build must be a number from 1 to 99: $RESUBMISSION" >&2
   exit 2
 fi
 
