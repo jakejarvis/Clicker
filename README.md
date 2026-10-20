@@ -91,7 +91,7 @@ Clicker only talks to Apple TVs on your own network. It doesn't collect analytic
 
 ## Contributing
 
-Clicker is a native SwiftUI app with no dependencies beyond [BigInt](https://github.com/attaswift/BigInt), [Sparkle](https://sparkle-project.org) and [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts). To build it from source, see [CONTRIBUTING.md](CONTRIBUTING.md); for how it speaks to the Apple TV, see [docs/how-it-works.md](docs/how-it-works.md).
+Clicker is a native SwiftUI app with no dependencies beyond [BigInt](https://github.com/attaswift/BigInt), [Sparkle](https://sparkle-project.org) and [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts). To build it from source, see [docs/development.md](docs/development.md); for how it works and speaks to the Apple TV, see the rest of [docs/](docs/README.md).
 
 ## License
 

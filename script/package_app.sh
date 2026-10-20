@@ -6,7 +6,7 @@
 #   --universal  arm64 + x86_64
 #   --native     SwiftPM's native build system, which links against the installed
 #                SDK like CI does; the default (Swift Build on 6.4) records sdk 15.0,
-#                under which AppKit draws some controls differently (see AGENTS.md)
+#                under which AppKit draws some controls differently (see docs/development.md)
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
 #                Every build is sandboxed (Resources/Clicker.entitlements). A real
