@@ -10,8 +10,9 @@ import Observation
 ///
 /// Background checks use Sparkle's gentle reminders: unless Sparkle can show
 /// the alert in immediate focus (right after launch), the app shows its own
-/// indicator (a dot on the status item and an Update button in the panel) and
-/// the alert only appears when the user asks for it. While a Sparkle window is
+/// indicator (an inline notice with an Update button under the remote, and
+/// Update to X… in both menus) and the alert only appears when the user asks
+/// for it. While a Sparkle window is
 /// up the app becomes `.regular` so the window comes forward with a Dock icon,
 /// then returns to the activation policy it launched with.
 ///
@@ -68,7 +69,7 @@ final class UpdateController: NSObject {
 
     #if DEMO
         /// Shows the gentle-reminder state (`--demo update`) without a feed:
-        /// the status item dot, the footer button and the "Update to" menu items.
+        /// the inline notice and the "Update to" menu items.
         func previewPendingUpdate(_ version: String) {
             pendingUpdateVersion = version
         }
