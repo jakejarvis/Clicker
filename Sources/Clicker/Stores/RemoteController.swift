@@ -333,7 +333,9 @@ final class RemoteController {
     }
 
     /// The host each TV was last connected at, keyed by device id, so Rescan
-    /// can knock on a TV that has dropped out of Bonjour.
+    /// can knock on a TV that has dropped out of Bonjour. Follows the pairing
+    /// when a TV's id changes and goes when it is forgotten. A stale pairing
+    /// keeps it: the TV is still there to knock on while it is paired again.
     private var lastAddressByDevice: [String: String] {
         get { UserDefaults.standard.dictionary(forKey: Self.lastAddressesKey) as? [String: String] ?? [:] }
         set { UserDefaults.standard.set(newValue, forKey: Self.lastAddressesKey) }
@@ -431,6 +433,10 @@ final class RemoteController {
             if let favorites = favoriteAppIDsByDevice.removeValue(forKey: orphan.deviceID) {
                 favoriteAppIDsByDevice[device.id] = favorites
                 rememberFavorites()
+            }
+            if let address = lastAddressByDevice[orphan.deviceID] {
+                lastAddressByDevice[orphan.deviceID] = nil
+                if lastAddressByDevice[device.id] == nil { lastAddressByDevice[device.id] = address }
             }
             if selectedDeviceID == orphan.deviceID {
                 selectedDeviceID = device.id
