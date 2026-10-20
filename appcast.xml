@@ -3,6 +3,22 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.1</title>
+            <pubDate>Tue, 20 Oct 2026 04:58:13 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>301</sparkle:version>
+            <sparkle:shortVersionString>0.3.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.1
+
+- The Apps picker's scroll bar no longer draws a dark track over the list on macOS 26 and later, and it now sits in the popover's margin instead of covering the favorite stars.
+- The device and Apps popovers follow a switch between Light and Dark mode, and Increase Contrast, while Clicker is running.
+- Clicker is now built against the macOS 27 SDK, so controls pick up the current system look.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.1/Clicker-0.3.1.zip" length="5073208" type="application/octet-stream" sparkle:edSignature="9NMTDGEfvvymAgtfn152roRnDdKHMO6T/qFxzGMCG2oT6TuTVPKdNB8oJHxQOu3ImcP2VerlbXmDnVbbkoH3Ag=="/>
+        </item>
+        <item>
             <title>0.3.0</title>
             <pubDate>Mon, 19 Oct 2026 23:18:23 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
