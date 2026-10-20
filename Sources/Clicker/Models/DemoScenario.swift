@@ -44,6 +44,8 @@ import Security
         case pairingfailed
         /// The TV accepted the pairing but the keychain refused to store it.
         case savefailed
+        /// Living Room paired and online, the connection still being set up.
+        case connecting
         /// Living Room paired and online but the connection failed.
         case connectionfailed
         /// Living Room paired and online, connection closed.
@@ -137,6 +139,7 @@ import Security
             switch self {
             case .connectionfailed, .notices:
                 return .failed(RemoteController.connectFailedMessage(Self.livingRoom.name))
+            case .connecting: return .connecting
             case .disconnected: return .disconnected
             default: return .connected
             }
