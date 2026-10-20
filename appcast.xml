@@ -3,6 +3,20 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.5</title>
+            <pubDate>Tue, 20 Oct 2026 22:16:47 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>305</sparkle:version>
+            <sparkle:shortVersionString>0.3.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.5
+
+- A new Panel Position setting, under Settings › This Mac, opens the remote to the left of Clicker's menu bar icon, centered under it, or to its right. Right is still the default.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.5/Clicker-0.3.5.zip" length="5203759" type="application/octet-stream" sparkle:edSignature="uTbCa9gSdAgiOPrXL3tdItoStNO/WqRX9oNEWbg6BYsRb8OXTNjQl6yF/k3vwXgGBUXH8aJHUkCnQLjjPuCKBA=="/>
+        </item>
+        <item>
             <title>0.3.4</title>
             <pubDate>Tue, 20 Oct 2026 16:34:19 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
