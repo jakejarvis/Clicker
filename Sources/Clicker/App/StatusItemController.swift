@@ -188,7 +188,7 @@ final class StatusItemController: NSObject {
                     self.hidePanel()
                     return true
                 case (43, [.command]):  // ⌘,
-                    withAnimation(.snappy(duration: 0.3)) { self.controller.screen = .settings }
+                    self.controller.showSettings()
                     return true
                 case (12, [.command]):  // ⌘Q
                     NSApp.terminate(nil)

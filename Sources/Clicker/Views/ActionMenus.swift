@@ -88,10 +88,8 @@ struct AppMenu: View {
 
     var body: some View {
         Menu {
-            Button("Settings…") {
-                withAnimation(.snappy(duration: 0.3)) { controller.screen = .settings }
-            }
-            .keyboardShortcut(",")
+            Button("Settings…") { controller.showSettings() }
+                .keyboardShortcut(",")
             if updates.isEnabled {
                 Button(updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…") {
                     updates.checkForUpdates()

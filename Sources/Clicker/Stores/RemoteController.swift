@@ -679,6 +679,15 @@ final class RemoteController {
         isRecordingShortcut = false
     }
 
+    /// ⌘, and the footer menu's Settings…. An open popover closes first:
+    /// left to SwiftUI it would ride its anchor out with the remote screen
+    /// and only drop once the anchor had unmounted.
+    func showSettings() {
+        isAppPickerPresented = false
+        devicePickerPresentation = nil
+        withAnimation(.snappy(duration: 0.3)) { screen = .settings }
+    }
+
     /// Esc backs out one level: an open popover (Apps or the device list),
     /// then Settings, then an in-progress pairing. Returns false when there
     /// is nothing to back out of, so the panel closes.
