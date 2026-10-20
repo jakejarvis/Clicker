@@ -4,7 +4,7 @@
 
 `CredentialStore` picks a backend at launch, and the `storage` log category says which:
 
-- Signed release builds use the data protection keychain: one generic-password item per TV, service `com.jakejarvis.Clicker.pairing`, account the device UUID, label "Clicker: <TV name>", value the JSON-encoded `PairingCredentials`.
+- Signed release builds, Developer ID and Mac App Store alike, use the data protection keychain (the same team and keychain group, so the two share pairings): one generic-password item per TV, service `com.jakejarvis.Clicker.pairing`, account the device UUID, label "Clicker: <TV name>", value the JSON-encoded `PairingCredentials`.
 - Ad-hoc builds and CI get no validated entitlements and fall back to an owner-only (0600) `pairings.json` in Application Support. For a packaged ad-hoc app, which is sandboxed, that is `~/Library/Containers/com.jakejarvis.Clicker/Data/Library/Application Support/Clicker/`; for an unsandboxed process such as `swift test`, `~/Library/Application Support/Clicker/`.
 
 There is no migration between the two, so a development build after a release build looks unpaired.
@@ -21,7 +21,7 @@ There is no migration between the two, so a development build after a release bu
 
 ## Signing
 
-`script/package_app.sh` embeds `Resources/Clicker.provisionprofile` (a Developer ID profile for `com.jakejarvis.Clicker`) and signs with all of `Resources/Clicker.entitlements` only for real identities, and refuses a real identity without the profile. Ad-hoc builds get no profile and are signed with a copy of the entitlements minus the three restricted keychain keys (`dist/AdHoc.entitlements`).
+`script/package_app.sh` embeds `Resources/Clicker.provisionprofile` (a Developer ID profile for `com.jakejarvis.Clicker`) only for real identities, and refuses a real identity without the profile. Every build signs with a copy of `Resources/Clicker.entitlements` (`dist/Clicker.entitlements`) minus what it can't carry: ad-hoc builds drop the three restricted keychain keys and get no profile, and the [Mac App Store build](app-store.md) drops Sparkle's mach-lookup exceptions and embeds `Resources/Clicker-AppStore.provisionprofile` instead.
 
 To try the keychain path locally, `script/package_app.sh --sign <SHA-1>`; notarization isn't needed to run a local build. The keychain holds several Developer ID certificates for the team and the profile lists one. An app signed with another launches nowhere (`open` reports "Launch failed", POSIX 163, and AMFI logs nothing), so pass the SHA-1 of the listed certificate; `package_app.sh` compares the two and refuses a mismatch.
 
@@ -33,7 +33,7 @@ Every build is sandboxed, ad-hoc ones included. `Resources/Clicker.entitlements`
 
 - `app-sandbox`;
 - `network.client`, for Bonjour browsing, the Companion TCP session and `PortKnocker`. There is no server entitlement: the TV never connects to us;
-- Sparkle's mach-lookup exceptions, `com.jakejarvis.Clicker-spks` and `-spki` as `temporary-exception.mach-lookup.global-name` (see [releasing.md](releasing.md#sparkle-in-the-sandbox));
+- Sparkle's mach-lookup exceptions, `com.jakejarvis.Clicker-spks` and `-spki` as `temporary-exception.mach-lookup.global-name` (see [releasing.md](releasing.md#sparkle-in-the-sandbox)), left out of the Mac App Store build;
 - the restricted keychain keys, for real identities only.
 
 Sparkle's service names come from the running bundle ID, so a copy under another bundle ID has those lookups denied unless its entitlements are edited to match. That doesn't matter in practice: an ad-hoc copy has no feed, and a Developer ID copy under another ID wouldn't match the profile, so the update path can only be tested with the real ID.

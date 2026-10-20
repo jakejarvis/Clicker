@@ -26,7 +26,7 @@ Launch arguments the app understands:
 - `--regular` shows a Dock icon (the app is normally an accessory), which some tooling needs to see the process.
 - `--demo [scenario]` runs against made-up Apple TVs; see [Demo mode](#demo-mode).
 
-Ad-hoc builds leave out `SUFeedURL`, so they never update themselves and Settings says updates are off.
+Ad-hoc builds leave out `SUFeedURL`, so they never update themselves and Settings says updates are off. `script/package_app.sh --app-store` builds the Mac App Store version instead, without Sparkle; see [app-store.md](app-store.md).
 
 ### Building inside a sandboxed shell
 

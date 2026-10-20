@@ -18,6 +18,13 @@ What is reasoned out or documented but not yet confirmed. When you confirm one, 
 - Open at Login actually opening the app at the next login. Registration itself works: the toggle from `/Applications/Clicker.app` leaves `sfltool dumpbtm` showing Clicker `[enabled, allowed, notified]`.
 - The update notice with a real feed. In short launches against a local feed, Sparkle 2.10 never ran its scheduled check, with or without a backdated `SULastCheckTime`; the cause wasn't chased. The manual path (Check for Updates…, download, signature check, install, relaunch) works.
 
+## The Mac App Store build
+
+- A store-signed build getting through App Store Connect's processing. The first upload failed on the quarantine attribute that `package_app.sh` now clears; confirm the next one passes.
+- The release workflow's upload step has not run. Its altool command was checked only against Xcode 27's altool with a fake package, and the wording it treats as a duplicate upload is a guess.
+- A TestFlight install against a TV: keychain pairings shared with the direct download, the Local Network prompt, the shortcut, Open at Login, Settings without Updates, and whether installing replaces a direct-download copy in `/Applications`.
+- App Review's view of an app that needs an Apple TV, and of the export-compliance exemption.
+
 ## Under the sandbox
 
 - The global shortcut, Open at Login (`SMAppService`), and the Local Network prompt for a fresh identity. All are documented to work sandboxed.

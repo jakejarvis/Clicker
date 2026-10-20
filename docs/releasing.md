@@ -7,7 +7,8 @@ Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. I
 1. publishes the DMG and zip as a GitHub release;
 2. commits the appcast to the `gh-pages` branch, which `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) rewrites to (`site/vercel.json`);
 3. writes the Homebrew cask to `jakejarvis/homebrew-tap`;
-4. asks Vercel to redeploy the site, so the homepage's download button and the changelog show the release.
+4. asks Vercel to redeploy the site, so the homepage's download button and the changelog show the release;
+5. when the App Store secrets are set, builds the Mac App Store package and uploads it to App Store Connect, where it lands in TestFlight ([app-store.md](app-store.md#uploading)). Submitting it for review stays manual.
 
 ```bash
 git tag -a --cleanup=verbatim -F notes.md v1.2.3
@@ -16,7 +17,7 @@ git push origin v1.2.3
 
 The tag's whole message (`%(contents)`, signature block stripped) becomes the release notes on GitHub and in Sparkle's update window, so write it in Markdown in a file and pass it with `-F`. `--cleanup=verbatim` keeps it as written, since `git tag -m` strips every line that starts with `#`. `release.sh` validates the notes before building and fails on a lightweight tag or an empty message.
 
-The tag is the only version source. `CFBundleVersion` is derived from it (`1.2.3` → `10203`) because Sparkle compares that, so minor and patch numbers stay below 100.
+The tag is the only version source. `CFBundleVersion` is derived from it (`1.2.3` → `10203`) because Sparkle compares that, so minor and patch numbers stay below 100. The App Store build can add a resubmission number (`10203.1`, see [app-store.md](app-store.md#build-numbers)).
 
 Every publish step is idempotent (a leftover draft is replaced, an unchanged appcast not committed), so a run that failed partway can be re-run from the Actions tab. When the release is already published, the re-run keeps it and regenerates the appcast from the published zip (`gh release download`, then `release.sh --appcast-only`): the zip the re-run built is signed differently, and an appcast describing it would make Sparkle reject the download. On failure the job keeps `dist/release`, notarytool's logs included, as an artifact.
 
@@ -35,6 +36,8 @@ The workflow reads these from the `release` environment, which is restricted to 
 | `SPARKLE_ED_PRIVATE_KEY` | Sparkle EdDSA key, from `generate_keys -x` |
 | `VERCEL_DEPLOY_HOOK_URL` | Optional. A deploy hook from the Vercel project's Git settings; without it the site refreshes on the next push to `main` |
 | `HOMEBREW_TAP_TOKEN` | Optional. A fine-grained token with Contents read and write on `jakejarvis/homebrew-tap` only; without it the cask stays at its last version |
+| `APP_STORE_P12_BASE64` | Optional. Apple Distribution and Mac Installer Distribution certificates with their keys in one `.p12`, `base64 -i appstore.p12`; without it no App Store build is uploaded ([app-store.md](app-store.md#uploading)) |
+| `APP_STORE_P12_PASSWORD` | Password of that `.p12` |
 
 `SUPublicEDKey` in `Resources/Info.plist` must be the public half of `SPARKLE_ED_PRIVATE_KEY`. A mismatch doesn't break the release it ships in, but every later update fails its signature check. To check, compare it with `generate_keys -p` for the key the secret came from, or sign any file with `sign_update --ed-key-file` and the secret and verify it against the plist key with `sign_update --verify`.
 
@@ -63,6 +66,7 @@ If an update fails with "An error occurred while connecting to the installer" (`
 ## Updates in the app
 
 - Ad-hoc builds remove `SUFeedURL`, so `UpdateController.isEnabled` is false and the updater never starts; Settings says updates are off.
+- The Mac App Store build has no Sparkle at all, and Settings has no Updates section ([app-store.md](app-store.md)).
 - Updates are alert-only: `SUAllowsAutomaticUpdates` is false in Info.plist, which hides Sparkle's "automatically download and install" checkbox and overrides any stored preference. Settings offers only Check Automatically.
 - Gentle reminders, which an accessory app needs: a background find always just sets `pendingUpdateVersion`, which shows an inline notice under the remote with an Update button and turns both menus' item into Update to X…. Sparkle's alert only comes from a click on Update or Check for Updates…, never on its own, since right after launch (at login, with Open at Login) it would land in front of whatever the user was doing.
 - While a Sparkle window is up, the app switches to `.regular` and hides the panel, then restores the launch activation policy.

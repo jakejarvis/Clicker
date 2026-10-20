@@ -10,14 +10,15 @@ const repo = "https://github.com/jakejarvis/Clicker";
 >
   <article class="prose">
     <h1>Privacy Policy</h1>
-    <p class="muted">Last updated October 10, 2026</p>
+    <p class="muted">Last updated October 19, 2026</p>
 
     <p>
       Clicker is a free, open-source Apple TV remote for macOS, made by Jake
       Jarvis. This policy covers the Clicker app and this website,
       clicker.jarv.is. The short version: the app has no accounts, no analytics
       and no server of its own. Everything it knows stays on your Mac, and the
-      only thing it sends to the internet is a check for updates.
+      only thing it sends to the internet is a check for updates. The Mac App
+      Store version doesn't even do that, since the App Store updates it.
     </p>
 
     <h2>What the app sends over your network</h2>
@@ -37,6 +38,10 @@ const repo = "https://github.com/jakejarvis/Clicker";
     </p>
 
     <h2>Update checks</h2>
+    <p>
+      This applies to the version from this site or Homebrew. The Mac App Store
+      version has no update check of its own.
+    </p>
     <p>
       Clicker uses the open-source <a href="https://sparkle-project.org"
         >Sparkle</a
@@ -66,20 +71,18 @@ const repo = "https://github.com/jakejarvis/Clicker";
     <h2>What the app stores on your Mac</h2>
     <ul>
       <li>
-        <strong>Pairing keys</strong> for each Apple TV you pair with. Release builds
-        keep them in your Mac's keychain, where only Clicker can read them. Builds
-        you compile yourself without signing keep them in a file in <code
-          >~/Library/Application Support/Clicker</code
-        > instead.
+        <strong>Pairing keys</strong> for each Apple TV you pair with. Release builds,
+        including the Mac App Store version, keep them in your Mac's keychain, where
+        only Clicker can read them. Builds you compile yourself without signing keep
+        them in a file on your Mac instead.
       </li>
       <li>
-        <strong>Preferences</strong>, in <code
-          >~/Library/Preferences/com.jakejarvis.Clicker.plist</code
-        >: the name this Mac shows on your Apple TV (your Mac's name unless you
-        change it), a random identifier the Apple TV uses to recognize this Mac,
-        which Apple TV you last used, each Apple TV's last known network
-        address, the apps you recently opened and the apps you starred on each
-        Apple TV, and your update settings.
+        <strong>Preferences</strong>: the name this Mac shows on your Apple TV
+        (your Mac's name unless you change it), a random identifier the Apple
+        TV uses to recognize this Mac, which Apple TV you last used, each Apple
+        TV's last known network address, the apps you recently opened and the
+        apps you starred on each Apple TV, and, outside the Mac App Store
+        version, your update settings.
       </li>
       <li>
         <strong>Diagnostic logs</strong> in macOS's own system log, which record things
@@ -94,8 +97,8 @@ const repo = "https://github.com/jakejarvis/Clicker";
       apps, starred apps and saved address. Your Apple TV keeps its own record of
       the pairing, which you can remove under <strong
         >Settings › Remotes and Devices › Remote App and Devices</strong
-      > on the TV. To remove everything, forget each Apple TV, quit Clicker, then
-      delete the app and the preferences file listed above.
+      > on the TV. To remove everything, forget each Apple TV, then delete the
+      app and its data.
     </p>
 
     <h2>Permissions</h2>
@@ -143,7 +146,8 @@ const repo = "https://github.com/jakejarvis/Clicker";
       </li>
       <li>
         <strong>Apple</strong>: macOS itself may contact Apple, for example to
-        check the app's notarization the first time you open it. That happens
+        check the app's notarization the first time you open it, and the Mac App
+        Store version is downloaded and updated through the App Store. That happens
         under <a href="https://www.apple.com/legal/privacy/"
           >Apple's privacy policy</a
         >, not because of anything Clicker does.
