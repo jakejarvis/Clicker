@@ -42,6 +42,8 @@ import Security
         case removed
         /// The wrong code was entered.
         case pairingfailed
+        /// Pair-setup timed out because macOS refused the local network.
+        case pairinglocalnetwork
         /// The TV accepted the pairing but the keychain refused to store it.
         case savefailed
         /// Living Room paired and online, the connection still being set up.
@@ -101,7 +103,8 @@ import Security
         var pairedDevices: [AppleTVDevice] {
             switch self {
             case .searching: return []
-            case .pair, .pin, .pairingdisabled, .reset, .removed, .pairingfailed, .savefailed: return [Self.bedroom]
+            case .pair, .pin, .pairingdisabled, .reset, .removed, .pairingfailed, .pairinglocalnetwork, .savefailed:
+                return [Self.bedroom]
             default: return [Self.livingRoom, Self.bedroom]
             }
         }
@@ -118,6 +121,7 @@ import Security
             case .pin: return .awaitingPIN
             case .paired: return .succeeded
             case .pairingfailed: return .failed(TLV8.ErrorCode.authentication.message)
+            case .pairinglocalnetwork: return .localNetworkDenied
             case .savefailed:
                 // The wording a signed build without a validated profile gets.
                 let refusal = KeychainCredentialBackend.KeychainError(

@@ -26,6 +26,9 @@ nonisolated enum PairingState: Equatable, Sendable {
     /// remote takes over.
     case succeeded
     case failed(String)
+    /// Pair-setup timed out and macOS refuses the local network, which a
+    /// connect is never told (see `LocalNetworkAccess`).
+    case localNetworkDenied
 }
 
 /// Where the live Companion session landed: the resolved address and the
@@ -1170,7 +1173,20 @@ final class RemoteController {
                 // otherwise stay open until the TV drops it.
                 await session.cancel()
                 guard let self, self.pairingSession === session else { return }
-                self.pairingState = .failed(error.localizedDescription)
+                Log.pairing.error("Pair-setup start failed: \(String(describing: error), privacy: .public)")
+                // As for a connect, a denied local network only shows as a
+                // timeout.
+                var denied = false
+                if case CompanionError.timeout = error {
+                    denied = await LocalNetworkAccess.check() == .denied
+                    guard self.pairingSession === session else { return }
+                }
+                if denied {
+                    Log.pairing.error("Local network access denied")
+                    self.pairingState = .localNetworkDenied
+                } else {
+                    self.pairingState = .failed(error.localizedDescription)
+                }
                 self.pairingSession = nil
             }
         }
