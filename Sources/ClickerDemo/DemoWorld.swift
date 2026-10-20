@@ -67,7 +67,10 @@ final class DemoWorld {
                 await until { controller.canMute }
                 controller.toggleMute()
             case .dropSession:
-                await until { controller.connectionState == .connected }
+                // Once the connect has finished its follow-up requests: the
+                // app refresh it queues would otherwise run after the drop
+                // and connect again, as any queued command does.
+                await until { controller.connectionState == .connected && !controller.apps.isEmpty }
                 session?.drop()
             }
         }
