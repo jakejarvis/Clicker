@@ -121,7 +121,7 @@ build_sign_and_notarize() {
   staging="$(mktemp -d)"
   ditto "$APP" "$staging/Clicker.app"
   ln -s /Applications "$staging/Applications"
-  hdiutil create -volname Clicker -srcfolder "$staging" -format UDZO -ov "$DMG" >/dev/null
+  diskutil image create from --format UDZO --volumeName Clicker "$staging" "$DMG" >/dev/null
   rm -rf "$staging"
   codesign --force --sign "$IDENTITY" --timestamp "$DMG"
   notarize "$DMG"
