@@ -14,13 +14,13 @@ export default defineConfig({
   },
   fonts: [
     {
-      name: "Geist Variable",
-      cssVariable: "--font-geist",
+      name: "Inter Variable",
+      cssVariable: "--font-inter",
       provider: fontProviders.local(),
       options: {
         variants: [
           {
-            src: ["./node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2"],
+            src: ["./node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"],
             weight: "100 900",
             style: "normal",
           },
@@ -28,16 +28,23 @@ export default defineConfig({
       },
     },
     {
-      name: "Geist Mono Variable",
-      cssVariable: "--font-geist-mono",
+      name: "Monaspace Neon",
+      cssVariable: "--font-monaspace-neon",
       provider: fontProviders.local(),
       options: {
         variants: [
           {
             src: [
-              "./node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2",
+              "./node_modules/@fontsource/monaspace-neon/files/monaspace-neon-latin-400-normal.woff2",
             ],
-            weight: "100 900",
+            weight: 400,
+            style: "normal",
+          },
+          {
+            src: [
+              "./node_modules/@fontsource/monaspace-neon/files/monaspace-neon-latin-500-normal.woff2",
+            ],
+            weight: 500,
             style: "normal",
           },
         ],
