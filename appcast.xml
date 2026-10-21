@@ -3,6 +3,22 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.6</title>
+            <pubDate>Wed, 21 Oct 2026 14:51:45 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>306</sparkle:version>
+            <sparkle:shortVersionString>0.3.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.6
+
+- Settings is regrouped into This Mac, Remote, Paired Devices and About. The keyboard shortcut, the panel's position and the swipe direction are now under Remote, and checking for updates is under About.
+- Invert Swipes is now a Swipe Direction choice, Natural or Inverted. Your current setting carries over.
+- Little Snitch now recognizes connections to an Apple TV reached on a global IPv6 address, instead of saying they aren't described.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.6/Clicker-0.3.6.zip" length="5209931" type="application/octet-stream" sparkle:edSignature="482dNBTrg5S2e+TYns05eOtnXpDo+KUC86N9lh50w5UuTXRu3J0f02/WbALLdInzqRAM9+VwP6fOJ2V04VhODg=="/>
+        </item>
+        <item>
             <title>0.3.5</title>
             <pubDate>Tue, 20 Oct 2026 22:16:47 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
