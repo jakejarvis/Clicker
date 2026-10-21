@@ -1,4 +1,5 @@
 ---
+import BrewButton from "../components/BrewButton.astro";
 import MenuBar from "../components/MenuBar.astro";
 import Panel from "../components/Panel.astro";
 import Layout from "../layouts/Layout.astro";
@@ -11,12 +12,10 @@ const repo = "https://github.com/jakejarvis/Clicker";
 // release so it stays current. Without a DMG it falls back to the release page.
 const latest = await fetchLatestDownload();
 const downloadUrl = latest?.dmgUrl ?? `${repo}/releases/latest`;
-
-const brewCommand = "brew install --cask jakejarvis/tap/clicker";
 ---
 
 <Layout>
-  <h1 class="lede">
+  <p class="lede">
     The missing <a
       href="https://www.apple.com/apple-tv-4k/"
       target="_blank"
@@ -35,7 +34,7 @@ const brewCommand = "brew install --cask jakejarvis/tap/clicker";
       >TV</a
     > remote for your Mac. Pause, rewind, swipe around, change the volume, launch
     apps, type with your Mac's keyboard, turn the TV off and more, all from the menu bar.
-  </h1>
+  </p>
 
   <div class="install">
     <a class="download" href={downloadUrl}>
@@ -54,37 +53,7 @@ const brewCommand = "brew install --cask jakejarvis/tap/clicker";
     </a>
     <span class="install-alt">
       <span class="or muted">or</span>
-      <button class="brew" type="button" data-copy={brewCommand} title="Copy to clipboard">
-        <code>{brewCommand}</code>
-        <svg
-          class="copy-icon"
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-          ><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path
-            d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
-          ></path></svg
-        >
-        <svg
-          class="check-icon"
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg
-        >
-      </button>
-      <span class="sr-only" aria-live="polite"></span>
+      <BrewButton />
     </span>
   </div>
 
@@ -95,29 +64,3 @@ const brewCommand = "brew install --cask jakejarvis/tap/clicker";
     <Panel />
   </figure>
 </Layout>
-
-<script>
-  // The pill copies the command; the glyph turns into a check for a moment and
-  // the live region says so. Without the Clipboard API (an insecure context),
-  // the command is selected instead so ⌘C still works.
-  const button = document.querySelector<HTMLButtonElement>(".brew");
-  const status = document.querySelector<HTMLElement>(".install-alt .sr-only");
-  let reset: ReturnType<typeof setTimeout> | undefined;
-  button?.addEventListener("click", async () => {
-    const command = button.dataset.copy ?? "";
-    try {
-      await navigator.clipboard.writeText(command);
-    } catch {
-      const code = button.querySelector("code");
-      if (code) getSelection()?.selectAllChildren(code);
-      return;
-    }
-    button.classList.add("copied");
-    if (status) status.textContent = "Copied";
-    clearTimeout(reset);
-    reset = setTimeout(() => {
-      button.classList.remove("copied");
-      if (status) status.textContent = "";
-    }, 1500);
-  });
-</script>

@@ -1,0 +1,61 @@
+---
+const command = "brew install --cask jakejarvis/tap/clicker";
+---
+
+<button class="brew" type="button" data-copy={command} title="Copy to clipboard">
+  <code>{command}</code>
+  <svg
+    class="copy-icon"
+    viewBox="0 0 24 24"
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+    ><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path
+      d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+    ></path></svg
+  >
+  <svg
+    class="check-icon"
+    viewBox="0 0 24 24"
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg
+  >
+</button>
+<span class="sr-only" aria-live="polite"></span>
+
+<script>
+  // The pill copies the command; the glyph turns into a check for a moment and
+  // the live region says so. Without the Clipboard API (an insecure context),
+  // the command is selected instead so ⌘C still works.
+  const button = document.querySelector<HTMLButtonElement>(".brew");
+  const status = button?.nextElementSibling as HTMLElement | null | undefined;
+  let reset: ReturnType<typeof setTimeout> | undefined;
+  button?.addEventListener("click", async () => {
+    const command = button.dataset.copy ?? "";
+    try {
+      await navigator.clipboard.writeText(command);
+    } catch {
+      const code = button.querySelector("code");
+      if (code) getSelection()?.selectAllChildren(code);
+      return;
+    }
+    button.classList.add("copied");
+    if (status) status.textContent = "Copied";
+    clearTimeout(reset);
+    reset = setTimeout(() => {
+      button.classList.remove("copied");
+      if (status) status.textContent = "";
+    }, 1500);
+  });
+</script>
