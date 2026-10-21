@@ -243,10 +243,6 @@ header nav a:hover {
   font-size: 0.8125rem;
 }
 
-/* A crop of the top-right of a Mac with a black wallpaper, at 1px per point:
-   the bar runs the width of the column, whose right edge stands in for the
-   screen's. The panel (a 2x capture with 4pt of margin) is centred on the
-   page rather than hanging under Clicker's item as it would on screen. */
 .shot {
   margin: 2rem 0 0;
   -webkit-user-select: none;
@@ -254,12 +250,11 @@ header nav a:hover {
   -webkit-touch-callout: none;
 }
 
-.shot img {
+.shot-panel {
   display: block;
   margin: 5px auto 0;
   max-width: 100%;
   height: auto;
-  -webkit-user-drag: none;
 }
 
 .menu-bar {
@@ -279,9 +274,6 @@ header nav a:hover {
   flex-shrink: 0;
 }
 
-/* The pill behind an open status item, measured from a capture: 36×23pt,
-   about 19% white, with 12pt clear before the next item. The negative
-   margins fold the rest of its width back into the glyph spacing. */
 .menu-bar-active {
   display: flex;
   align-items: center;
@@ -295,11 +287,7 @@ header nav a:hover {
 }
 
 .menu-bar-clock {
-  position: relative;
   margin-left: -4.5px;
-  font-family: -apple-system, BlinkMacSystemFont, var(--sans);
-  font-size: 13.5px;
-  white-space: nowrap;
 }
 
 .prose h1 {

@@ -1,4 +1,4 @@
-# Clicker
+# [Clicker](https://clicker.jarv.is)
 
 An Apple TV remote that lives in your Mac's menu bar.
 

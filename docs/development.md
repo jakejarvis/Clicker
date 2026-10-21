@@ -85,9 +85,3 @@ The app icon is `Resources/AppIcon.icon`, an Icon Composer document: `icon.json`
 ./script/render_icon.sh                # render every appearance with ictool and refresh the site's icon PNGs
 swift script/make_status_icons.swift   # regenerate the menu bar PDFs from Resources/StatusIcon/*.svg
 ```
-
-## Website
-
-`site/` is the Astro site for clicker.jarv.is, deployed on Vercel and fully static. The homepage's download button (newest release's DMG) and `/changelog` are built from the GitHub releases API at deploy time (an optional `GITHUB_TOKEN` build variable raises the rate limit), and `site/vercel.json` rewrites `/appcast.xml` to the `gh-pages` branch. Keep it static: a server-rendered version once crashed on cold start (the Astro adapter's build-time import got bundled into the function), which turned every non-prerendered path, 404s included, into a 500.
-
-The homepage shot is `site/src/assets/panel.png`, a 2x crop of the panel from the black-wallpaper App Store capture (`script/screenshots.sh --appearance dark --out dist/screenshots-black`, then `sips -c 1026 544 --cropOffset 66 1966 dist/screenshots-black/raw/01-ready-dark.png --out site/src/assets/panel.png` with the sandbox off), and the menu bar above it is `site/src/components/MenuBar.astro`, sized and spaced at 1px per point to match that capture (the panel is centred under it for the page, not hung under Clicker's item as on screen). Its Wi-Fi, battery and Control Center glyphs are SF Symbols exported with `npx sf-symbols-svg --size 13 --padding 0` (which reads the SF Pro Text fonts in `/Library/Fonts`); Siri isn't an SF Symbol, so it's drawn by hand. Re-crop when the panel's size changes, since the crop rectangle comes from that capture.

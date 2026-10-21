@@ -49,7 +49,7 @@ Resources/      Info.plist, Clicker.entitlements, Clicker.provisionprofile,
 script/         build_and_run.sh, package_app.sh, release.sh, render_icon.sh,
                 make_status_icons.swift
 .github/        ci.yml (lint, test, package both builds), release.yml (on v* tags), dependabot.yml
-site/           the Astro website (see development.md)
+site/           the Astro website (see site.md)
 ```
 
 Files are named after their primary type. AppKit bridging stays narrow and lives in `App/`; SwiftUI is the source of truth for content. `RemoteCommand+Display.swift` holds the app-only presentation of protocol types (button titles, SF Symbols, power tooltips).

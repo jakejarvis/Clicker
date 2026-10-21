@@ -7,7 +7,7 @@ Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. I
 1. publishes the DMG and zip as a GitHub release;
 2. commits the appcast to the `gh-pages` branch, which `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) rewrites to (`site/vercel.json`);
 3. writes the Homebrew cask to `jakejarvis/homebrew-tap`;
-4. asks Vercel to redeploy the site, so the homepage's download button and the changelog show the release;
+4. asks Vercel to redeploy the site, so the homepage's download button and the changelog show the release ([site.md](site.md#release-data));
 5. when the App Store secrets are set, builds the Mac App Store package and uploads it to App Store Connect, where it lands in TestFlight ([app-store.md](app-store.md#uploading)). Submitting it for review stays manual.
 
 ```bash

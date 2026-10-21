@@ -1,7 +1,6 @@
 ---
-import { Image } from "astro:assets";
-import panel from "../assets/panel.png";
 import MenuBar from "../components/MenuBar.astro";
+import Panel from "../components/Panel.astro";
 import Layout from "../layouts/Layout.astro";
 import { fetchLatestDownload } from "../lib/releases";
 
@@ -93,14 +92,7 @@ const brewCommand = "brew install --cask jakejarvis/tap/clicker";
 
   <figure class="shot">
     <MenuBar />
-    <Image
-      src={panel}
-      alt="Clicker's panel open under its menu bar icon, with the Living Room Apple TV ready"
-      width={272}
-      densities={[1, 2]}
-      priority
-      draggable="false"
-    />
+    <Panel />
   </figure>
 </Layout>
 

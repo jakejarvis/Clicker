@@ -16,6 +16,7 @@ The docs in [docs/](docs/README.md) record what the code does on purpose and the
 | Credentials, entitlements, signing, the sandbox | [docs/sandbox-and-keychain.md](docs/sandbox-and-keychain.md) |
 | Releases, Sparkle, Homebrew | [docs/releasing.md](docs/releasing.md) |
 | The Mac App Store build, TestFlight, App Review | [docs/app-store.md](docs/app-store.md) |
+| The website in `site/` | [docs/site.md](docs/site.md) |
 | Something nobody has confirmed yet | [docs/unverified.md](docs/unverified.md) |
 
 ## Rules that apply everywhere
