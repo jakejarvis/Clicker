@@ -12,7 +12,7 @@
 	<array>
 		<dict>
 			<key>Host</key>
-			<string>local-net</string>
+			<string>local-net, *.local</string>
 			<key>NetworkProtocol</key>
 			<string>TCP</string>
 			<key>Relevance</key>
