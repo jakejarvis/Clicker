@@ -63,7 +63,7 @@ Use the full path: zsh has a `log` builtin that swallows the arguments.
 
 ## Demo mode
 
-`--demo [scenario]` launches against made-up Living Room, Bedroom and Office TVs: they are "discovered" at once, connect instantly, accept and ignore commands, and take about a second for each pair-setup step. Pairings, the selection and the app lists live in memory, and the Settings name is overridden through the volatile argument domain, so none of that is persisted. Settings' own controls are not faked: changing the name, Invert Swipes, Panel Position, Open at Login or the global shortcut in a demo run changes the real preference. The panel opens by itself half a second after launch, and a second later the scenario's steps run (open a popover, start pairing, enter a code, mute, drop the session), each once the app is ready for it. An unknown scenario name exits with the list of names.
+`--demo [scenario]` launches against made-up Living Room, Bedroom and Office TVs: they are "discovered" at once, connect instantly, accept and ignore commands, and take about a second for each pair-setup step. Pairings, the selection and the app lists live in memory, and the Settings name is overridden through the volatile argument domain, so none of that is persisted. Settings' own controls are not faked: changing the name, Swipe Direction, Position, Open at Login or the global shortcut in a demo run changes the real preference. The panel opens by itself half a second after launch, and a second later the scenario's steps run (open a popover, start pairing, enter a code, mute, drop the session), each once the app is ready for it. An unknown scenario name exits with the list of names.
 
 ```bash
 open -n dist/Clicker.app --args --demo pin

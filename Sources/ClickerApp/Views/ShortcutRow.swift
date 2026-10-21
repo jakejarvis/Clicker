@@ -34,8 +34,7 @@ struct ShortcutRow: View {
     @State private var buttonFrame: CGRect = .zero
 
     var body: some View {
-        SettingsRow("Shortcut", help: "Opens or closes Clicker from any app. Click the shortcut, then press the keys.")
-        {
+        SettingsRow("Shortcut") {
             Button {
                 if isRecording { stopRecording() } else { startRecording() }
             } label: {
@@ -51,7 +50,11 @@ struct ShortcutRow: View {
             } action: {
                 buttonFrame = $0
             }
-            .help(isRecording ? "Press the keys, or Esc to cancel" : "Click, then press the keys")
+            .help(
+                isRecording
+                    ? "Press the keys, or Esc to cancel"
+                    : "Opens or closes Clicker from any app. Click, then press the keys."
+            )
             .accessibilityLabel(shortcut.map { "Shortcut: \($0.description)" } ?? "Record Shortcut")
             // Floated beside the button rather than laid out next to it, so
             // the row keeps its width for "Record Shortcut" while hidden.

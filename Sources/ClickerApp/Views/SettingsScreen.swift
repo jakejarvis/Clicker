@@ -44,11 +44,11 @@ struct SettingsScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     thisMacSection
+                    remoteSection
                     pairedSection
                     aboutSection
                     // The App Store updates its own builds.
                     if UpdateController.isIncluded {
-                        updatesSection
                         // Full-width actions live below the cards.
                         PanelActionButton(
                             title: updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…",
@@ -97,13 +97,10 @@ struct SettingsScreen: View {
 
     // MARK: - Sections
 
+    /// How this Mac presents itself: to the TV (Name) and to macOS (login).
     private var thisMacSection: some View {
         let nameHelp =
             "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair."
-        let swipeHelp =
-            "Two-finger swipes over the clickpad move the TV's focus the way your fingers move, like the Siri Remote. Turn this on to move it the other way."
-        let positionHelp =
-            "Which side of the Clicker icon in the menu bar this panel opens toward, or centered under it."
         return SettingsSection("This Mac", footer: launchAtLoginError) {
             SettingsRow("Name", help: nameHelp) {
                 TextField("Name", text: $clientName)
@@ -112,33 +109,37 @@ struct SettingsScreen: View {
                     .frame(maxWidth: 160)
             }
             SettingsDivider()
-            ShortcutRow(controller: controller)
-            SettingsDivider()
-            SettingsRow("Invert Swipes", help: swipeHelp) {
-                Toggle("Invert Swipes", isOn: $reversesSwipes)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-            }
-            SettingsDivider()
-            SettingsRow("Panel Position", help: positionHelp) {
-                Picker("Panel Position", selection: $panelAlignment) {
-                    Text("Left").tag(PanelAlignment.left)
-                    Text("Center").tag(PanelAlignment.center)
-                    Text("Right").tag(PanelAlignment.right)
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .controlSize(.small)
-                .fixedSize()
-            }
-            SettingsDivider()
             SettingsRow("Open at Login") {
                 Toggle("Open at Login", isOn: $launchAtLogin)
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)
                     .onChange(of: launchAtLogin) { _, enabled in updateLaunchAtLogin(enabled) }
+            }
+        }
+    }
+
+    /// The remote itself: what opens it, where it opens and how its clickpad
+    /// reads swipes. The rows need no info glyph under this header.
+    private var remoteSection: some View {
+        SettingsSection("Remote") {
+            ShortcutRow(controller: controller)
+            SettingsDivider()
+            SettingsRow("Position") {
+                Picker("Position", selection: $panelAlignment) {
+                    Text("Left").tag(PanelAlignment.left)
+                    Text("Center").tag(PanelAlignment.center)
+                    Text("Right").tag(PanelAlignment.right)
+                }
+                .settingsPicker()
+            }
+            SettingsDivider()
+            SettingsRow("Swipe Direction") {
+                Picker("Swipe Direction", selection: $reversesSwipes) {
+                    Text("Natural").tag(false)
+                    Text("Inverted").tag(true)
+                }
+                .settingsPicker()
             }
         }
     }
@@ -153,7 +154,7 @@ struct SettingsScreen: View {
             $0.deviceName.localizedCaseInsensitiveCompare($1.deviceName) == .orderedAscending
         }
         if !credentials.isEmpty {
-            SettingsSection("Paired Apple TVs") {
+            SettingsSection("Paired Devices") {
                 ForEach(Array(credentials.enumerated()), id: \.element.deviceID) { index, item in
                     if index > 0 { SettingsDivider() }
                     PairedDeviceRow(name: item.deviceName) {
@@ -164,36 +165,36 @@ struct SettingsScreen: View {
         }
     }
 
+    /// The version and, outside the App Store build, the automatic update
+    /// check with its last-checked footer: one card about the app itself.
     private var aboutSection: some View {
-        SettingsSection("About") {
-            SettingsRow("Version") {
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var updatesSection: some View {
         // The footer's "Last checked 5 minutes ago" is formatted on render;
         // a minute tick keeps it true while the screen stays open.
         TimelineView(.periodic(from: .now, by: 60)) { _ in
-            SettingsSection("Updates", footer: updatesFooter) {
-                SettingsRow("Check Automatically") {
-                    Toggle("Check Automatically", isOn: $checksForUpdates)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                        .onChange(of: checksForUpdates) { _, enabled in
-                            // Sparkle persists this; only write when the user changes it.
-                            if enabled != updates.automaticallyChecksForUpdates {
-                                updates.automaticallyChecksForUpdates = enabled
+            SettingsSection("About", footer: UpdateController.isIncluded ? updatesFooter : nil) {
+                SettingsRow("Version") {
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                if UpdateController.isIncluded {
+                    SettingsDivider()
+                    SettingsRow("Check Automatically") {
+                        Toggle("Check Automatically", isOn: $checksForUpdates)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .onChange(of: checksForUpdates) { _, enabled in
+                                // Sparkle persists this; only write when the user changes it.
+                                if enabled != updates.automaticallyChecksForUpdates {
+                                    updates.automaticallyChecksForUpdates = enabled
+                                }
                             }
-                        }
+                    }
+                    .disabled(!updates.isEnabled)
                 }
             }
         }
-        .disabled(!updates.isEnabled)
     }
 
     private var updatesFooter: String {
@@ -413,6 +414,14 @@ struct SettingsRow<Control: View>: View {
 }
 
 extension View {
+    /// A small menu picker at its natural width, right-aligned in its row.
+    func settingsPicker() -> some View {
+        labelsHidden()
+            .pickerStyle(.menu)
+            .controlSize(.small)
+            .fixedSize()
+    }
+
     func settingsRowPadding() -> some View {
         padding(.horizontal, SettingsMetrics.rowHorizontalPadding)
             .padding(.vertical, SettingsMetrics.rowVerticalPadding)
