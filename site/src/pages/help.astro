@@ -1,0 +1,99 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const repo = "https://github.com/jakejarvis/Clicker";
+---
+
+<Layout
+  title="Help — Clicker"
+  description="Answers to common questions about Clicker, and how to report a problem."
+>
+  <article class="prose">
+    <h1>Help</h1>
+    <p class="muted">
+      Answers to the questions that come up most. If yours isn't here, <a
+        href="#report">report an issue</a
+      >.
+    </p>
+
+    <h2 id="not-found">Clicker can't find my Apple TV</h2>
+    <p>
+      Make sure your Mac and Apple TV are on the same network, and that Clicker
+      is allowed under <strong
+        >System Settings › Privacy & Security › Local Network</strong
+      >. Without that permission Clicker can't see anything on your network, and
+      the panel says so. If the Apple TV is asleep, wake it with its own remote.
+      One that was just plugged in can take a minute to show up.
+    </p>
+
+    <h2 id="pairing">Pairing doesn't work</h2>
+    <p>
+      On the Apple TV, open <strong
+        >Settings › Remotes and Devices › Remote App and Devices</strong
+      > and check that new devices are allowed to pair, then click <strong
+        >Pair…</strong
+      > in Clicker again. If you mistype the code, click <strong>Try Again</strong> for
+      a new one.
+    </p>
+
+    <h2 id="pair-again">My Apple TV asks me to pair again</h2>
+    <p>
+      The Apple TV was reset, or Clicker was removed from its list of remotes.
+      Either way, the old pairing no longer works. Click <strong>Pair…</strong> and
+      enter the new code.
+    </p>
+
+    <h2 id="not-responding">My Apple TV stopped responding</h2>
+    <p>
+      Forget it in Clicker's Settings, under Paired Devices, and pair again.
+    </p>
+
+    <h2 id="volume">Volume and Mute don't do anything</h2>
+    <p>
+      They control your TV or receiver only if the Apple TV does, through
+      HDMI-CEC or an IR remote it has learned. You can check under <strong
+        >Settings › Remotes and Devices › Volume Control</strong
+      > on the Apple TV. If Mute has no effect on your setup, Clicker turns the button
+      off after the first try.
+    </p>
+
+    <h2 id="swipes">Swipes go the wrong way</h2>
+    <p>
+      Two-finger swipes over the clickpad move the TV's focus the way your fingers
+      move, like the touch surface on the Siri Remote, whatever your Mac's scrolling
+      setting. If you'd rather swipes move the content, set <strong
+        >Swipe Direction</strong
+      > to Inverted in Settings.
+    </p>
+
+    <h2 id="where">Where's the window or Dock icon?</h2>
+    <p>
+      There isn't one. Clicker lives in the menu bar: click its icon to open the
+      remote, or right-click it for Settings, About and Quit. You can also set a
+      keyboard shortcut in Settings that opens the remote from any app.
+    </p>
+
+    <h2 id="updates">How do I update Clicker?</h2>
+    <p>
+      The version from this site or Homebrew checks for updates once a day and
+      shows a notice under the remote when one is ready. You can check yourself
+      with <strong>Check for Updates…</strong> in the ••• menu. The Mac App Store
+      version is updated by the App Store.
+    </p>
+
+    <h2 id="report">Report an issue</h2>
+    <p>
+      Something broken, or a question that isn't answered here? Open an issue on
+      GitHub. It helps to include your Clicker version (click it in <strong
+        >About Clicker</strong
+      > to copy it), your macOS version, your Apple TV model and what you expected
+      to happen.
+    </p>
+  </article>
+
+  <p class="help-report">
+    <a class="download" href={`${repo}/issues/new`} target="_blank" rel="noopener">
+      Report an Issue on GitHub
+    </a>
+  </p>
+</Layout>

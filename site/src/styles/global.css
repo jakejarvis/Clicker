@@ -313,6 +313,12 @@ header nav a:hover {
   text-underline-offset: 1px;
 }
 
+/* The help page's Report an Issue button, after the article so the prose
+   link underline doesn't reach it. */
+.help-report {
+  margin: 0.5rem 0 0;
+}
+
 .prose ul {
   margin: 0 0 1rem;
   padding-left: 1.25rem;

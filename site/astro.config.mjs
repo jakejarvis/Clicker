@@ -1,10 +1,12 @@
 // @ts-check
 import { defineConfig, fontProviders } from "astro/config";
+import sitemap from "@astrojs/sitemap";
 import vercel from "@astrojs/vercel";
 
 // https://astro.build/config
 export default defineConfig({
   site: "https://clicker.jarv.is",
+  integrations: [sitemap()],
   trailingSlash: "never",
   adapter: vercel(),
   fonts: [
