@@ -290,6 +290,9 @@ final class StatusItemController: NSObject {
 
     private func showPanel() {
         guard let button = statusItem.button, updateAnchor() else { return }
+        // Closing the About window hides the app to give focus back, and a
+        // hidden app's windows stay off screen even when ordered front.
+        if NSApp.isHidden { NSApp.unhideWithoutActivation() }
         PanelHeightBridge.invalidate()
 
         controller.panelDidAppear()

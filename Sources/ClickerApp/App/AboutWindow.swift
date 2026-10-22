@@ -57,6 +57,18 @@ package final class AboutWindow: NSWindow {
         contentView = backdrop
     }
 
+    /// Hands focus back to the app that was in front before About opened,
+    /// so Clicker's menu bar doesn't linger with nothing of it on screen.
+    /// Only when nothing else of Clicker's is up (a Sparkle window), and
+    /// not under `--regular`, where Clicker is an ordinary app.
+    package override func close() {
+        super.close()
+        let othersVisible = NSApp.windows.contains { $0 !== self && $0.isVisible && $0.canBecomeMain }
+        if NSApp.activationPolicy() == .accessory, !othersVisible {
+            NSApp.hide(nil)
+        }
+    }
+
     /// Esc closes, like the standard About panel.
     package override func cancelOperation(_ sender: Any?) {
         performClose(sender)
