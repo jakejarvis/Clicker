@@ -20,11 +20,11 @@ Sources/ClickerDemo              the development executable: the same app plus -
 Sources/ClickerApp               the app, a library both executables run
 ├── App/        ClickerApp (App, AppDelegate), AppEnvironment, StatusItemController, MenuBarPanel,
 │               PanelMetrics / PanelGeometry / PanelBackdropView, PanelHeightBridge,
-│               PanelOutsideClickMonitor, AboutPanel, PanelHotKey
+│               PanelOutsideClickMonitor, AboutWindow, PanelHotKey
 ├── Views/      MenuBarView (screen switch, notices), RemotePadView, ClickpadGeometry,
 │               DevicePickerMenu, AppPickerView, TVTextFieldView, PINCodeField,
 │               RemoteOverlayCards, InlineNoticeView, SettingsScreen, ShortcutRow,
-│               ActionMenus, Spinner, TrackpadSwipeMonitor
+│               ActionMenus, AboutView, Spinner, TrackpadSwipeMonitor
 ├── Stores/     RemoteController (all UI-facing state), RemoteDependencies, ControllerSettings,
 │               CredentialStore, IdentityStore, UpdateController (Sparkle)
 ├── Services/   DeviceDiscovery, RemoteSession, PairingSession (the seams), DeviceBrowser

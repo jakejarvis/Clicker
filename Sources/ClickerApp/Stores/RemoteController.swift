@@ -196,7 +196,7 @@ package final class RemoteController {
     @ObservationIgnored private var touchGesture = 0
     /// Hides the menu bar panel; installed by `StatusItemController`. Used
     /// before presenting windows the panel would otherwise float above.
-    @ObservationIgnored var dismissPanel: () -> Void = {}
+    @ObservationIgnored package var dismissPanel: () -> Void = {}
 
     private static let recentAppLimit = 5
 

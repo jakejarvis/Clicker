@@ -98,7 +98,7 @@ struct AppMenu: View {
             }
             Button("About Clicker") {
                 controller.dismissPanel()
-                AboutPanel.present()
+                AboutWindow.present()
             }
             Divider()
             Button("Quit Clicker") {

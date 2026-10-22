@@ -262,7 +262,7 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func showAbout() {
-        AboutPanel.present()
+        AboutWindow.present()
     }
 
     @objc private func openSettings() {

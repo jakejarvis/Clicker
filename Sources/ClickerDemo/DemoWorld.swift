@@ -57,6 +57,9 @@ final class DemoWorld {
                 controller.submitPIN(code)
             case .showSettings:
                 controller.showSettings()
+            case .showAbout:
+                controller.dismissPanel()
+                AboutWindow.present()
             case .openApps:
                 // Opened once the list is in, so the picker isn't caught empty.
                 await until { !controller.apps.isEmpty }

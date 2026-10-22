@@ -12,6 +12,8 @@ nonisolated struct DemoScenario: Sendable {
         case beginPairing
         case enterCode(String)
         case showSettings
+        /// Closes the panel and opens the About window.
+        case showAbout
         case openApps
         case openDevices
         case mute
@@ -61,6 +63,8 @@ nonisolated struct DemoScenario: Sendable {
         DemoScenario("typing") { $0.livingRoom.focusedText = "Nature documentaries" },
         // The Settings screen over a ready remote.
         DemoScenario("settings") { $0.steps = [.showSettings] },
+        // The About window, the panel closed.
+        DemoScenario("about") { $0.steps = [.showAbout] },
         // The Apps picker open over a ready remote.
         DemoScenario("apps") { $0.steps = [.openApps] },
         // The device list open over a ready remote.
