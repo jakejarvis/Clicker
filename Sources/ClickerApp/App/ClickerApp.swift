@@ -45,6 +45,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The app menu's Settings…, which only shows while Clicker is active
+    /// (the About window open, or `--regular`).
+    fileprivate func openSettings() {
+        statusItemController?.openSettings()
+    }
+
     /// Launching Clicker again while it runs (a double-click in Applications,
     /// the Dock icon under `--regular`) shows the panel; a menu bar app that
     /// does nothing there looks like it failed to start.
@@ -96,6 +102,23 @@ package struct ClickerApp: App {
         // on its own and keeps the app window-free.
         Settings {
             EmptyView()
+        }
+        // While Clicker is active its menu bar shows, and its stock items
+        // would open that empty Settings window, the standard About panel
+        // and a "Help isn't available" alert (there is no help book). They
+        // go where the status item's menu sends them, and Help links out.
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Clicker") { AboutWindow.present() }
+            }
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") { appDelegate.openSettings() }
+                    .keyboardShortcut(",")
+            }
+            CommandGroup(replacing: .help) {
+                Button("Clicker Help") { NSWorkspace.shared.open(AboutLinks.help) }
+                Button("Report an Issue…") { NSWorkspace.shared.open(AboutLinks.issues) }
+            }
         }
     }
 }

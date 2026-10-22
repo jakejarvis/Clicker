@@ -265,7 +265,8 @@ final class StatusItemController: NSObject {
         AboutWindow.present()
     }
 
-    @objc private func openSettings() {
+    /// Settings is a screen in the panel, so this opens the panel on it.
+    @objc func openSettings() {
         controller.screen = .settings
         if !panel.isVisible { showPanel() }
     }

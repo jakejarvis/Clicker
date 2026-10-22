@@ -98,9 +98,13 @@ private struct AboutLinkLabelStyle: LabelStyle {
     }
 }
 
+/// Where the About window and the Help menu send people.
 enum AboutLinks {
-    static let website = URL(string: "https://jarv.is")!
+    static let website = URL(string: "https://clicker.jarv.is")!
     static let source = URL(string: "https://github.com/jakejarvis/Clicker")!
+    /// The README's troubleshooting section, the closest thing to a help book.
+    static let help = URL(string: "https://github.com/jakejarvis/Clicker#troubleshooting")!
+    static let issues = URL(string: "https://github.com/jakejarvis/Clicker/issues")!
 
     /// "0.3.6 (306)", or "dev" outside the app bundle.
     static var versionString: String {
