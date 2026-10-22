@@ -3,6 +3,23 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.7</title>
+            <pubDate>Thu, 22 Oct 2026 03:27:10 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>307</sparkle:version>
+            <sparkle:shortVersionString>0.3.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.7
+
+- About Clicker opens a new About window with the version and build number (click to copy them) and links to the website and GitHub. Closing it hands focus back to the app you were using.
+- Clicker Help opens a new help page at clicker.jarv.is/help, which covers finding and pairing an Apple TV, re-pairing, volume, swipe direction and updates, and links to reporting an issue.
+- While Clicker's menu bar is showing, Settings… opens the remote's Settings screen instead of an empty window.
+- Tooltips appear after the system's usual delay, like in every other Mac app.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.7/Clicker-0.3.7.zip" length="5263473" type="application/octet-stream" sparkle:edSignature="nWBFeTQwY/243PU+LqHjs0FSHO1E/KoXdatVU4y57xhA8U0mcKS/ul6fhLPv0gOH64p09Njqwrtaa+q+2JW8Ag=="/>
+        </item>
+        <item>
             <title>0.3.6</title>
             <pubDate>Wed, 21 Oct 2026 14:51:45 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
