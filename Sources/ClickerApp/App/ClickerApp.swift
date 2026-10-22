@@ -21,12 +21,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let firstLaunchKey = "hasCompletedFirstLaunch"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Every tooltip in the panel is a short hint (row info glyphs, clickpad
-        // quadrants, footer buttons), and AppKit's default delay of about a
-        // second makes them feel absent. The registration domain is not
-        // persisted, so nothing is written to the user's defaults.
-        UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 300])
-
         // `--regular` shows a Dock icon, which makes the process visible to
         // tooling that only lists regular apps (useful during development).
         let policy: NSApplication.ActivationPolicy =
