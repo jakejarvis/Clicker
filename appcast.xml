@@ -3,6 +3,25 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.8</title>
+            <pubDate>Fri, 23 Oct 2026 00:39:52 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>308</sparkle:version>
+            <sparkle:shortVersionString>0.3.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.8
+
+- The remote's buttons now work with VoiceOver, Voice Control and Switch Control. Back, TV, Play/Pause, Select, Siri and volume used to send nothing when pressed this way.
+- Holding S now holds the Siri button.
+- Secondary text on the remote's glass and in the device and Apps lists is easier to read, and notices use a larger text size.
+- The mute button shows a plain speaker until you mute, so its state no longer depends on color alone.
+- With Reduce Motion on, slides and zooms become fades. With Increase Contrast on, faint fills and dividers draw at full strength.
+- The card for an offline Apple TV now says what to try.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.8/Clicker-0.3.8.zip" length="5279355" type="application/octet-stream" sparkle:edSignature="UPkgqKWHxkgjtAffui/1B5Qabkj6ZQlRrnpwEPwodh+CmZwX3UjWs2hU0NSe2/vguLQvjxCr93EHiQbfid1iCg=="/>
+        </item>
+        <item>
             <title>0.3.7</title>
             <pubDate>Thu, 22 Oct 2026 03:27:10 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
