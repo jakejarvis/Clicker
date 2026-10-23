@@ -8,7 +8,7 @@ Clicker is a native SwiftUI menu bar remote for Apple TV that speaks Apple's Com
 
 - [development.md](development.md): building and running, launch arguments, formatting, logs, demo mode, icons.
 - [testing.md](testing.md): unit tests, looking at the panel on screen, recording glitches, testing against a TV, measuring resource usage.
-- [releasing.md](releasing.md): cutting a release, secrets, the appcast, Sparkle packaging and update behavior, testing an update locally, Homebrew.
+- [releasing.md](releasing.md): cutting a release, secrets, the DMG window, the appcast, Sparkle packaging and update behavior, testing an update locally, Homebrew.
 - [app-store.md](app-store.md): the Mac App Store build without Sparkle, its signing, build numbers, uploading by hand or from the release workflow, TestFlight and review.
 - [site.md](site.md): the clicker.jarv.is website, its pages and release data, the appcast rewrite, and how the homepage's panel shot was made.
 

@@ -49,6 +49,21 @@ With the keychain's certificate and a notarytool profile (`xcrun notarytool stor
 NOTARY_PROFILE=clicker-notary NOTES_FILE=notes.md script/release.sh --version 1.2.3 --identity <certificate SHA-1>
 ```
 
+## The DMG
+
+The DMG opens to a fixed Finder window built from two committed files in `Resources/DMG/` (how it looks is in [design.md](design.md#dmg-window)):
+
+- `background.tiff`, the artwork at 1x and 2x, drawn by `swift script/render_dmg_background.swift` (previews in `dist/dmg/`).
+- `DS_Store`, Finder's view of the window: its size, icon view, 96 pt icons, their positions and an alias to the picture. `uv run script/make_dmg_layout.py` writes it with the `ds_store` and `mac_alias` packages. Rerun it after changing the window or the icon positions; positions are icon centers and must match the artwork's.
+
+`release.sh` puts the picture in `.background/` and the layout at `.DS_Store`. `diskutil image create from` leaves `.DS_Store` out when it images a folder (it keeps `.background`), so the folder becomes a writable RAW image, the layout is copied onto it while mounted, and that image is compressed into the UDZO DMG.
+
+The alias is made once, on a throwaway volume named Clicker, with its file IDs cleared, so Finder resolves it on every release's volume by name and path. `make_dmg_layout.py` hands `mac_alias` the real path: through the `/var` → `/private/var` symlink it records a path that climbs out of the volume, and Finder shows no picture at all.
+
+Icon view is pinned with the `vstl` record (`icnv`): without it, a user whose Finder opens folders as lists gets a plain list with no picture. dmgbuild's `icvl` record has no effect.
+
+The window bounds include the title bar, 32 pt on macOS 26 and later and 28 pt on 15, so the picture is 20 pt taller than the 320 pt it shows. The path bar, status bar and filename extensions follow the user's own Finder settings, which the layout can't override; the bars cover the bottom 56 pt when they're on. The picture and icons are both anchored to the content area's top left, so they stay aligned if the user turns on the toolbar (which brings back the sidebar and clips the right-hand tile) or resizes the window. Past the picture's edge Finder draws its own white, which is accepted: the window opens at the picture's size.
+
 ## The appcast
 
 The appcast accumulates. `release.sh` seeds `generate_appcast`'s directory with `origin/gh-pages:appcast.xml` (or `BASE_APPCAST` for a local run); the tool keeps every item whose zip is absent and adds the new one on top, with `--maximum-versions 0` (otherwise it prunes to three per branch point). Sparkle only needs the newest item to update, but a release that raises the minimum macOS leaves older Macs with nothing unless the previous items are there. Never regenerate the feed from an empty directory.

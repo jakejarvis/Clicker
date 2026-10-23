@@ -116,13 +116,22 @@ build_sign_and_notarize() {
   xcrun stapler staple "$APP"
   ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
+  # Finder's view of the window (size, icon positions, background) lives in
+  # .DS_Store, which diskutil leaves out when it images a folder, so it goes
+  # onto a writable image that is then compressed.
   echo "==> Building $(basename "$DMG")"
   local staging
   staging="$(mktemp -d)"
   ditto "$APP" "$staging/Clicker.app"
   ln -s /Applications "$staging/Applications"
-  diskutil image create from --format UDZO --volumeName Clicker "$staging" "$DMG" >/dev/null
-  rm -rf "$staging"
+  mkdir "$staging/.background"
+  cp "$ROOT_DIR/Resources/DMG/background.tiff" "$staging/.background/"
+  diskutil image create from --format RAW --volumeName Clicker "$staging" "$staging.img" >/dev/null
+  diskutil image attach --nobrowse --mountPoint "$staging.mnt" "$staging.img" >/dev/null
+  cp "$ROOT_DIR/Resources/DMG/DS_Store" "$staging.mnt/.DS_Store"
+  diskutil eject "$staging.mnt" >/dev/null
+  diskutil image create from --format UDZO "$staging.img" "$DMG" >/dev/null
+  rm -rf "$staging" "$staging.img"
   codesign --force --sign "$IDENTITY" --timestamp "$DMG"
   notarize "$DMG"
   xcrun stapler staple "$DMG"

@@ -25,6 +25,11 @@ What is reasoned out or documented but not yet confirmed. When you confirm one, 
 - A TestFlight install against a TV: keychain pairings shared with the direct download, the Local Network prompt, the shortcut, Open at Login, Settings without Updates, and whether installing replaces a direct-download copy in `/Applications`.
 - App Review's view of an app that needs an Apple TV, and of the export-compliance exemption.
 
+## The release DMG
+
+- The window on macOS 15, whose shorter title bar the picture's extra 20 pt are meant to cover. Only macOS 27 has shown it.
+- `release.sh` building it on the release runner: attaching the writable image has only run locally.
+
 ## Under the sandbox
 
 - The global shortcut, Open at Login (`SMAppService`), and the Local Network prompt for a fresh identity. All are documented to work sandboxed.
