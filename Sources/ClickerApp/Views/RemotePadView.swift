@@ -102,6 +102,7 @@ private struct ClickpadRingView: View {
     let controller: RemoteController
     @State private var hovered: ClickpadGeometry.Direction?
     @State private var pressed: ClickpadGeometry.Direction?
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let highlight = pressed ?? hovered
@@ -118,6 +119,10 @@ private struct ClickpadRingView: View {
                 Image(systemName: direction.command.systemImage)
                     .font(RemoteMetrics.glyphFont)
                     .foregroundStyle(.primary)
+                    // The ring is not a button, so it fades its own arrows
+                    // like a disabled `SurfaceButtonStyle` label; otherwise
+                    // the pad looks live while the rest of the remote is off.
+                    .opacity(isEnabled ? 1 : 0.4)
                     .offset(
                         x: direction.unit.x * ClickpadGeometry.arrowRadius,
                         y: direction.unit.y * ClickpadGeometry.arrowRadius)
@@ -186,12 +191,22 @@ private struct HoldRemoteButton: View {
             RemoteGlyph(systemImage: command.systemImage)
         }
         .help(tooltip)
+        // Assistive technologies can only activate a button (a tap, through
+        // `HoldButton`) or run a named action, so Siri gets a hold of its
+        // own: Hold presses it until Release, and it is let go with the held
+        // keys when the panel closes.
+        .accessibilityActions {
+            if command == .siri {
+                Button("Hold") { controller.keyDown(.siri) }
+                Button("Release") { controller.keyUp(.siri) }
+            }
+        }
     }
 
     /// Title plus the key that triggers it, like the Select and volume tooltips.
     private var tooltip: String {
         switch command {
-        case .siri: return "Hold for Siri"
+        case .siri: return "Hold for Siri (S)"
         case .menu: return "Back (Delete)"
         case .home: return "TV (H)"
         case .playPause: return "Play/Pause (Space)"
@@ -239,9 +254,11 @@ private struct AudioBarDivider: View {
     }
 }
 
-/// Toggles software mute (volume to zero and back). While muted the glyph
-/// and its own segment turn orange; the rest of the bar stays untinted so
-/// the tint reads as a state of mute, not of volume.
+/// Toggles software mute (volume to zero and back). The glyph is a plain
+/// speaker until muted, then gains its slash, like the Sound item in the menu
+/// bar, so the state shows in the shape and not only in color. While muted the
+/// glyph and its own segment also turn orange; the rest of the bar stays
+/// untinted so the tint reads as a state of mute, not of volume.
 private struct MuteSegment: View {
     let controller: RemoteController
 
@@ -254,8 +271,11 @@ private struct MuteSegment: View {
         Button {
             controller.toggleMute()
         } label: {
-            RemoteGlyph(systemImage: "speaker.slash", tint: controller.isMuted ? AnyShapeStyle(.orange) : nil)
-                .background(Color.orange.opacity(controller.isMuted ? 0.18 : 0))
+            RemoteGlyph(
+                systemImage: controller.isMuted ? "speaker.slash" : "speaker",
+                tint: controller.isMuted ? AnyShapeStyle(.orange) : nil
+            )
+            .background(Color.orange.opacity(controller.isMuted ? 0.18 : 0))
         }
         .buttonStyle(SurfaceButtonStyle(shape: Rectangle(), glass: false, pressScale: 1))
         .focusable(false)
@@ -309,6 +329,11 @@ private struct HoldButton<Shape: InsettableShape, Label: View>: View {
         .focusable(false)
         .focusEffectDisabled()
         .accessibilityLabel(command.title)
+        // VoiceOver, Voice Control and Switch Control activate the button
+        // without a press, so the empty action above would send nothing; they
+        // get a whole press instead. The action can't do it for everyone: a
+        // click would then send the command twice.
+        .accessibilityAction { controller.press(command) }
     }
 }
 
@@ -421,6 +446,7 @@ private struct RemoteKeyboardShortcuts: ViewModifier {
             case "\u{7F}", "\u{8}": .menu
             case "h", "t": .home
             case "p": .playPause
+            case "s": .siri
             case "+", "=": .volumeUp
             case "-", "_": .volumeDown
             default: nil

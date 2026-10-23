@@ -13,7 +13,8 @@ What is reasoned out or documented but not yet confirmed. When you confirm one, 
 
 - The first-launch panel open alongside the Local Network prompt: whether the prompt's click closes the panel, and whether that reads badly.
 - The macOS 15 vibrancy fallback: the development machine runs macOS 27 and nothing has been run on 15.
-- Increase Contrast (System Settings › Accessibility › Display): nothing has been looked at with it on, neither the popovers' high-contrast plain appearance and `.rowHighlight` nor the panel's glass, `SurfaceModifier` and the PIN cells. Light and dark mode have been.
+- Increase Contrast (System Settings › Accessibility › Display) with the real setting on: the popovers' high-contrast plain appearance and `.rowHighlight`, and the panel's glass and `SurfaceModifier`. The views' own response (full-strength fills and hairlines through `ColorSchemeContrast.faded`, the PIN border) has been looked at through the environment override in [testing.md](testing.md#looking-at-the-panel). Light and dark mode have been.
+- Reduce Motion with the setting on: the fades that replace the remote/Settings slide, the cards' scale and the text field's move, the ghosted remote without its blur, presses without the shrink, the pairing check without its bounce. Built from `accessibilityReduceMotion`, which has no override to look at it with.
 - Open at Login actually opening the app at the next login. Registration itself works: the toggle from `/Applications/Clicker.app` leaves `sfltool dumpbtm` showing Clicker `[enabled, allowed, notified]`.
 - The update notice with a real feed. In short launches against a local feed, Sparkle 2.10 never ran its scheduled check, with or without a backdated `SULastCheckTime`; the cause wasn't chased. The manual path (Check for Updates…, download, signature check, install, relaunch) works.
 

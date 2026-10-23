@@ -96,6 +96,7 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
 
     @State private var isHovered = false
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isPressed: Bool { configuration.isPressed && isEnabled }
 
@@ -116,7 +117,8 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
                 label.background(style.shape.fill(.primary.opacity(highlight.opacity)))
             }
         }
-        .scaleEffect(isPressed ? style.pressScale : 1)
+        // Under Reduce Motion the pressed highlight alone shows the press.
+        .scaleEffect(isPressed && !reduceMotion ? style.pressScale : 1)
         .animation(.easeOut(duration: 0.1), value: isPressed)
         .animation(.easeOut(duration: 0.15), value: isHovered)
         .onHover { isHovered = $0 }
@@ -132,12 +134,33 @@ private struct SurfaceButtonBody<S: InsettableShape>: View {
 }
 
 extension View {
-    /// Quiet, non-interactive container for grouped content (settings cards).
-    /// Flat so it reads as a tray, not as another glass button.
-    func card() -> some View {
-        let shape = RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous)
-        return background(.quaternary.opacity(0.55), in: shape)
-            .overlay(shape.strokeBorder(.separator.opacity(0.6), lineWidth: 1))
+    /// Quiet, non-interactive container for grouped content (settings cards,
+    /// the Apps search field). Flat so it reads as a tray, not as another
+    /// glass button.
+    func card(cornerRadius: CGFloat = PanelMetrics.cornerRadius) -> some View {
+        modifier(CardModifier(cornerRadius: cornerRadius))
+    }
+}
+
+private struct CardModifier: ViewModifier {
+    let cornerRadius: CGFloat
+
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
+            .background(.quaternary.opacity(contrast.faded(0.55)), in: shape)
+            .overlay(shape.strokeBorder(.separator.opacity(contrast.faded(0.6)), lineWidth: 1))
+    }
+}
+
+extension ColorSchemeContrast {
+    /// The opacity for a system fill or separator drawn fainter than the
+    /// system draws it. Under Increase Contrast it is drawn at full strength,
+    /// which is what that setting strengthens.
+    func faded(_ opacity: Double) -> Double {
+        self == .increased ? 1 : opacity
     }
 }
 
@@ -162,4 +185,13 @@ extension ShapeStyle where Self == Color {
     /// the gray inactive fill in the popovers (they are never key), white on
     /// near-white in light mode.
     static var rowHighlight: Color { Color(nsColor: .selectedContentBackgroundColor) }
+}
+
+extension ShapeStyle where Self == AnyShapeStyle {
+    /// Secondary text on a glass control (the device control's subtitle) or
+    /// in a popover over the clickpad. `.secondary` measured about 3:1 there,
+    /// short of the 4.5:1 small text needs: the dark-mode tint lifts the
+    /// control's glass, and the popovers let the ring show through. At 80%
+    /// the device rows over the ring still measured 4.4:1, and 4.5:1 at 85%.
+    static var glassSecondary: AnyShapeStyle { AnyShapeStyle(.primary.opacity(0.9)) }
 }

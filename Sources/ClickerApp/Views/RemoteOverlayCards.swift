@@ -19,6 +19,8 @@ enum RemoteOverlay: Hashable {
 struct OverlayCard<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     private let shape = RoundedRectangle(cornerRadius: PanelMetrics.cornerRadius, style: .continuous)
 
     var body: some View {
@@ -29,7 +31,7 @@ struct OverlayCard<Content: View>: View {
         .padding(16)
         .frame(width: 212)
         .background(.regularMaterial, in: shape)
-        .overlay(shape.strokeBorder(.separator.opacity(0.6), lineWidth: 1))
+        .overlay(shape.strokeBorder(.separator.opacity(contrast.faded(0.6)), lineWidth: 1))
         .shadow(color: .black.opacity(0.25), radius: 14, y: 6)
     }
 }
@@ -41,6 +43,7 @@ struct PairingCard: View {
     let device: AppleTVDevice
 
     @State private var pin = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         OverlayCard {
@@ -97,6 +100,7 @@ struct PairingCard: View {
                 .font(.system(size: 32))
                 .foregroundStyle(.green)
                 .symbolEffect(.bounce, value: controller.pairingState)
+                .symbolEffectsRemoved(reduceMotion)
             CardTitle("Paired")
 
         case .failed(let message):
@@ -111,7 +115,7 @@ struct PairingCard: View {
             // is still here on the next open, for Try Again.
             Button("Open Privacy & Security") { SystemSettings.openLocalNetworkPrivacy() }
                 .buttonStyle(.link)
-                .font(.caption)
+                .font(.callout)
             retryButtons
         }
     }
@@ -142,7 +146,7 @@ struct OfflineCard: View {
                 .font(.system(size: 22))
                 .foregroundStyle(.secondary)
             CardTitle("\(device.name) is offline")
-            CardCaption("Not on this network right now.")
+            CardCaption("Turn it on, or check that it's on the same network as this Mac.")
         }
     }
 }
@@ -194,9 +198,12 @@ private struct CardCaption: View {
 
     var body: some View {
         Text(text)
-            .font(.caption)
+            // Callout, not caption: caption is the 10 pt floor, and macOS has no
+            // text size setting that could raise it.
+            .font(.callout)
             .foregroundStyle(tint.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
-            .lineLimit(3)
+            // The local network message needs four lines at this size.
+            .lineLimit(4)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

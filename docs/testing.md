@@ -14,7 +14,11 @@ With computer-use tools: they cannot see or grant a menu-bar-only app, so
 2. Grant "Clicker" and "Finder", and bring Finder forward so the frontmost app is allowed. Zoom on the menu bar to find the remote-glyph status item (its position shifts with other status items), click it, and zoom on the panel below it.
 3. Relaunch without `--regular` when done (`--install` again).
 
-Light mode without touching the system setting: add `-NSRequiresAquaSystemAppearance YES` to the launch arguments, which forces Aqua for that process only. `-AppleInterfaceStyle Light` in the launch arguments doesn't override a system in Dark Mode. Increase Contrast has no such switch.
+Light mode without touching the system setting: add `-NSRequiresAquaSystemAppearance YES` to the launch arguments, which forces Aqua for that process only. `-AppleInterfaceStyle Light` in the launch arguments doesn't override a system in Dark Mode. Increase Contrast has no such switch, but a temporary `.environment(\._colorSchemeContrast, .increased)` at the end of `MenuBarView.body` shows what the views do with it (`ColorSchemeContrast.faded`, the PIN border); it doesn't change the system glass or popovers, so take it out again and use the real setting for those. Reduce Motion has no override at all.
+
+The popovers are separate windows that the background `app_screenshot` tool doesn't see, so `--demo apps` and `--demo devices` need a full-screen screenshot.
+
+Contrast can be measured from a zoom: the background is the region's most common color and the text is the pixels furthest from it in luminance, read with `ffmpeg -vf crop=… -f rawvideo -pix_fmt rgb24` (Pillow isn't installed). It reads thin 10 pt text slightly dark, so a result just under 4.5:1 is worth a second look rather than a pass.
 
 A demo panel can also be captured in the background with the computer-use `app_screenshot` tool on the app's one window, with no clicking or Finder.
 
@@ -23,6 +27,22 @@ Things that look like bugs but are not: zooms taken while a mouse button is held
 Things that don't work, so don't retry them: `ImageRenderer` and offscreen `cacheDisplay` snapshots drop AppKit-backed controls and Liquid Glass; `screencapture -l` needs Screen Recording permission and loses the panel's glass.
 
 Verify keyboard focus and presses from the log (`Press Up` in the `remote` category), not by eye.
+
+Check that VoiceOver, Voice Control and Switch Control can use a control by sending it AXPress from an unsandboxed shell and reading the `remote` log. Put the script in a file: inline `osascript -e` lines fail with -1700 on `entire contents`.
+
+```applescript
+on run argv
+	tell application "System Events"
+		tell process "Clicker"
+			set els to entire contents of window 1
+			set e to item ((item 1 of argv) as integer) of els
+			perform action "AXPress" of e
+		end tell
+	end tell
+end run
+```
+
+List the elements first (role, `help` and `name of every action` for each item) to find the index; named actions such as Siri's Hold and Release show up as `Name:Hold` and are run with `perform` on that action. A mouse click logs `Down Back` and `Up Back`, and an assistive press logs `Press Back`.
 
 ## Frame-level glitches
 

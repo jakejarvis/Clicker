@@ -15,6 +15,7 @@ struct PINCodeField: View {
     let onComplete: (String) -> Void
 
     @FocusState private var isFocused: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
 
     private let length = 4
     private let cellWidth: CGFloat = 38
@@ -80,7 +81,10 @@ struct PINCodeField: View {
             .background(.primary.opacity(0.08), in: shape)
             .overlay(
                 shape.strokeBorder(
-                    isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary.opacity(0.2)),
+                    isActive
+                        ? AnyShapeStyle(Color.accentColor)
+                        // Increase Contrast gets a border that outlines the cell.
+                        : AnyShapeStyle(.primary.opacity(contrast == .increased ? 0.5 : 0.2)),
                     lineWidth: isActive ? 2 : 1)
             )
             .opacity(isEnabled ? 1 : 0.6)

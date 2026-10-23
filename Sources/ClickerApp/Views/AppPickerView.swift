@@ -97,8 +97,7 @@ struct AppPickerView: View {
     // MARK: - Pieces
 
     private var searchField: some View {
-        let shape = RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous)
-        return HStack(spacing: 6) {
+        HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
             TextField("Search", text: $query)
@@ -121,14 +120,14 @@ struct AppPickerView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .background(.quaternary.opacity(0.55), in: shape)
-        .overlay(shape.strokeBorder(.separator.opacity(0.6), lineWidth: 1))
+        .card(cornerRadius: PanelMetrics.innerCornerRadius)
     }
 
     private func placeholder(_ text: String) -> some View {
         Text(text)
             .font(.callout)
-            .foregroundStyle(.secondary)
+            // Centered, so half of it sits over the clickpad behind the popover.
+            .foregroundStyle(.glassSecondary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
     }
@@ -148,7 +147,10 @@ struct AppPickerView: View {
                                         controller.clearRecents()
                                     }
                                     .buttonStyle(.plain)
-                                    .foregroundStyle(.tertiary)
+                                    // Primary: it sits over the clickpad behind
+                                    // the popover, where `.tertiary` measured
+                                    // 1.8:1 and `.secondary` would be under 3:1.
+                                    .foregroundStyle(.primary)
                                     .help("Forget the recently opened apps")
                                     .accessibilityLabel("Clear recent apps")
                                 }

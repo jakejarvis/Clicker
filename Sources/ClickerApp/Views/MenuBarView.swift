@@ -14,6 +14,10 @@ struct MenuBarView: View {
     @State private var remoteHeight: CGFloat?
     @State private var settingsHeight: CGFloat?
 
+    /// Slides become fades and the ghosted remote isn't blurred, since
+    /// animating into and out of a blur is motion too.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var targetHeight: CGFloat? {
         switch controller.screen {
         case .remote: return remoteHeight
@@ -31,7 +35,7 @@ struct MenuBarView: View {
                     } action: { height in
                         if height > 0 { remoteHeight = height }
                     }
-                    .transition(.move(edge: .leading))
+                    .transition(reduceMotion ? .opacity : .move(edge: .leading))
             case .settings:
                 SettingsScreen(controller: controller, updates: updates) { height in
                     // The first measurement lands a frame after the switch
@@ -43,7 +47,7 @@ struct MenuBarView: View {
                         settingsHeight = height
                     }
                 }
-                .transition(.move(edge: .trailing))
+                .transition(reduceMotion ? .opacity : .move(edge: .trailing))
             }
         }
         .frame(width: Self.panelWidth)
@@ -101,7 +105,7 @@ struct MenuBarView: View {
         return VStack(spacing: 14) {
             RemotePadView(controller: controller, isInteractive: isUsable)
                 .opacity(isLive ? (isConnected ? 1 : 0.5) : 0.35)
-                .blur(radius: isLive ? 0 : 2)
+                .blur(radius: isLive || reduceMotion ? 0 : 2)
                 .allowsHitTesting(isUsable)
                 .disabled(!isUsable)
                 .accessibilityHidden(!isLive)
@@ -111,14 +115,14 @@ struct MenuBarView: View {
                             .id(overlay)
                             .frame(height: ClickpadGeometry.diameter)
                             .padding(.top, RemoteMetrics.clickpadTopInset)
-                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                            .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
             // Below the remote, so the panel grows downward from its anchored
             // top and no button moves when the TV shows or hides a keyboard.
             if isLive, controller.isTextFieldShown {
                 TVTextFieldView(controller: controller)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
             let notices = notices(isLive: isLive)
             if !notices.isEmpty {

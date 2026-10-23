@@ -38,7 +38,7 @@ struct DevicePickerMenu: View {
                         .lineLimit(1)
                     subtitle
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.glassSecondary)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 6)
@@ -54,6 +54,8 @@ struct DevicePickerMenu: View {
         .disabled(controller.devices.isEmpty)
         .help("Choose an Apple TV. Option-click for details.")
         .accessibilityLabel("Apple TV: \(controller.selectedDevice?.name ?? "none selected")")
+        // The label replaces the subtitle, so its state is read as the value.
+        .accessibilityValue(accessibilityStatus)
         .accessibilityHint("Opens the list of Apple TVs")
         .popover(item: $controller.devicePickerPresentation, arrowEdge: .bottom) { presentation in
             DeviceListView(controller: controller, showsDetails: presentation.showsDetails) { device in
@@ -62,6 +64,15 @@ struct DevicePickerMenu: View {
             }
             .popoverAppearance()
         }
+    }
+
+    /// The subtitle in words, for VoiceOver.
+    private var accessibilityStatus: String {
+        if let device = controller.selectedDevice {
+            return "\(device.shortModelName), \(controller.selectedStateDescription)"
+        }
+        let online = controller.devices.count(where: \.isOnline)
+        return online > 0 ? "\(online) found" : "Searching"
     }
 
     @ViewBuilder
@@ -291,7 +302,7 @@ private struct DeviceRow: View {
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(
-                            isHighlighted ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary)
+                            isHighlighted ? AnyShapeStyle(.white.opacity(0.85)) : .glassSecondary
                         )
                         .lineLimit(1)
                 }
@@ -363,7 +374,7 @@ private struct DeviceDetailsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(lines, id: \.label) { line in
-                (Text("\(line.label): ").foregroundStyle(.secondary) + Text(line.value))
+                (Text("\(line.label): ").foregroundStyle(.glassSecondary) + Text(line.value))
                     .font(.caption)
                     .lineLimit(1)
                     .truncationMode(.middle)

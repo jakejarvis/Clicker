@@ -38,7 +38,7 @@ If the Apple TV won't pair, check **Settings › Remotes and Devices › Remote 
 ## Using the remote
 
 - **Clickpad**: click the arrows to move around and the center to select. Scroll with two fingers over it to swipe, just like the touch surface on the Siri Remote. If swipes move the wrong way for you, set Swipe Direction to Inverted in Settings.
-- **Siri**: hold the button down, just like the real remote.
+- **Siri**: hold the button down (or hold S), just like the real remote.
 - **Volume and Mute** (the bar along the bottom) control your TV or receiver if the Apple TV does (through HDMI-CEC or an IR remote it learned).
 - **Apps** (top-left corner of the clickpad): search your Apple TV's apps and open one. Star an app (hover a row, or right-click it) to pin it to a Favorites group at the top; the ones you opened most recently come next.
 - **Power** (top-right corner): Wake, Sleep, Screen Saver, Control Center and Guide.
@@ -56,6 +56,7 @@ While the panel is open you can leave the mouse alone:
 | Delete | Back |
 | Space or P | Play/Pause |
 | H or T | TV (Home) |
+| S (hold) | Siri |
 | M | Mute |
 | + and − | Volume up and down |
 | ⌘, | Settings |

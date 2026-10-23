@@ -13,7 +13,7 @@ npm run build    # writes dist/ and .vercel/output/
 
 - `/`: the homepage, with the download button, the Homebrew command and the shot of the panel under a mock menu bar.
 - `/changelog`: every published release's notes.
-- `/help`: a short FAQ and a Report an Issue button (GitHub's new-issue page). The app's Help › Clicker Help opens it, so keep that path. Check each answer against the app and its docs before adding it, and keep longer troubleshooting in the README.
+- `/help`: a short FAQ, the keyboard shortcuts and a Report an Issue button (GitHub's new-issue page). The app's Help › Clicker Help opens it, so keep that path. Check each answer against the app and its docs before adding it, and keep longer troubleshooting in the README. The shortcuts table is the README's, so a key added to the remote ([input.md](input.md#keyboard)) goes in both.
 - `/privacy` and `/terms`. The App Store listing links `/privacy` as the privacy policy ([app-store.md](app-store.md)), so keep that path.
 - A 404 page.
 

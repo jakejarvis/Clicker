@@ -51,15 +51,19 @@ struct InlineNotice: Identifiable {
 struct InlineNoticeView: View {
     let notice: InlineNotice
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     var body: some View {
         VStack(spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: notice.kind.symbol)
                     .foregroundStyle(notice.kind.tint)
                 Text(notice.message)
-                    .font(.caption)
+                    // Callout, not caption: caption is the 10 pt floor, and
+                    // macOS has no text size setting that could raise it.
+                    .font(.callout)
                     .foregroundStyle(.secondary)
-                    .lineLimit(3)
+                    .lineLimit(4)
                     // Wrap rather than truncate when the panel's height is pinned.
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -78,7 +82,7 @@ struct InlineNoticeView: View {
         }
         .padding(8)
         .background(
-            .quaternary.opacity(0.5),
+            .quaternary.opacity(contrast.faded(0.5)),
             in: RoundedRectangle(cornerRadius: PanelMetrics.innerCornerRadius, style: .continuous))
     }
 }
