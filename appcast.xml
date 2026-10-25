@@ -3,6 +3,20 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.10</title>
+            <pubDate>Sun, 25 Oct 2026 08:43:09 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>310</sparkle:version>
+            <sparkle:shortVersionString>0.3.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.10
+
+- The mounted disk image now shows its own icon, the remote's clickpad, instead of the generic disk, and its window's artwork is sharper. Clicker itself is unchanged from 0.3.9.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.10/Clicker-0.3.10.zip" length="5279363" type="application/octet-stream" sparkle:edSignature="2qeVV77oRfmMYFVs4cwkC6a9CX/X6ZBOWrFwTabM6uVPHROIMRlK7OeS3C6pZ2pSsV/vJ9wOr/0rVGNthXtMAw=="/>
+        </item>
+        <item>
             <title>0.3.9</title>
             <pubDate>Fri, 23 Oct 2026 05:55:44 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
