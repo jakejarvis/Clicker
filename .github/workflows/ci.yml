@@ -32,6 +32,9 @@ jobs:
       - name: Test
         run: swift test
 
+      - name: Check the string catalog
+        run: script/sync_strings.sh --check
+
       - name: Package a universal app
         run: script/package_app.sh --release --universal
 

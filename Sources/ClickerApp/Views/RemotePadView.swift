@@ -206,10 +206,10 @@ private struct HoldRemoteButton: View {
     /// Title plus the key that triggers it, like the Select and volume tooltips.
     private var tooltip: String {
         switch command {
-        case .siri: return "Hold for Siri (S)"
-        case .menu: return "Back (Delete)"
-        case .home: return "TV (H)"
-        case .playPause: return "Play/Pause (Space)"
+        case .siri: return String(localized: "Hold for Siri (S)")
+        case .menu: return String(localized: "Back (Delete)")
+        case .home: return String(localized: "TV (H)")
+        case .playPause: return String(localized: "Play/Pause (Space)")
         default: return command.title
         }
     }
@@ -263,8 +263,8 @@ private struct MuteSegment: View {
     let controller: RemoteController
 
     private var help: String {
-        if !controller.canMute { return "Mute needs a HomePod, AirPlay or Bluetooth audio output" }
-        return controller.isMuted ? "Unmute (M)" : "Mute (M)"
+        if !controller.canMute { return String(localized: "Mute needs a HomePod, AirPlay or Bluetooth audio output") }
+        return controller.isMuted ? String(localized: "Unmute (M)") : String(localized: "Mute (M)")
     }
 
     var body: some View {

@@ -11,6 +11,7 @@ let concurrencySettings: [SwiftSetting] = [
 
 let package = Package(
     name: "Clicker",
+    defaultLocalization: "en",
     platforms: [.macOS(.v15)],
     traits: [
         // Off for the Mac App Store build, which the store updates.
@@ -49,6 +50,7 @@ let package = Package(
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             path: "Sources/ClickerApp",
+            resources: [.process("Resources")],
             swiftSettings: concurrencySettings + [.defaultIsolation(MainActor.self)]
         ),
         // The Companion protocol: codecs, pairing crypto and the session

@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 # Kill, build, stage a .app bundle and launch Clicker.
-# Usage: script/build_and_run.sh [run|--debug|--logs|--telemetry|--verify] [--release] [--install]
+# Usage: script/build_and_run.sh [run|--debug|--logs|--telemetry|--verify] [--release] [--install] [--pseudo]
 #   --release  optimized build
 #   --install  copy the bundle to /Applications and launch it from there
+#   --pseudo   add the en-XA pseudo-language and launch in it
 # Bundle assembly and signing live in script/package_app.sh.
 set -euo pipefail
 
 MODE="run"
 RELEASE_FLAG=""
+PSEUDO_FLAG=""
 INSTALL=0
 for arg in "$@"; do
   case "$arg" in
     --release) RELEASE_FLAG="--release" ;;
     --install) INSTALL=1 ;;
+    --pseudo) PSEUDO_FLAG="--pseudo" ;;
     *) MODE="$arg" ;;
   esac
 done
@@ -27,7 +30,7 @@ pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 
 # Builds, stages dist/Clicker.app with Sparkle embedded and signs it ad hoc.
 # Dev builds run the ClickerDemo executable: the app as shipped, plus --demo.
-"$ROOT_DIR/script/package_app.sh" $RELEASE_FLAG --with-demo
+"$ROOT_DIR/script/package_app.sh" $RELEASE_FLAG --with-demo $PSEUDO_FLAG
 
 if [[ "$INSTALL" == 1 ]]; then
   rm -rf "/Applications/$APP_NAME.app"
@@ -37,7 +40,11 @@ if [[ "$INSTALL" == 1 ]]; then
 fi
 
 open_app() {
-  /usr/bin/open -n "$APP_BUNDLE"
+  if [[ -n "$PSEUDO_FLAG" ]]; then
+    /usr/bin/open -n "$APP_BUNDLE" --args -AppleLanguages "(en-XA)"
+  else
+    /usr/bin/open -n "$APP_BUNDLE"
+  fi
 }
 
 case "$MODE" in
@@ -62,7 +69,7 @@ case "$MODE" in
     echo "$APP_NAME is running"
     ;;
   *)
-    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify] [--release] [--install]" >&2
+    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify] [--release] [--install] [--pseudo]" >&2
     exit 2
     ;;
 esac

@@ -2,7 +2,7 @@
 
 ## Unit tests
 
-`swift test` runs two targets. `ClickerCompanionTests` covers the protocol: OPACK and TLV8 codecs, the crypto and SRP, the text-input archive, and `CompanionConnection` cancellation against a silent loopback listener. `ClickerTests` covers the app's pure logic: panel and clickpad geometry, trackpad swipe translation, device TXT parsing, the credential store, device picker order and legacy pairing adoption. It also drives the real `RemoteController` against the demo target's made-up TVs (`DemoRun`, with pair-setup taking no time): every `--demo` scenario, pairing and re-pairing, stale pairings, mute confirmation on a real and an HDMI output, app favorites and recents, and what gets remembered for the next launch. Keep new logic testable the same way: pure, `nonisolated` value types where the UI allows, and controller behavior through `RemoteDependencies` fakes. State changes take a few task hops, so those tests wait with `eventually`.
+`swift test` runs two targets. `ClickerCompanionTests` covers the protocol: OPACK and TLV8 codecs, the crypto and SRP, the text-input archive, and `CompanionConnection` cancellation against a silent loopback listener. `ClickerTests` covers the app's pure logic: panel and clickpad geometry, trackpad swipe translation, device TXT parsing, the credential store, device picker order and legacy pairing adoption. It also drives the real `RemoteController` against the demo target's made-up TVs (`DemoRun`, with pair-setup taking no time): every `--demo` scenario, pairing and re-pairing, stale pairings, mute confirmation on a real and an HDMI output, app favorites and recents, and what gets remembered for the next launch. `StringCatalogTests` reads the string catalogs as files: every language started in them is complete, and the Info.plist catalog's English matches Info.plist ([localization.md](localization.md)). Keep new logic testable the same way: pure, `nonisolated` value types where the UI allows, and controller behavior through `RemoteDependencies` fakes. State changes take a few task hops, so those tests wait with `eventually`.
 
 ## Looking at the panel
 
@@ -13,6 +13,8 @@ With computer-use tools: they cannot see or grant a menu-bar-only app, so
 1. `./script/build_and_run.sh --install`, then `open -n /Applications/Clicker.app --args --regular` (Dock icon). Add `--demo <scenario>` as needed.
 2. Grant "Clicker" and "Finder", and bring Finder forward so the frontmost app is allowed. Zoom on the menu bar to find the remote-glyph status item (its position shifts with other status items), click it, and zoom on the panel below it.
 3. Relaunch without `--regular` when done (`--install` again).
+
+Long and unlocalized text: build with `--pseudo` and launch in `en-XA` ([localization.md](localization.md#checking-long-and-unlocalized-text)).
 
 Light mode without touching the system setting: add `-NSRequiresAquaSystemAppearance YES` to the launch arguments, which forces Aqua for that process only. `-AppleInterfaceStyle Light` in the launch arguments doesn't override a system in Dark Mode. Increase Contrast has no such switch, but a temporary `.environment(\._colorSchemeContrast, .increased)` at the end of `MenuBarView.body` shows what the views do with it (`ColorSchemeContrast.faded`, the PIN border); it doesn't change the system glass or popovers, so take it out again and use the real setting for those. Reduce Motion has no override at all.
 

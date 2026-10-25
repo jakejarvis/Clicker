@@ -33,13 +33,13 @@ package enum TLV8 {
 
         package var message: String {
             switch self {
-            case .unknown: return "The Apple TV reported an unknown error."
-            case .authentication: return "That code wasn't accepted."
-            case .backoff: return "The Apple TV needs a moment. Try again shortly."
-            case .maxPeers: return "The Apple TV has reached its pairing limit."
-            case .maxTries: return "Too many failed attempts. Try again later."
-            case .unavailable: return "Pairing isn't available right now."
-            case .busy: return "The Apple TV is busy with another pairing."
+            case .unknown: return String(localized: "The Apple TV reported an unknown error.")
+            case .authentication: return String(localized: "That code wasn't accepted.")
+            case .backoff: return String(localized: "The Apple TV needs a moment. Try again shortly.")
+            case .maxPeers: return String(localized: "The Apple TV has reached its pairing limit.")
+            case .maxTries: return String(localized: "Too many failed attempts. Try again later.")
+            case .unavailable: return String(localized: "Pairing isn't available right now.")
+            case .busy: return String(localized: "The Apple TV is busy with another pairing.")
             }
         }
     }

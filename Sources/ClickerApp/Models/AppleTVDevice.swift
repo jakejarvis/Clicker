@@ -24,12 +24,12 @@ package nonisolated struct AppleTVDevice: Identifiable, Hashable, Sendable {
     var modelDisplayName: String {
         guard let model else { return "Apple TV" }
         switch model {
-        case "AppleTV2,1": return "Apple TV (2nd gen)"
-        case "AppleTV3,1", "AppleTV3,2": return "Apple TV (3rd gen)"
+        case "AppleTV2,1": return String(localized: "Apple TV (2nd gen)")
+        case "AppleTV3,1", "AppleTV3,2": return String(localized: "Apple TV (3rd gen)")
         case "AppleTV5,3": return "Apple TV HD"
         case "AppleTV6,2": return "Apple TV 4K"
-        case "AppleTV11,1": return "Apple TV 4K (2nd gen)"
-        case "AppleTV14,1": return "Apple TV 4K (3rd gen)"
+        case "AppleTV11,1": return String(localized: "Apple TV 4K (2nd gen)")
+        case "AppleTV14,1": return String(localized: "Apple TV 4K (3rd gen)")
         default: return model.hasPrefix("AppleTV") ? "Apple TV" : model
         }
     }

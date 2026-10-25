@@ -139,7 +139,8 @@ package struct KeychainCredentialBackend: CredentialBackend {
 
         /// Shown on the pair card when a save fails.
         package var errorDescription: String? {
-            let message = SecCopyErrorMessageString(status, nil) as String? ?? "unknown keychain error"
+            let message =
+                SecCopyErrorMessageString(status, nil) as String? ?? String(localized: "Unknown keychain error")
             return "\(message) (\(status))"
         }
     }

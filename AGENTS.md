@@ -13,6 +13,7 @@ The docs in [docs/](docs/README.md) record what the code does on purpose and the
 | The status item, the `NSPanel`, its keys and menus | [docs/panel.md](docs/panel.md) |
 | Buttons, keyboard, focus, trackpad swipes, text | [docs/input.md](docs/input.md) |
 | How anything looks | [docs/design.md](docs/design.md) |
+| Any user-facing string, translations | [docs/localization.md](docs/localization.md) |
 | Credentials, entitlements, signing, the sandbox | [docs/sandbox-and-keychain.md](docs/sandbox-and-keychain.md) |
 | Releases, the DMG, Sparkle, Homebrew | [docs/releasing.md](docs/releasing.md) |
 | The Mac App Store build, TestFlight, App Review | [docs/app-store.md](docs/app-store.md) |

@@ -35,6 +35,12 @@ package final class UpdateController: NSObject {
     /// seen. Set from outside only by the demo build's `update` scenario.
     package var pendingUpdateVersion: String?
     private(set) var lastUpdateCheckDate: Date?
+
+    /// The update command's title in every menu: the pending version once
+    /// one is known.
+    var checkForUpdatesTitle: String {
+        pendingUpdateVersion.map { String(localized: "Update to \($0)…") } ?? String(localized: "Check for Updates…")
+    }
     /// Called before Sparkle shows a window; the panel floats at pop-up menu
     /// level and would otherwise cover it.
     @ObservationIgnored var onWillPresent: () -> Void = {}

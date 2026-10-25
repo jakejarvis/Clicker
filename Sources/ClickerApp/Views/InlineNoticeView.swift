@@ -36,7 +36,7 @@ struct InlineNotice: Identifiable {
             case below
         }
 
-        let title: String
+        let title: LocalizedStringKey
         var placement: Placement = .trailing
         let perform: () -> Void
     }

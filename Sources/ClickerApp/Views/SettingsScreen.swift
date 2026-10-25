@@ -51,7 +51,7 @@ struct SettingsScreen: View {
                     if UpdateController.isIncluded {
                         // Full-width actions live below the cards.
                         PanelActionButton(
-                            title: updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…",
+                            title: updates.checkForUpdatesTitle,
                             systemImage: "arrow.down.circle"
                         ) {
                             updates.checkForUpdates()
@@ -78,7 +78,8 @@ struct SettingsScreen: View {
             checksForUpdates = updates.automaticallyChecksForUpdates
         }
         .alert(
-            "Forget \(forgetCandidate?.deviceName ?? "this Apple TV")?",
+            forgetCandidate.map { String(localized: "Forget \($0.deviceName)?") }
+                ?? String(localized: "Forget this Apple TV?"),
             isPresented: Binding(
                 get: { forgetCandidate != nil },
                 set: { if !$0 { forgetCandidate = nil } }
@@ -99,7 +100,7 @@ struct SettingsScreen: View {
 
     /// How this Mac presents itself: to the TV (Name) and to macOS (login).
     private var thisMacSection: some View {
-        let nameHelp =
+        let nameHelp: LocalizedStringKey =
             "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair."
         return SettingsSection("This Mac", footer: launchAtLoginError) {
             SettingsRow("Name", help: nameHelp) {
@@ -128,7 +129,7 @@ struct SettingsScreen: View {
             SettingsRow("Position") {
                 Picker("Position", selection: $panelAlignment) {
                     Text("Left").tag(PanelAlignment.left)
-                    Text("Center").tag(PanelAlignment.center)
+                    Text("Center", comment: "Where the panel opens under the menu bar icon").tag(PanelAlignment.center)
                     Text("Right").tag(PanelAlignment.right)
                 }
                 .settingsPicker()
@@ -136,8 +137,8 @@ struct SettingsScreen: View {
             SettingsDivider()
             SettingsRow("Swipe Direction") {
                 Picker("Swipe Direction", selection: $reversesSwipes) {
-                    Text("Natural").tag(false)
-                    Text("Inverted").tag(true)
+                    Text("Natural", comment: "Trackpad swipe direction").tag(false)
+                    Text("Inverted", comment: "Trackpad swipe direction").tag(true)
                 }
                 .settingsPicker()
             }
@@ -198,9 +199,11 @@ struct SettingsScreen: View {
     }
 
     private var updatesFooter: String {
-        guard updates.isEnabled else { return "Updates are off in development builds." }
-        guard let lastCheck = updates.lastUpdateCheckDate else { return "Clicker hasn't checked for updates yet." }
-        return "Last checked \(lastCheck.formatted(.relative(presentation: .named)))."
+        guard updates.isEnabled else { return String(localized: "Updates are off in development builds.") }
+        guard let lastCheck = updates.lastUpdateCheckDate else {
+            return String(localized: "Clicker hasn't checked for updates yet.")
+        }
+        return String(localized: "Last checked \(lastCheck.formatted(.relative(presentation: .named))).")
     }
 
     private func updateLaunchAtLogin(_ enabled: Bool) {
@@ -229,7 +232,7 @@ enum SettingsMetrics {
 
 /// Title bar for a secondary panel screen.
 struct PanelNavigationBar: View {
-    let title: String
+    let title: LocalizedStringKey
     let onBack: () -> Void
 
     var body: some View {
@@ -256,11 +259,11 @@ struct PanelNavigationBar: View {
 
 /// Header, a flat card of rows, and an optional explanatory footer.
 struct SettingsSection<Content: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     var footer: String?
     @ViewBuilder let content: () -> Content
 
-    init(_ title: String, footer: String? = nil, @ViewBuilder content: @escaping () -> Content) {
+    init(_ title: LocalizedStringKey, footer: String? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.title = title
         self.footer = footer
         self.content = content
@@ -366,15 +369,15 @@ struct SettingsDivider: View {
 
 /// A labelled row with its control on the trailing edge.
 struct SettingsRow<Control: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     var subtitle: String?
     /// Shown as a tooltip on a small info glyph after the title, for an
     /// explanation that belongs to this row alone rather than the section.
-    var help: String?
+    var help: LocalizedStringKey?
     @ViewBuilder let control: () -> Control
 
     init(
-        _ title: String, subtitle: String? = nil, help: String? = nil,
+        _ title: LocalizedStringKey, subtitle: String? = nil, help: LocalizedStringKey? = nil,
         @ViewBuilder control: @escaping () -> Control
     ) {
         self.title = title
@@ -384,12 +387,12 @@ struct SettingsRow<Control: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        SettingsRowLayout {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Text(title)
                         .font(.body)
-                        .fixedSize()
+                        .fixedSize(horizontal: false, vertical: true)
                     if let help {
                         Image(systemName: "info.circle")
                             .font(.system(size: 12, weight: .medium))
@@ -405,11 +408,77 @@ struct SettingsRow<Control: View>: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 8)
             control()
         }
         .settingsRowPadding()
         .frame(minHeight: SettingsMetrics.rowHeight)
+    }
+}
+
+/// A row's title and its control: side by side, the control right-aligned,
+/// while both fit at their natural widths; otherwise the title wraps across
+/// the row and the control goes under it, still right-aligned. Translations
+/// run up to a third longer than English, and the panel can't get wider.
+private struct SettingsRowLayout: Layout {
+    /// Least space between the title and a control beside it: what the
+    /// row's HStack gave it (10 pt spacing either side of an 8 pt spacer),
+    /// so the Name field keeps its width.
+    var gap: CGFloat = 28
+    /// Between the title and a control under it.
+    var stackedSpacing: CGFloat = 6
+
+    private struct Arrangement {
+        var title: CGSize
+        var control: CGSize
+        var isStacked: Bool
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat?) -> Arrangement {
+        let title = subviews[0].sizeThatFits(.unspecified)
+        guard let width else {
+            return Arrangement(title: title, control: subviews[1].sizeThatFits(.unspecified), isStacked: false)
+        }
+        let room = max(width - title.width - gap, 0)
+        let control = subviews[1].sizeThatFits(ProposedViewSize(width: room, height: nil))
+        if control.width <= room {
+            return Arrangement(title: title, control: control, isStacked: false)
+        }
+        return Arrangement(
+            title: subviews[0].sizeThatFits(ProposedViewSize(width: width, height: nil)),
+            control: subviews[1].sizeThatFits(ProposedViewSize(width: width, height: nil)),
+            isStacked: true)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let arrangement = arrange(subviews, width: proposal.width)
+        if arrangement.isStacked {
+            return CGSize(
+                width: proposal.width ?? 0,
+                height: arrangement.title.height + stackedSpacing + arrangement.control.height)
+        }
+        let width = arrangement.title.width + gap + arrangement.control.width
+        return CGSize(
+            width: max(proposal.width ?? width, width),
+            height: max(arrangement.title.height, arrangement.control.height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let arrangement = arrange(subviews, width: bounds.width)
+        if arrangement.isStacked {
+            subviews[0].place(
+                at: CGPoint(x: bounds.minX, y: bounds.minY), anchor: .topLeading,
+                proposal: ProposedViewSize(width: bounds.width, height: nil))
+            subviews[1].place(
+                at: CGPoint(x: bounds.maxX, y: bounds.minY + arrangement.title.height + stackedSpacing),
+                anchor: .topTrailing, proposal: ProposedViewSize(arrangement.control))
+        } else {
+            subviews[0].place(
+                at: CGPoint(x: bounds.minX, y: bounds.midY), anchor: .leading,
+                proposal: ProposedViewSize(arrangement.title))
+            subviews[1].place(
+                at: CGPoint(x: bounds.maxX, y: bounds.midY), anchor: .trailing,
+                proposal: ProposedViewSize(arrangement.control))
+        }
     }
 }
 

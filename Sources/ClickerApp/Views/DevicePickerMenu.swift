@@ -33,7 +33,7 @@ struct DevicePickerMenu: View {
             HStack(spacing: 10) {
                 DeviceIcon(device: controller.selectedDevice, isConnected: controller.connectionState == .connected)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(controller.selectedDevice?.name ?? "Choose an Apple TV")
+                    Text(controller.selectedDevice?.name ?? String(localized: "Choose an Apple TV"))
                         .font(.callout.weight(.semibold))
                         .lineLimit(1)
                     subtitle
@@ -53,7 +53,10 @@ struct DevicePickerMenu: View {
         .buttonStyle(SurfaceButtonStyle(shape: shape, pressScale: 0.98))
         .disabled(controller.devices.isEmpty)
         .help("Choose an Apple TV. Option-click for details.")
-        .accessibilityLabel("Apple TV: \(controller.selectedDevice?.name ?? "none selected")")
+        .accessibilityLabel(
+            controller.selectedDevice.map { String(localized: "Apple TV: \($0.name)") }
+                ?? String(localized: "Apple TV: none selected")
+        )
         // The label replaces the subtitle, so its state is read as the value.
         .accessibilityValue(accessibilityStatus)
         .accessibilityHint("Opens the list of Apple TVs")
@@ -69,10 +72,10 @@ struct DevicePickerMenu: View {
     /// The subtitle in words, for VoiceOver.
     private var accessibilityStatus: String {
         if let device = controller.selectedDevice {
-            return "\(device.shortModelName), \(controller.selectedStateDescription)"
+            return String(localized: "\(device.shortModelName), \(controller.selectedStateDescription)")
         }
         let online = controller.devices.count(where: \.isOnline)
-        return online > 0 ? "\(online) found" : "Searching"
+        return online > 0 ? String(localized: "\(online) found") : String(localized: "Searching")
     }
 
     @ViewBuilder
@@ -85,7 +88,7 @@ struct DevicePickerMenu: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 4) {
                     Text(device.shortModelName)
-                    Text("·")
+                    Text(verbatim: "·")
                     Text(controller.selectedStateDescription)
                 }
                 Text(controller.selectedStateDescription)
@@ -210,7 +213,7 @@ private struct DeviceListView: View {
         if device.id == controller.selectedDeviceID {
             return "\(device.shortModelName) · \(controller.selectedStateDescription)"
         }
-        if !device.isOnline { return "\(device.shortModelName) · Offline" }
+        if !device.isOnline { return "\(device.shortModelName) · \(String(localized: "Offline"))" }
         // Unpaired rows carry a Pair badge, which already says it.
         return controller.isPaired(device) ? device.modelDisplayName : device.shortModelName
     }
@@ -312,7 +315,7 @@ private struct DeviceRow: View {
                         .font(.body.weight(.semibold))
                         .foregroundStyle(isHighlighted ? AnyShapeStyle(.white) : AnyShapeStyle(Color.accentColor))
                 } else if !isPaired, device.isOnline {
-                    Text("Pair")
+                    Text("Pair", comment: "Badge on an Apple TV that isn't paired yet")
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -329,7 +332,7 @@ private struct DeviceRow: View {
         .focusEffectDisabled()
         .opacity(device.isOnline ? 1 : 0.6)
         .onHover(perform: onHover)
-        .accessibilityLabel("\(device.name), \(subtitle)")
+        .accessibilityLabel(Text(verbatim: "\(device.name), \(subtitle)"))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -347,26 +350,34 @@ private struct DeviceDetailsView: View {
 
     private var lines: [(label: String, value: String)] {
         var lines: [(String, String)] = []
-        if let model = device.model { lines.append(("Model", model)) }
-        if let id = device.txt("rpMRtID") { lines.append(("ID", id)) }
+        if let model = device.model { lines.append((String(localized: "Model"), model)) }
+        if let id = device.txt("rpMRtID") { lines.append((String(localized: "ID"), id)) }
         if let address = device.bluetoothAddress { lines.append(("Bluetooth", address)) }
         if let version = connectionInfo?.osVersion { lines.append(("tvOS", version)) }
-        if let version = device.companionVersion { lines.append(("Protocol", version)) }
+        if let version = device.companionVersion { lines.append((String(localized: "Protocol"), version)) }
         if device.txt("rpFl") != nil {
             let names = device.flagDescriptions
             lines.append(
-                ("Flags", names.isEmpty ? device.flagsHex : "\(device.flagsHex) (\(names.joined(separator: ", ")))"))
+                (
+                    String(localized: "Flags"),
+                    names.isEmpty ? device.flagsHex : "\(device.flagsHex) (\(names.joined(separator: ", ")))"
+                ))
         }
-        if !device.interfaces.isEmpty { lines.append(("Interface", device.interfaces.joined(separator: ", "))) }
+        if !device.interfaces.isEmpty {
+            lines.append((String(localized: "Interface"), device.interfaces.joined(separator: ", ")))
+        }
         if let connectionInfo {
-            lines.append(("Address", connectionInfo.addressDescription))
-            lines.append(("Session", connectionInfo.sessionDescription))
+            lines.append((String(localized: "Address"), connectionInfo.addressDescription))
+            lines.append((String(localized: "Session"), connectionInfo.sessionDescription))
         }
-        if let powerState { lines.append(("Power", "\(powerState.title) (\(powerState.rawValue))")) }
+        if let powerState {
+            lines.append((String(localized: "Power"), "\(powerState.title) (\(powerState.rawValue))"))
+        }
         if let mediaControlFlags {
             let names = mediaControlFlags.descriptions
             let hex = String(format: "0x%03llX", mediaControlFlags.rawValue)
-            lines.append(("Controls", names.isEmpty ? hex : "\(hex) (\(names.joined(separator: ", ")))"))
+            lines.append(
+                (String(localized: "Controls"), names.isEmpty ? hex : "\(hex) (\(names.joined(separator: ", ")))"))
         }
         return lines
     }
