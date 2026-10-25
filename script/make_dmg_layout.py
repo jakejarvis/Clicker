@@ -7,7 +7,7 @@
 into the release DMG as .DS_Store: the window's size, the icon positions and
 the background picture at .background/background.tiff. Run after changing the
 layout (positions are icon centers in points from the window's top left, and
-must match script/render_dmg_background.swift):
+must match script/render_dmg_artwork.swift):
 
     uv run script/make_dmg_layout.py
 
@@ -76,6 +76,8 @@ def main():
         # Icon view whatever the user's default, which may be a list with no
         # picture. (dmgbuild's icvl record doesn't do this; Finder ignores it.)
         store["."]["vstl"] = ("type", b"icnv")
+        # The toolbar and sidebar follow these; the status bar and path bar
+        # follow the user's app-wide Finder settings whatever these say.
         store["."]["bwsp"] = {
             "WindowBounds": "{{400, 280}, {%d, %d}}" % WINDOW,
             "ShowToolbar": False,
@@ -98,11 +100,13 @@ def main():
             "iconSize": float(ICON_SIZE),
             "textSize": 12.0,
             "labelOnBottom": True,
-            "showIconPreview": True,
+            "showIconPreview": False,
             "showItemInfo": False,
             "gridOffsetX": 0.0,
             "gridOffsetY": 0.0,
-            "gridSpacing": 100.0,
+            # Only Clean Up uses it, but Finder has been known to reject view
+            # settings whose spacing is 100 or more (dmgbuild's docs).
+            "gridSpacing": 54.0,
             "scrollPositionX": 0.0,
             "scrollPositionY": 0.0,
         }

@@ -118,10 +118,14 @@ build_sign_and_notarize() {
 
   # Finder's view of the window (size, icon positions, background) lives in
   # .DS_Store, which diskutil leaves out when it images a folder, so it goes
-  # onto a writable image that is then compressed.
+  # onto a writable image that is then compressed. The mounted disk's icon is
+  # .VolumeIcon.icns, shown once the custom icon flag (0x0400) is set in the
+  # volume root's Finder info.
   echo "==> Building $(basename "$DMG")"
   local staging
   staging="$(mktemp -d)"
+  # The folder becomes the volume's root, and mktemp makes it 700.
+  chmod 755 "$staging"
   ditto "$APP" "$staging/Clicker.app"
   ln -s /Applications "$staging/Applications"
   mkdir "$staging/.background"
@@ -129,7 +133,15 @@ build_sign_and_notarize() {
   diskutil image create from --format RAW --volumeName Clicker "$staging" "$staging.img" >/dev/null
   diskutil image attach --nobrowse --mountPoint "$staging.mnt" "$staging.img" >/dev/null
   cp "$ROOT_DIR/Resources/DMG/DS_Store" "$staging.mnt/.DS_Store"
-  diskutil eject "$staging.mnt" >/dev/null
+  cp "$ROOT_DIR/Resources/DMG/VolumeIcon.icns" "$staging.mnt/.VolumeIcon.icns"
+  xattr -wx com.apple.FinderInfo "0000000000000000040000000000000000000000000000000000000000000000" "$staging.mnt"
+  # Spotlight or fseventsd can hold a fresh volume busy for a moment, so
+  # retry, as dmgbuild does.
+  local tries=0
+  until diskutil eject "$staging.mnt" >/dev/null; do
+    ((++tries < 10)) || { echo "could not eject $staging.mnt" >&2; exit 1; }
+    sleep 2
+  done
   diskutil image create from --format UDZO "$staging.img" "$DMG" >/dev/null
   rm -rf "$staging" "$staging.img"
   codesign --force --sign "$IDENTITY" --timestamp "$DMG"
