@@ -83,21 +83,26 @@ struct Clickpad {
     }
 
     /// The arrows: three at rest, and the lit one pointing right, at
-    /// Applications.
+    /// Applications. Each is a stroked chevron shaped like the semibold SF
+    /// Symbol at `pointSize`. Drawing the symbol images themselves broke at
+    /// some sizes: a symbol drawn again at another size could come back as a
+    /// blurred block.
     func drawArrows(_ context: CGContext, pointSize: Double, restAlpha: Double, glow: Double) {
-        let arrows: [(String, Double, Double)] = [
-            ("chevron.up", -.pi / 2, restAlpha), ("chevron.down", .pi / 2, restAlpha),
-            ("chevron.left", .pi, restAlpha), ("chevron.right", 0, 1),
-        ]
-        for (name, angle, alpha) in arrows {
-            let image = symbol(name, pointSize: pointSize, alpha: alpha)
-            let point = CGPoint(x: center.x + arrowRadius * cos(angle), y: center.y + arrowRadius * sin(angle))
-            let rect = CGRect(
-                x: point.x - image.size.width / 2, y: point.y - image.size.height / 2,
-                width: image.size.width, height: image.size.height)
+        let depth = 0.375 * pointSize
+        let halfSpan = 0.35 * pointSize
+        for (angle, alpha) in [(-Double.pi / 2, restAlpha), (.pi / 2, restAlpha), (.pi, restAlpha), (0, 1)] {
             context.saveGState()
-            if alpha == 1 { context.setShadow(offset: .zero, blur: glow, color: white(0.8)) }
-            image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            context.translateBy(x: center.x + arrowRadius * cos(angle), y: center.y + arrowRadius * sin(angle))
+            context.rotate(by: angle)
+            context.move(to: CGPoint(x: -depth / 2, y: -halfSpan))
+            context.addLine(to: CGPoint(x: depth / 2, y: 0))
+            context.addLine(to: CGPoint(x: -depth / 2, y: halfSpan))
+            context.setLineWidth(0.146 * pointSize)
+            context.setLineCap(.round)
+            context.setLineJoin(.round)
+            context.setStrokeColor(white(alpha))
+            if alpha == 1 { setShadow(context, blur: glow, color: white(0.8)) }
+            context.strokePath()
             context.restoreGState()
         }
     }
@@ -126,15 +131,39 @@ func fillLit(_ context: CGContext, _ path: CGPath, _ colors: [CGColor]) {
     fill(context, path, colors, from: CGPoint(x: 0, y: box.minY), to: CGPoint(x: 0, y: box.maxY))
 }
 
-/// A shadow cast downward. Shadow offsets ignore the flipped transform: they
-/// are in device space, where y points up.
+/// Sets a shadow `dy` points below whatever is drawn next, blurred by `blur`
+/// points. Core Graphics takes both in device pixels with y pointing up,
+/// ignoring the transform, so they're converted through it; otherwise every
+/// size of the icon and both scales of the background would get the same
+/// pixel-sized shadow.
+func setShadow(_ context: CGContext, dy: Double = 0, blur: Double, color: CGColor) {
+    let scale = hypot(context.ctm.a, context.ctm.b)
+    context.setShadow(offset: CGSize(width: 0, height: -dy * scale), blur: blur * scale, color: color)
+}
+
+/// A shadow cast downward.
 func dropShadow(_ context: CGContext, _ path: CGPath, blur: Double, alpha: Double) {
     context.saveGState()
-    context.setShadow(
-        offset: CGSize(width: 0, height: -blur * 0.45), blur: blur, color: CGColor(gray: 0, alpha: alpha))
+    setShadow(context, dy: blur * 0.45, blur: blur, color: CGColor(gray: 0, alpha: alpha))
     context.addPath(path)
     context.setFillColor(CGColor(gray: 0, alpha: 1))
     context.fillPath()
+    context.restoreGState()
+}
+
+/// A shadow cast into `path` from its top edge, so it reads as pressed in.
+func innerShadow(_ context: CGContext, _ path: CGPath, dy: Double, blur: Double, alpha: Double) {
+    context.saveGState()
+    context.addPath(path)
+    context.clip()
+    // Everything around the shape, whose shadow falls inside it.
+    let surround = CGMutablePath()
+    surround.addRect(path.boundingBox.insetBy(dx: -4 * blur - dy, dy: -4 * blur - dy))
+    surround.addPath(path)
+    setShadow(context, dy: dy, blur: blur, color: CGColor(gray: 0, alpha: alpha))
+    context.addPath(surround)
+    context.setFillColor(CGColor(gray: 0, alpha: 1))
+    context.fillPath(using: .evenOdd)
     context.restoreGState()
 }
 
@@ -150,28 +179,21 @@ func rim(_ context: CGContext, _ path: CGPath, _ color: CGColor) {
     context.restoreGState()
 }
 
-/// A lit rim on a circle: bright at the top, where it catches the light.
-func litEdge(_ context: CGContext, _ center: CGPoint, _ radius: Double, width: Double) {
+/// A rim just inside a circle, shaded top to bottom through `colors`: bright
+/// at the top for a raised surface, at the bottom lip for a pressed-in one.
+func litEdge(
+    _ context: CGContext, _ center: CGPoint, _ radius: Double, width: Double, _ colors: [CGColor],
+    at locations: [CGFloat]
+) {
     context.saveGState()
     context.addPath(circle(center, radius - width / 2))
     context.setLineWidth(width)
     context.replacePathWithStrokedPath()
     context.clip()
-    let gradient = CGGradient(
-        colorsSpace: nil, colors: [white(0.45), white(0.04), white(0.12)] as CFArray, locations: [0, 0.6, 1])!
+    let gradient = CGGradient(colorsSpace: nil, colors: colors as CFArray, locations: locations)!
     context.drawLinearGradient(
         gradient, start: CGPoint(x: 0, y: center.y - radius), end: CGPoint(x: 0, y: center.y + radius), options: [])
     context.restoreGState()
-}
-
-func symbol(_ name: String, pointSize: Double, alpha: Double) -> NSImage {
-    let configuration = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
-        .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor(white: 1, alpha: alpha)]))
-    guard
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)
-    else { fail("no symbol \(name)") }
-    return image
 }
 
 func drawBackground(_ context: CGContext) {
@@ -199,20 +221,23 @@ func drawBackground(_ context: CGContext) {
         to: CGPoint(x: box.midX, y: box.maxY))
     rim(context, applications, white(0.25))
 
-    // The ring and Select, with the channel between them left dark, and the
-    // pressed quadrant washed like a held button in the app.
+    // The ring, raised, and Select, pressed in: lit from below with a shadow
+    // under its top edge. The channel between them stays dark, and the
+    // pressed quadrant is washed like a held button in the app.
     let pad = Clickpad(center: CGPoint(x: size.width / 2, y: iconRow), radius: 46)
     fillLit(context, pad.ring, [white(0.14), white(0.07)])
-    fillLit(context, pad.select, [white(0.16), white(0.08)])
+    fillLit(context, pad.select, [white(0.1), white(0.12)])
+    innerShadow(context, pad.select, dy: 0.5, blur: 1.2, alpha: 0.35)
     context.addPath(pad.quadrant(around: 0))
     context.setFillColor(white(0.17))
     context.fillPath()
     context.setLineWidth(1)
     context.setStrokeColor(white(0.16))
-    for radius in [pad.radius - 0.5, pad.innerRadius + 0.5, pad.selectRadius - 0.5] {
+    for radius in [pad.radius - 0.5, pad.innerRadius + 0.5] {
         context.addPath(circle(pad.center, radius))
     }
     context.strokePath()
+    litEdge(context, pad.center, pad.selectRadius, width: 1, [white(0.08), white(0.2)], at: [0.35, 1])
     pad.drawArrows(context, pointSize: 20 * pad.scale, restAlpha: 0.32, glow: 8)
 
     let font = NSFont.systemFont(ofSize: 12, weight: .medium)
@@ -224,18 +249,21 @@ func drawBackground(_ context: CGContext) {
 func drawVolumeIcon(_ context: CGContext) {
     let pad = Clickpad(center: CGPoint(x: 512, y: 512), radius: 420)
     context.saveGState()
-    context.setShadow(offset: CGSize(width: 0, height: -18), blur: 40, color: CGColor(gray: 0, alpha: 0.45))
+    setShadow(context, dy: 18, blur: 40, color: CGColor(gray: 0, alpha: 0.45))
     context.addPath(circle(pad.center, pad.radius))
     context.setFillColor(rgb(0x1a1a1d))
     context.fillPath()
     context.restoreGState()
+    // The ring raised and lit from above; Select pressed in, lit from below
+    // with a shadow under its top edge.
     fillLit(context, pad.ring, [rgb(0x46464c), rgb(0x141416)])
-    fillLit(context, pad.select, [rgb(0x3e3e44), rgb(0x18181b)])
+    fillLit(context, pad.select, [rgb(0x262629), rgb(0x2a2a2e)])
+    innerShadow(context, pad.select, dy: 4, blur: 10, alpha: 0.25)
     context.addPath(pad.quadrant(around: 0))
     context.setFillColor(white(0.14))
     context.fillPath()
-    litEdge(context, pad.center, pad.radius, width: 8)
-    litEdge(context, pad.center, pad.selectRadius, width: 6)
+    litEdge(context, pad.center, pad.radius, width: 8, [white(0.45), white(0.04), white(0.12)], at: [0, 0.6, 1])
+    litEdge(context, pad.center, pad.selectRadius, width: 6, [white(0.02), white(0.12)], at: [0.35, 1])
     pad.drawArrows(context, pointSize: 25 * pad.scale, restAlpha: 0.35, glow: 36)
 }
 
