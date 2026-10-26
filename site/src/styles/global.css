@@ -624,3 +624,37 @@ footer a:hover {
   font-family: var(--mono);
   font-size: 0.8125rem;
 }
+
+/* The homepage's feature list under the shot: two columns of a semibold
+   title over a muted line, one column on a phone. */
+.features {
+  margin-top: 3rem;
+}
+
+.features h2 {
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.features dl {
+  display: grid;
+  gap: 1.25rem 2rem;
+  margin: 0;
+}
+
+@media (min-width: 36rem) {
+  .features dl {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.features dt {
+  font-weight: 500;
+}
+
+.features dd {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--muted);
+}

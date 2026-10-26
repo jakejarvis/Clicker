@@ -3,19 +3,22 @@ import "../styles/global.css";
 import { Font, Image } from "astro:assets";
 import icon from "../assets/icon.png";
 import Analytics from "@vercel/analytics/astro";
+import { description as defaultDescription, repo } from "../lib/product";
 
 interface Props {
   title?: string;
   description?: string;
   /** Error pages: no canonical or og:url (they would name a URL that 404s) and noindex. */
   noindex?: boolean;
+  /** Schema.org structured data for the page, for search engines and AI assistants. */
+  jsonLd?: Record<string, unknown>;
 }
 
-const repo = "https://github.com/jakejarvis/Clicker";
 const {
   title = "Clicker — Apple TV remote for your Mac",
-  description = "The missing Apple TV remote for your Mac. Completely free and open source.",
+  description = defaultDescription,
   noindex = false,
+  jsonLd,
 } = Astro.props;
 
 // trailingSlash is "never", so the pathname is already the canonical form.
@@ -56,6 +59,14 @@ const ogImage = new URL("/og.png", Astro.site);
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
+    {
+      jsonLd && (
+        <script
+          type="application/ld+json"
+          set:html={JSON.stringify({ "@context": "https://schema.org", ...jsonLd }).replaceAll("<", "\\u003c")}
+        />
+      )
+    }
     <Analytics />
   </head>
   <body>
