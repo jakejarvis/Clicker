@@ -52,14 +52,15 @@ export const GET: APIRoute = async ({ request, url }) => {
 // One anonymous PostHog event per check: no person profile, a throwaway
 // distinct ID and no GeoIP. PostHog sees Vercel's address, never the Mac's.
 // Without a project token nothing is sent. Failures are dropped: counting
-// must never hold up or break the feed.
+// must never hold up or break the feed. A rejected capture is logged, so a bad
+// token or host shows up in Vercel's logs.
 async function countCheck(properties: Record<string, string | boolean>): Promise<void> {
   const token = process.env.POSTHOG_PROJECT_TOKEN;
   if (!token) return;
   const host = process.env.POSTHOG_HOST || DEFAULT_POSTHOG_HOST;
 
   try {
-    await fetch(new URL("/i/v0/e/", host), {
+    const response = await fetch(new URL("/i/v0/e/", host), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -74,6 +75,7 @@ async function countCheck(properties: Record<string, string | boolean>): Promise
       }),
       signal: AbortSignal.timeout(CAPTURE_TIMEOUT_MS),
     });
+    if (!response.ok) console.warn(`PostHog rejected an update_check event: ${response.status}`);
   } catch {
     // Dropped.
   }
