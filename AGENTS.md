@@ -12,6 +12,7 @@ The docs in [docs/](docs/README.md) record what the code does on purpose and the
 | `ClickerCompanion`, discovery, connecting, pairing | [docs/protocol.md](docs/protocol.md) |
 | The status item, the `NSPanel`, its keys and menus | [docs/panel.md](docs/panel.md) |
 | Buttons, keyboard, focus, trackpad swipes, text | [docs/input.md](docs/input.md) |
+| Shortcuts actions, App Intents, `Metadata.appintents` | [docs/intents.md](docs/intents.md) |
 | How anything looks | [docs/design.md](docs/design.md) |
 | Credentials, entitlements, signing, the sandbox | [docs/sandbox-and-keychain.md](docs/sandbox-and-keychain.md) |
 | Releases, the DMG, Sparkle, Homebrew | [docs/releasing.md](docs/releasing.md) |

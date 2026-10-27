@@ -18,6 +18,7 @@ Clicker is a native SwiftUI menu bar remote for Apple TV that speaks Apple's Com
 - [protocol.md](protocol.md): discovery, pairing, the session, commands, mute, text input, the connection lifecycle, codec and crypto gotchas.
 - [panel.md](panel.md): the status item and custom `NSPanel`, its height animation, keys, the global shortcut, dismissal, first launch, menus.
 - [input.md](input.md): buttons and the clickpad, the keyboard and held keys, focus, trackpad swipes, text entry.
+- [intents.md](intents.md): the Shortcuts actions (App Intents), how they reach the controller, their isolation, the metadata the build extracts, and why only team-signed builds run them.
 - [design.md](design.md): visual rules (metrics, surfaces, glyphs) and the layout of the remote, overlay cards, pickers and Settings.
 - [sandbox-and-keychain.md](sandbox-and-keychain.md): where pairings and preferences are stored, signing and the provisioning profile, the App Sandbox and container migration.
 - [unverified.md](unverified.md): what is reasoned out but not yet confirmed.

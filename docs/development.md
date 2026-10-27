@@ -25,6 +25,8 @@ Launch arguments the app understands:
 - `--regular` shows a Dock icon (the app is normally an accessory), which some tooling needs to see the process.
 - `--demo [scenario]` runs against made-up Apple TVs; see [Demo mode](#demo-mode).
 
+`package_app.sh` also runs Xcode's `appintentsmetadataprocessor` to put the Shortcuts actions' `Metadata.appintents` in the bundle, and fails when it lists no actions; the recipe and what to check when it breaks are in [intents.md](intents.md#metadata-in-the-bundle). Shortcuts only runs the actions of a team-signed build.
+
 Ad-hoc builds leave out `SUFeedURL`, so they never update themselves and Settings says updates are off. `script/package_app.sh --app-store` builds the Mac App Store version instead, without Sparkle; see [app-store.md](app-store.md).
 
 ### Building inside a sandboxed shell
