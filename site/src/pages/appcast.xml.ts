@@ -9,7 +9,7 @@ export const prerender = false;
 const FEED_URL = "https://jakejarvis.github.io/Clicker/appcast.xml";
 const FEED_TIMEOUT_MS = 10_000;
 const CAPTURE_TIMEOUT_MS = 2_000;
-const DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com";
+const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 // Sparkle's user agent: CFBundleName/CFBundleShortVersionString Sparkle/version.
 // Anything else (Homebrew's livecheck, browsers) is served but not counted.
 const SPARKLE_AGENT_PATTERN = /^Clicker\/([A-Za-z0-9.+-]{1,32}) Sparkle\/([A-Za-z0-9.+-]{1,32})$/;
