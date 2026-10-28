@@ -66,6 +66,8 @@ ffmpeg -start_number N -i f%04d.png -frames:v 1 -vf "tile=4x4" tiles.png
 
 To exercise controller paths that have no UI, add a temporary hook (a distributed-notification observer that calls `RemoteController` methods directly) to a Developer ID debug build, and remove it afterwards. Rebuild something similar rather than adding UI just to test. What has been measured this way is recorded in [protocol.md](protocol.md); what hasn't is in [unverified.md](unverified.md).
 
+Shortcuts actions need the same kind of build: an ad-hoc one is refused by the system's intents service. Build with `package_app.sh --sign <Developer ID SHA-1>`, install that copy to `/Applications`, add an action in the Shortcuts editor, run it, and check the press in the `remote` log, where intent presses end in "from Shortcuts". See [intents.md](intents.md).
+
 Two real copies running at once share the client identity, and the TV drops the earlier session when the second connects, so run one at a time.
 
 ## Resource usage
@@ -92,4 +94,4 @@ Baseline (release build, macOS 27, Apple silicon, one TV on the network), to com
 Noise that is not ours:
 
 - A `phys_footprint_peak` of about 170 MB on every launch is GPU memory the driver attributes to the process at the first Metal context, present before the panel is shown and paged out within seconds. System menu bar apps show larger peaks.
-- `leaks` reports about 400 leaked allocations (26 KB) per launch, all `NSXPCConnection` cycles from AppIntents failing to register (`Error registering app with intents framework` in the launch log), with no Clicker frame in any stack.
+- `leaks` reports about 400 leaked allocations (26 KB) per launch of an ad-hoc build, all `NSXPCConnection` cycles from AppIntents failing to register (`Error registering app with intents framework` in the launch log; `linkd` rejects a process without a team ID, see [intents.md](intents.md#only-team-signed-builds-run-actions)), with no Clicker frame in any stack. A team-signed build registers and logs no error; whether it also leaks less has not been measured.

@@ -18,6 +18,16 @@ What is reasoned out or documented but not yet confirmed. When you confirm one, 
 - Open at Login actually opening the app at the next login. Registration itself works: the toggle from `/Applications/Clicker.app` leaves `sfltool dumpbtm` showing Clicker `[enabled, allowed, notified]`.
 - The update notice with a real feed. In short launches against a local feed, Sparkle 2.10 never ran its scheduled check, with or without a backdated `SULastCheckTime`; the cause wasn't chased. The manual path (Check for Updates…, download, signature check, install, relaunch) works.
 
+## Shortcuts actions
+
+What is confirmed is in [intents.md](intents.md): the metadata is extracted and indexed, and a Developer ID build registers with `linkd`. Not yet seen:
+
+- The actions listed under Apps › Clicker in the Shortcuts editor, with their summaries and the Apple TV and app pickers filled (the app picker also with the TV asleep).
+- Any action run end to end against a TV, including one run with Clicker quit so the system launches it, and the error dialog for a TV that is unplugged.
+- What an ad-hoc build's actions do when run, given that `linkd` rejects its process.
+- Whether the Shortcuts app picks up changed metadata without a logout or `killall siriactionsd`.
+- Whether Spotlight lists the actions.
+
 ## The Mac App Store build
 
 - A store-signed build getting through App Store Connect's processing. The first upload failed on the quarantine attribute that `package_app.sh` now clears; confirm the next one passes.

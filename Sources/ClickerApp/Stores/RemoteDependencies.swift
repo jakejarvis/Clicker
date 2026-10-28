@@ -63,14 +63,20 @@ package nonisolated struct RemoteTimings: Sendable {
     /// How long a SetVolume gets to be echoed by an `_iMC` event; pyatv
     /// waits the same (see `RemoteController.confirmMute`).
     package var muteConfirmationTimeout: Duration
+    /// How long a Shortcuts action waits for Bonjour to report its TV. The
+    /// system may launch Clicker just to run one, and discovery has only
+    /// begun then; a TV usually answers within a second.
+    package var intentDiscoveryTimeout: Duration
 
     package init(
         reconnectDelay: Duration = .seconds(1),
         pairingSuccessHold: Duration = .seconds(1.2),
-        muteConfirmationTimeout: Duration = .seconds(5)
+        muteConfirmationTimeout: Duration = .seconds(5),
+        intentDiscoveryTimeout: Duration = .seconds(5)
     ) {
         self.reconnectDelay = reconnectDelay
         self.pairingSuccessHold = pairingSuccessHold
         self.muteConfirmationTimeout = muteConfirmationTimeout
+        self.intentDiscoveryTimeout = intentDiscoveryTimeout
     }
 }

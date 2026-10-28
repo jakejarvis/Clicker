@@ -33,7 +33,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Held here for the app's lifetime: Sparkle keeps its delegates weakly.
         let updates = UpdateController(launchPolicy: policy)
         self.updates = updates
-        statusItemController = StatusItemController(controller: controller, updates: updates)
+        let statusItemController = StatusItemController(controller: controller, updates: updates)
+        self.statusItemController = statusItemController
+        // Shortcuts actions reach the app through these (docs/intents.md).
+        IntentHost.controller = controller
+        IntentHost.openPanel = { [weak statusItemController] in statusItemController?.openPanelIfHidden() }
         controller.start()
         updates.start()
         environment.didLaunch(controller, updates)

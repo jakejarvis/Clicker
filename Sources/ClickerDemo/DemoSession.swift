@@ -4,13 +4,18 @@ import Foundation
 import Network
 
 /// A made-up TV's side of a Companion session. Commands are accepted and go
-/// nowhere; what the TV reports comes from its `DemoTV`.
+/// nowhere but the record below, for tests; what the TV reports comes from
+/// its `DemoTV`.
 actor DemoSession: RemoteSession {
     nonisolated let events: AsyncStream<CompanionEvent>
     private nonisolated let eventSink: AsyncStream<CompanionEvent>.Continuation
     private let tv: DemoTV
     private var mediaControls: MediaControlFlags
     private var volume = 0.5
+    /// What reached the "TV", in order.
+    private(set) var presses: [HIDCommand] = []
+    private(set) var launchedBundleIDs: [String] = []
+    private(set) var insertedText: [String] = []
 
     init(tv: DemoTV) {
         self.tv = tv
@@ -39,7 +44,7 @@ actor DemoSession: RemoteSession {
         eventSink.finish()
     }
 
-    func press(_ command: HIDCommand) async throws {}
+    func press(_ command: HIDCommand) async throws { presses.append(command) }
     func buttonDown(_ command: HIDCommand) async throws {}
     func buttonUp(_ command: HIDCommand) async throws {}
     func mediaControl(_ command: CompanionClient.MediaControlCommand) async throws {}
@@ -59,7 +64,7 @@ actor DemoSession: RemoteSession {
     func fetchPowerState() async throws -> PowerState { tv.power }
 
     func fetchApps() async throws -> [AppleTVApp] { DemoScenario.apps }
-    func launchApp(bundleIdentifier: String) async throws {}
+    func launchApp(bundleIdentifier: String) async throws { launchedBundleIDs.append(bundleIdentifier) }
     func fetchUserAccounts() async throws -> [UserAccount] { DemoScenario.userAccounts }
     func switchUserAccount(id: String) async throws {}
 
@@ -67,7 +72,7 @@ actor DemoSession: RemoteSession {
         tv.focusedText.map { TextInputArchive.Session(sessionUUID: UUID(), currentText: $0) }
     }
 
-    func insertText(_ text: String, session: TextInputArchive.Session) async throws {}
+    func insertText(_ text: String, session: TextInputArchive.Session) async throws { insertedText.append(text) }
     func clearText(session: TextInputArchive.Session) async throws {}
     func replaceText(_ text: String, session: TextInputArchive.Session) async throws {}
 

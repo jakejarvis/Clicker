@@ -10,8 +10,9 @@ final class DemoWorld {
     /// How long pair-setup takes on the "TV". A second in the app, so the
     /// spinner shows; tests pass zero.
     private let latency: Duration
-    /// The session the controller is using, for `.dropSession`.
-    private var session: DemoSession?
+    /// The session the controller is using, for `.dropSession` and for
+    /// tests to read what reached the "TV".
+    private(set) var session: DemoSession?
 
     init(scenario: DemoScenario, latency: Duration = .seconds(1)) {
         self.scenario = scenario

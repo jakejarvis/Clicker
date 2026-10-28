@@ -6,4 +6,5 @@ final class DemoSettings: ControllerSettings {
     var recentAppIDsByDevice: [String: [String]] = [:]
     var favoriteAppIDsByDevice: [String: [String]] = [:]
     var lastAddressByDevice: [String: String] = [:]
+    var knownAppsByDevice: [String: [String: String]] = [:]
 }

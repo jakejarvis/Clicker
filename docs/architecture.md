@@ -25,6 +25,8 @@ Sources/ClickerApp               the app, a library both executables run
 │               DevicePickerMenu, AppPickerView, TVTextFieldView, PINCodeField,
 │               RemoteOverlayCards, InlineNoticeView, SettingsScreen, ShortcutRow,
 │               ActionMenus, AboutView, Spinner, TrackpadSwipeMonitor
+├── Intents/    the Shortcuts actions, their entities and RemoteButton, IntentHost, IntentError
+│               (see intents.md)
 ├── Stores/     RemoteController (all UI-facing state), RemoteDependencies, ControllerSettings,
 │               CredentialStore, IdentityStore, UpdateController (Sparkle)
 ├── Services/   DeviceDiscovery, RemoteSession, PairingSession (the seams), DeviceBrowser
@@ -66,4 +68,4 @@ All targets enable the `NonisolatedNonsendingByDefault` and `InferIsolatedConfor
 
 ## Where state lives
 
-`RemoteController` owns everything the UI shows: the device list (fed by `DeviceDiscovery`, which is `DeviceBrowser` in a real run), the selected TV, pairing state, the live `RemoteSession` (a `CompanionClient`), connection and power state, media-control flags, the text-input session, notices, and the transient UI flags other parts of the app consult (the Apps picker and device popover being open, shortcut recording, held keys). Commands go through `RemoteController.perform`, which serializes them. Everything it reaches outside the process goes through `RemoteDependencies`, built once at launch by the `AppEnvironment`; what it remembers between launches (selection, recents, favorites, last addresses) goes through `ControllerSettings`, which is user defaults in a real run. `CredentialStore` keeps pairings, `IdentityStore` the client's own identity, and `UpdateController` wraps Sparkle (compiled out of the App Store build, where `UpdateController.isIncluded` is false).
+`RemoteController` owns everything the UI shows: the device list (fed by `DeviceDiscovery`, which is `DeviceBrowser` in a real run), the selected TV, pairing state, the live `RemoteSession` (a `CompanionClient`), connection and power state, media-control flags, the text-input session, notices, and the transient UI flags other parts of the app consult (the Apps picker and device popover being open, shortcut recording, held keys). Commands go through `RemoteController.perform`, which serializes them; Shortcuts actions reach the controller through `IntentHost` and use `send`, the awaited form of `perform`, on the same queue ([intents.md](intents.md)). Everything it reaches outside the process goes through `RemoteDependencies`, built once at launch by the `AppEnvironment`; what it remembers between launches (selection, recents, favorites, last addresses, each TV's last fetched apps) goes through `ControllerSettings`, which is user defaults in a real run. `CredentialStore` keeps pairings, `IdentityStore` the client's own identity, and `UpdateController` wraps Sparkle (compiled out of the App Store build, where `UpdateController.isIncluded` is false).

@@ -64,6 +64,19 @@ While the panel is open you can leave the mouse alone:
 
 Hold an arrow key to keep moving, as you would hold the clickpad on the Siri Remote. Hover over any button to see its shortcut.
 
+## Shortcuts
+
+Clicker adds actions to the Shortcuts app, so you can control your Apple TV from a shortcut or an automation (for example, wake the TV and open an app when you get home):
+
+- **Press Remote Button**: any button on the remote, from the arrows and Select to Play/Pause, Volume and Control Center.
+- **Open App on Apple TV**
+- **Wake Apple TV** and **Put Apple TV to Sleep**
+- **Type Text on Apple TV**: types into the search or text field showing on the TV, and can press Return after.
+- **Switch Apple TV**: chooses which Apple TV Clicker controls.
+- **Show Remote**: opens Clicker's panel.
+
+Each action works on the Apple TV selected in Clicker, or on one you choose in the action. Find them in the Shortcuts app under Apps › Clicker.
+
 ## Settings
 
 Open Settings from the ••• menu in the bottom corner of the panel, by right-clicking the menu bar icon, or with ⌘,. There you can:

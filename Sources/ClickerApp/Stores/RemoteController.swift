@@ -115,6 +115,10 @@ package final class RemoteController {
     /// Bundle identifiers of the starred apps per TV, in the order they
     /// were starred, keyed by device id. Kept like the recents.
     private(set) var favoriteAppIDsByDevice: [String: [String]] = [:]
+    /// Each TV's apps as last fetched, bundle identifier to name, for the
+    /// Shortcuts editor's app picker while no TV is connected. Kept like
+    /// the recents.
+    @ObservationIgnored private var knownAppsByDevice: [String: [String: String]] = [:]
     private(set) var lastActionError: String?
     /// Shown when a mute never took effect (HDMI output, see `confirmMute`).
     nonisolated static let muteUnavailableMessage = "This audio output can't be muted."
@@ -172,7 +176,7 @@ package final class RemoteController {
     @ObservationIgnored private var eventTask: Task<Void, Never>?
     @ObservationIgnored private var pairingSession: (any PairingSession)?
     @ObservationIgnored private var pairingDeviceID: String?
-    @ObservationIgnored private var commandQueue: Task<Void, Never>?
+    @ObservationIgnored private var commandQueue: Task<Void, any Error>?
     @ObservationIgnored private var reconnectTask: Task<Void, Never>?
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
     /// The pad's keys currently held down on the TV. A key-down sends the
@@ -206,6 +210,7 @@ package final class RemoteController {
         selectedDeviceID = dependencies.settings.selectedDeviceID
         recentAppIDsByDevice = dependencies.settings.recentAppIDsByDevice
         favoriteAppIDsByDevice = dependencies.settings.favoriteAppIDsByDevice
+        knownAppsByDevice = dependencies.settings.knownAppsByDevice
         dependencies.discovery.onUpdate = { [weak self] devices in
             self?.devicesDidChange(devices)
         }
@@ -329,6 +334,7 @@ package final class RemoteController {
         credentialStore.remove(deviceID: device.id)
         if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
         if favoriteAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberFavorites() }
+        if knownAppsByDevice.removeValue(forKey: device.id) != nil { rememberKnownApps() }
         lastAddressByDevice[device.id] = nil
         pairingNotice = nil
         if selectedDeviceID == device.id, !device.isOnline {
@@ -354,6 +360,7 @@ package final class RemoteController {
         credentialStore.remove(deviceID: device.id)
         if recentAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberRecents() }
         if favoriteAppIDsByDevice.removeValue(forKey: device.id) != nil { rememberFavorites() }
+        if knownAppsByDevice.removeValue(forKey: device.id) != nil { rememberKnownApps() }
         pairingNotice = reason.localizedDescription
         connectionState = .disconnected
     }
@@ -392,6 +399,10 @@ package final class RemoteController {
             if let favorites = favoriteAppIDsByDevice.removeValue(forKey: orphan.deviceID) {
                 favoriteAppIDsByDevice[device.id] = favorites
                 rememberFavorites()
+            }
+            if let known = knownAppsByDevice.removeValue(forKey: orphan.deviceID) {
+                knownAppsByDevice[device.id] = known
+                rememberKnownApps()
             }
             if let address = lastAddressByDevice[orphan.deviceID] {
                 lastAddressByDevice[orphan.deviceID] = nil
@@ -1001,13 +1012,35 @@ package final class RemoteController {
         settings.favoriteAppIDsByDevice = favoriteAppIDsByDevice
     }
 
+    private func rememberKnownApps() {
+        settings.knownAppsByDevice = knownAppsByDevice
+    }
+
+    /// The apps a Shortcuts action can open: the connected TV's, or while
+    /// none is connected every paired TV's last known list, by name.
+    var knownApps: [AppleTVApp] {
+        if !apps.isEmpty { return apps }
+        var byID: [String: String] = [:]
+        for known in knownAppsByDevice.values {
+            byID.merge(known) { first, _ in first }
+        }
+        return byID.map { AppleTVApp(bundleIdentifier: $0.key, name: $0.value) }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
     func refreshApps() {
         guard !isLoadingApps else { return }
         isLoadingApps = true
         perform(
             { [weak self] client in
                 let apps = try await client.fetchApps()
-                self?.apps = apps
+                guard let self else { return }
+                self.apps = apps
+                if let deviceID = self.clientDeviceID {
+                    self.knownAppsByDevice[deviceID] = Dictionary(
+                        apps.map { ($0.bundleIdentifier, $0.name) }, uniquingKeysWith: { first, _ in first })
+                    self.rememberKnownApps()
+                }
             },
             completion: { [weak self] in self?.isLoadingApps = false }
         )
@@ -1031,12 +1064,33 @@ package final class RemoteController {
         _ action: @escaping @MainActor @Sendable (any RemoteSession) async throws -> Void,
         completion: (@MainActor () -> Void)? = nil
     ) {
+        _ = enqueue(action, completion: completion)
+    }
+
+    /// `perform`, waited for: a Shortcuts action reports what happened
+    /// instead of leaving it to the panel's banner. Throws
+    /// `CommandNotSent` when there was no session to send it on.
+    func send(_ action: @escaping @MainActor @Sendable (any RemoteSession) async throws -> Void) async throws {
+        try await enqueue(action).value
+    }
+
+    /// No session to send a command on: the connect failed or nothing is
+    /// selected. `perform` drops the command without a word, as it always
+    /// has; `send` hands this back.
+    struct CommandNotSent: Error {}
+
+    /// Queues `action` behind every command already sent, synchronously, so
+    /// two calls in a row keep their order whoever awaits them.
+    private func enqueue(
+        _ action: @escaping @MainActor @Sendable (any RemoteSession) async throws -> Void,
+        completion: (@MainActor () -> Void)? = nil
+    ) -> Task<Void, any Error> {
         let previous = commandQueue
-        commandQueue = Task { [weak self] in
-            await previous?.value
+        let command = Task { [weak self] in
+            _ = await previous?.result
+            // Before the next command starts, as a coalesced touch hold needs.
             defer { completion?() }
-            guard let self else { return }
-            guard let client = await self.readyClient() else { return }
+            guard let self, let client = await self.readyClient() else { throw CommandNotSent() }
             do {
                 try await action(client)
                 self.lastActionError = nil
@@ -1049,8 +1103,11 @@ package final class RemoteController {
                 default:
                     break
                 }
+                throw error
             }
         }
+        commandQueue = command
+        return command
     }
 
     /// Returns a connected client, connecting first when necessary. Waits
@@ -1068,14 +1125,111 @@ package final class RemoteController {
             }
         }
         connectIfNeeded()
+        await waitForConnect()
+        guard connectionState == .connected, let client else { return nil }
+        return client
+    }
+
+    /// Waits until no connect attempt is in flight, through the retry that
+    /// a timed-out first attempt hands off to.
+    private func waitForConnect() async {
         while let task = connectTask {
             await task.value
             // Every attempt clears its own slot; this only guards the loop
             // against one that returns early without doing so.
             if connectTask == task { connectTask = nil }
         }
-        guard connectionState == .connected, let client else { return nil }
-        return client
+    }
+
+    // MARK: - Shortcuts actions
+
+    /// Gets a Shortcuts action's TV ready to take a command: selects the TV
+    /// the action names (as the device menu does, so the panel follows),
+    /// waits for Bonjour when the system launched Clicker to run the action,
+    /// and connects. A failed connect gets a fresh attempt, since an action
+    /// is run on purpose, and its reason comes back as the action's error.
+    func prepareForIntent(deviceID: String?) async throws {
+        if let deviceID {
+            try await selectForIntent(deviceID: deviceID)
+        }
+        if selectedDevice?.endpoint == nil {
+            discovery.start()
+            if let device = selectedDevice, !device.isOnline { rescan() }
+            _ = await waitForIntent { self.selectedDevice?.endpoint != nil }
+        }
+        guard let device = selectedDevice else { throw IntentError.noAppleTV }
+        guard isPaired(device) else { throw IntentError.notPaired(device.name) }
+        guard device.endpoint != nil else { throw IntentError.notFound(device.name) }
+        connectIfNeeded()
+        await waitForConnect()
+        switch connectionState {
+        case .connected:
+            return
+        case .failed(let message):
+            throw IntentError.connectFailed(message)
+        case .localNetworkDenied:
+            throw IntentError.connectFailed(Self.localNetworkDeniedMessage)
+        case .disconnected, .connecting:
+            // The pairing went stale during the connect (its notice says
+            // why), or something tore the session down meanwhile.
+            throw IntentError.connectFailed(pairingNotice ?? Self.connectFailedMessage(device.name))
+        }
+    }
+
+    /// Selects the TV with `deviceID` for a Shortcuts action, waiting a
+    /// moment for Bonjour to report it when Clicker has only just started.
+    @discardableResult
+    func selectForIntent(deviceID: String) async throws -> AppleTVDevice {
+        discovery.start()
+        _ = await waitForIntent { self.devices.contains { $0.id == deviceID } }
+        guard let device = devices.first(where: { $0.id == deviceID }) else { throw IntentError.unknownAppleTV }
+        if device.id != selectedDeviceID {
+            Log.remote.info("Select \(device.name, privacy: .public) from Shortcuts")
+        }
+        select(device)
+        return device
+    }
+
+    /// Polls `condition` until it holds or `intentDiscoveryTimeout` passes;
+    /// returns whether it held.
+    private func waitForIntent(_ condition: () -> Bool) async -> Bool {
+        let deadline = ContinuousClock.now + timings.intentDiscoveryTimeout
+        while !condition() {
+            guard ContinuousClock.now < deadline, !Task.isCancelled else { return false }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return true
+    }
+
+    /// `press`, for a Shortcuts action: waited for, and its error thrown.
+    func pressForIntent(_ command: HIDCommand) async throws {
+        if command == .volumeUp || command == .volumeDown { isMuted = false }
+        Log.remote.info("Press \(command.title, privacy: .public) from Shortcuts")
+        try await send { try await $0.press(command) }
+    }
+
+    /// `launch`, for a Shortcuts action. The app goes into the recents as a
+    /// launch from the panel does.
+    func launchForIntent(_ app: AppleTVApp) async throws {
+        noteLaunch(app)
+        Log.remote.info("Launch \(app.name, privacy: .public) from Shortcuts")
+        try await send { try await $0.launchApp(bundleIdentifier: app.bundleIdentifier) }
+    }
+
+    /// Types into the TV's focused field for a Shortcuts action, then sends
+    /// Return when asked, as `submitTVText` does. The panel's mirror of the
+    /// field gets the text too, so typing there carries on after it.
+    func typeForIntent(_ text: String, pressingReturn: Bool) async throws {
+        guard let session = keyboardSession else { throw IntentError.noTextField }
+        if !text.isEmpty {
+            tvText += text
+            Log.remote.info("Insert \(text.count) character(s) into TV field from Shortcuts")
+            try await send { try await $0.insertText(text, session: session) }
+        }
+        if pressingReturn {
+            Log.remote.info("Return to TV field from Shortcuts")
+            try await send { try await $0.insertText("\n", session: session) }
+        }
     }
 
     // MARK: - Pairing

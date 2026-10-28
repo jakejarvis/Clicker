@@ -11,6 +11,9 @@ package protocol ControllerSettings: AnyObject {
     var favoriteAppIDsByDevice: [String: [String]] { get set }
     /// The host each TV was last connected at, for Rescan's wake knock.
     var lastAddressByDevice: [String: String] { get set }
+    /// Each TV's apps as last fetched, bundle identifier to name, so a
+    /// Shortcuts action can offer them while the TV is asleep.
+    var knownAppsByDevice: [String: [String: String]] { get set }
 }
 
 /// `ControllerSettings` in user defaults, the standard ones in a real run.
@@ -19,6 +22,7 @@ final class DefaultsControllerSettings: ControllerSettings {
     private static let recentAppsKey = "recentAppIDsByDevice"
     private static let favoriteAppsKey = "favoriteAppIDsByDevice"
     private static let lastAddressesKey = "lastAddressByDevice"
+    private static let knownAppsKey = "knownAppsByDevice"
 
     private let defaults: UserDefaults
 
@@ -44,5 +48,10 @@ final class DefaultsControllerSettings: ControllerSettings {
     var lastAddressByDevice: [String: String] {
         get { defaults.dictionary(forKey: Self.lastAddressesKey) as? [String: String] ?? [:] }
         set { defaults.set(newValue, forKey: Self.lastAddressesKey) }
+    }
+
+    var knownAppsByDevice: [String: [String: String]] {
+        get { defaults.dictionary(forKey: Self.knownAppsKey) as? [String: [String: String]] ?? [:] }
+        set { defaults.set(newValue, forKey: Self.knownAppsKey) }
     }
 }

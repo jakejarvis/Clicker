@@ -179,6 +179,53 @@ if [[ "$APP_STORE" == 1 ]]; then
   fi
 fi
 
+# The App Intents (Shortcuts actions) are found by the system from
+# Contents/Resources/Metadata.appintents, without launching the app. Xcode
+# writes it with appintentsmetadataprocessor; SwiftPM never runs that, but
+# Swift Build already emits the .swiftconstvalues it reads, next to the
+# products. The intents live in ClickerApp, which both executables link
+# statically. See docs/intents.md.
+extract_app_intents_metadata() {
+  local config objects arch work xcode_version
+  config="$(basename "$BUILD_DIR")"
+  objects="$BUILD_DIR/../../Intermediates.noindex/$APP_NAME.build/$config/ClickerApp-t.build/Objects-normal"
+  # The metadata is the same for every slice; read the host's, or any.
+  arch="$(uname -m)"
+  [[ -d "$objects/$arch" ]] || arch="$(ls "$objects" 2>/dev/null | head -n 1)"
+  [[ -n "$arch" && -d "$objects/$arch" ]] || { echo "no ClickerApp objects under $objects" >&2; exit 1; }
+  work="$(mktemp -d)"
+  find "$ROOT_DIR/Sources/ClickerApp" -name '*.swift' | sort > "$work/sources.txt"
+  # Debug builds keep one file per source and leave a deleted source's file
+  # behind; take only current sources' (and release's whole-module file).
+  : > "$work/constvalues.txt"
+  while read -r source; do
+    local values="$objects/$arch/$(basename "$source" .swift).swiftconstvalues"
+    [[ -f "$values" ]] && echo "$values" >> "$work/constvalues.txt"
+  done < "$work/sources.txt"
+  [[ -f "$objects/$arch/ClickerApp-primary.swiftconstvalues" ]] &&
+    echo "$objects/$arch/ClickerApp-primary.swiftconstvalues" >> "$work/constvalues.txt"
+  [[ -s "$work/constvalues.txt" ]] || { echo "no .swiftconstvalues for ClickerApp under $objects/$arch" >&2; exit 1; }
+  xcode_version="$(xcodebuild -version | awk '/Build version/ { print $3 }')"
+  xcrun appintentsmetadataprocessor --output "$work/out" \
+    --toolchain-dir "$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain" \
+    --sdk-root "$(xcrun --sdk macosx --show-sdk-path)" --xcode-version "$xcode_version" \
+    --module-name ClickerApp --platform-family macOS --deployment-target "$DEPLOYMENT_TARGET" \
+    --target-triple "$arch-apple-macos$DEPLOYMENT_TARGET" \
+    --source-file-list "$work/sources.txt" --swift-const-vals-list "$work/constvalues.txt" \
+    --no-app-shortcuts-localization 2>&1 | grep -v "appintentsmetadataprocessor\[" || true
+  # The processor exits 0 having written nothing when it finds no intents,
+  # so judge what it wrote.
+  local actions="$work/out/Metadata.appintents/extract.actionsdata"
+  if [[ ! -f "$actions" ]] || ! grep -q '"PressButtonIntent"' "$actions"; then
+    echo "Metadata.appintents is missing or lists no PressButtonIntent" >&2
+    rm -rf "$work"
+    exit 1
+  fi
+  ditto "$work/out/Metadata.appintents" "$CONTENTS/Resources/Metadata.appintents"
+  rm -rf "$work"
+}
+extract_app_intents_metadata
+
 cp "$ROOT_DIR/Resources/Info.plist" "$INFO_PLIST"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$INFO_PLIST"
 plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$INFO_PLIST"
