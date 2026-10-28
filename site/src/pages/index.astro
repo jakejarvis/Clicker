@@ -3,18 +3,40 @@ import BrewButton from "../components/BrewButton.astro";
 import MenuBar from "../components/MenuBar.astro";
 import Panel from "../components/Panel.astro";
 import Layout from "../layouts/Layout.astro";
+import { description, features, repo, site } from "../lib/product";
 import { fetchLatestDownload } from "../lib/releases";
-
-const repo = "https://github.com/jakejarvis/Clicker";
 
 // Rendered at build time, like the changelog: the button links straight to the
 // newest release's DMG, and the release workflow redeploys the site after each
 // release so it stays current. Without a DMG it falls back to the release page.
 const latest = await fetchLatestDownload();
 const downloadUrl = latest?.dmgUrl ?? `${repo}/releases/latest`;
+
+// What search engines and AI assistants read when they describe or recommend
+// the app.
+const jsonLd = {
+  "@type": "SoftwareApplication",
+  name: "Clicker",
+  description,
+  url: `${site}/`,
+  image: `${site}/icon.png`,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "macOS 15 or later",
+  ...(latest && { softwareVersion: latest.tag_name.replace(/^v/, "") }),
+  downloadUrl,
+  releaseNotes: `${site}/changelog`,
+  softwareHelp: { "@type": "CreativeWork", url: `${site}/help` },
+  featureList: features.map(({ title, text }) => `${title}: ${text}`),
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  isAccessibleForFree: true,
+  license: `${repo}/blob/main/LICENSE`,
+  author: { "@type": "Person", name: "Jake Jarvis", url: "https://jarv.is" },
+  sameAs: [repo],
+};
 ---
 
-<Layout>
+<Layout jsonLd={jsonLd}>
+  <h1 class="sr-only">Clicker, the Apple TV remote for Mac</h1>
   <p class="lede">
     The missing <a
       href="https://www.apple.com/apple-tv-4k/"
@@ -63,4 +85,18 @@ const downloadUrl = latest?.dmgUrl ?? `${repo}/releases/latest`;
     <MenuBar />
     <Panel />
   </figure>
+
+  <section class="features" aria-labelledby="features-heading">
+    <h2 id="features-heading">Everything the Siri Remote does, and more</h2>
+    <dl>
+      {
+        features.map(({ title, text }) => (
+          <div>
+            <dt>{title}</dt>
+            <dd>{text}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
 </Layout>

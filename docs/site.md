@@ -11,11 +11,16 @@ npm run build    # writes dist/ and .vercel/output/
 
 ## Pages
 
-- `/`: the homepage, with the download button, the Homebrew command and the shot of the panel under a mock menu bar.
+- `/`: the homepage, with the download button, the Homebrew command, the shot of the panel under a mock menu bar and a list of features.
 - `/changelog`: every published release's notes.
-- `/help`: a short FAQ, the keyboard shortcuts and a Report an Issue button (GitHub's new-issue page). The app's Help › Clicker Help opens it, so keep that path. Check each answer against the app and its docs before adding it, and keep longer troubleshooting in the README. The shortcuts table is the README's, so a key added to the remote ([input.md](input.md#keyboard)) goes in both.
+- `/help`: a short FAQ, the keyboard shortcuts and a Report an Issue button (GitHub's new-issue page). The app's Help › Clicker Help opens it, so keep that path. The questions are data in the page's frontmatter, rendered both as the page and as its FAQ structured data. Check each answer against the app and its docs before adding it, and keep longer troubleshooting in the README. The shortcuts table is the README's, so a key added to the remote ([input.md](input.md#keyboard)) goes in both.
 - `/privacy` and `/terms`. The App Store listing links `/privacy` as the privacy policy ([app-store.md](app-store.md)), so keep that path.
+- `/llms.txt`: the site as Markdown for AI assistants ([llmstxt.org](https://llmstxt.org)), built with the pages.
 - A 404 page.
+
+## Search engines and AI assistants
+
+People ask search engines and AI assistants for "an Apple TV remote for Mac", and both answer from what they can read, so the site says plainly what Clicker is and does. `site/src/lib/product.ts` holds that description once: the summary, the meta description, the requirements and the homepage's feature list. The homepage, the default meta description, the homepage's `SoftwareApplication` JSON-LD and `/llms.txt` all read it, and the latter two also carry the newest release's version and DMG. When a feature or requirement changes, change it there and in the README. Pages pass structured data to the layout as `jsonLd`; `/help` gives its questions as a `FAQPage`. The homepage's only `<h1>` is visually hidden, since the lede reads better as a paragraph.
 
 ## Keep it static
 
