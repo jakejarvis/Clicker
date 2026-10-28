@@ -45,7 +45,8 @@ package enum CompanionPairing {
         do {
             decrypted = try HAPCrypto.open(encrypted, key: sessionKey, nonce: HAPCrypto.nonce(label: "PV-Msg02"))
         } catch {
-            throw CompanionError.authenticationFailed("Couldn't verify the Apple TV. Try pairing again.")
+            throw CompanionError.authenticationFailed(
+                String(localized: "Couldn't verify the Apple TV. Try pairing again."))
         }
         let inner = try TLV8.decode(decrypted)
         guard let identifier = inner[.identifier], let signature = inner[.signature] else {
@@ -57,7 +58,8 @@ package enum CompanionPairing {
 
         let accessoryKey = try Curve25519.Signing.PublicKey(rawRepresentation: credentials.accessoryPublicKey)
         guard accessoryKey.isValidSignature(signature, for: serverPublic + identifier + ourPublic) else {
-            throw CompanionError.authenticationFailed("Couldn't verify the Apple TV. Try pairing again.")
+            throw CompanionError.authenticationFailed(
+                String(localized: "Couldn't verify the Apple TV. Try pairing again."))
         }
 
         let signingKey = try Curve25519.Signing.PrivateKey(rawRepresentation: credentials.clientPrivateKey)
@@ -131,7 +133,7 @@ package actor CompanionPairingSession {
         pin: String, clientName: String, deviceID: String, deviceName: String, deviceModel: String?
     ) async throws -> PairingCredentials {
         guard let salt, let serverPublicKey, let srp else {
-            throw CompanionError.pairingError("Pairing has not been started.")
+            throw CompanionError.pairingError(String(localized: "Pairing has not been started."))
         }
 
         let session = try srp.process(serverPublicKey: serverPublicKey, salt: salt, password: pin)
@@ -151,7 +153,8 @@ package actor CompanionPairingSession {
             throw CompanionError.unexpectedResponse("pair-setup M4 missing proof")
         }
         guard serverProof == session.expectedServerProof else {
-            throw CompanionError.authenticationFailed("The code didn't match. Check the TV and try again.")
+            throw CompanionError.authenticationFailed(
+                String(localized: "The code didn't match. Check the TV and try again."))
         }
 
         let controllerSigningSalt = HAPCrypto.deriveKey(

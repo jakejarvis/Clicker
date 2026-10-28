@@ -1,0 +1,607 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ is offline" : {
+
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@: " : {
+
+    },
+    "%lld found" : {
+
+    },
+    "A code will appear on %@." : {
+
+    },
+    "About" : {
+
+    },
+    "About Clicker" : {
+
+    },
+    "Add %@ to Favorites" : {
+
+    },
+    "Add to Favorites" : {
+
+    },
+    "Address" : {
+
+    },
+    "All Apps" : {
+
+    },
+    "Apple TV (2nd gen)" : {
+
+    },
+    "Apple TV (3rd gen)" : {
+
+    },
+    "Apple TV 4K (2nd gen)" : {
+
+    },
+    "Apple TV 4K (3rd gen)" : {
+
+    },
+    "Apple TV: %@" : {
+
+    },
+    "Apple TV: none selected" : {
+
+    },
+    "Apps" : {
+
+    },
+    "Asleep" : {
+      "comment" : "The Apple TV's state: asleep"
+    },
+    "Audio" : {
+
+    },
+    "Available when the Apple TV shows a keyboard" : {
+
+    },
+    "Awake" : {
+      "comment" : "The Apple TV's power state"
+    },
+    "Back" : {
+      "comment" : "Remote button: the Siri Remote's Back button"
+    },
+    "Back (Delete)" : {
+
+    },
+    "Back (Esc)" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Center" : {
+      "comment" : "Where the panel opens under the menu bar icon"
+    },
+    "Channel Down" : {
+
+    },
+    "Channel Up" : {
+
+    },
+    "Check Automatically" : {
+
+    },
+    "Check for Updates…" : {
+
+    },
+    "Choose an Apple TV" : {
+
+    },
+    "Choose an Apple TV. Option-click for details." : {
+
+    },
+    "Choose one at the top of the panel." : {
+
+    },
+    "Clear" : {
+
+    },
+    "Clear recent apps" : {
+
+    },
+    "Clear the field on the Apple TV" : {
+
+    },
+    "Clicker %@ is available." : {
+
+    },
+    "Clicker Help" : {
+
+    },
+    "Clicker hasn't checked for updates yet." : {
+
+    },
+    "Clicker isn't allowed on the local network. Turn it on under Privacy & Security › Local Network." : {
+
+    },
+    "Clicker menu" : {
+
+    },
+    "Clicker will need to pair with it again." : {
+
+    },
+    "Clickpad" : {
+
+    },
+    "Connect" : {
+
+    },
+    "Connecting…" : {
+
+    },
+    "Connection failed" : {
+
+    },
+    "Control Center" : {
+      "comment" : "Power menu: tvOS Control Center"
+    },
+    "Controls" : {
+
+    },
+    "Copied" : {
+
+    },
+    "Copy the version" : {
+
+    },
+    "Couldn't connect to %@." : {
+
+    },
+    "Couldn't connect to the Apple TV." : {
+
+    },
+    "Couldn't decrypt a message from the Apple TV." : {
+
+    },
+    "Couldn't verify the Apple TV. Try pairing again." : {
+
+    },
+    "Down" : {
+
+    },
+    "Enter the code shown on %@" : {
+
+    },
+    "Enter the four-digit code shown on the Apple TV." : {
+
+    },
+    "Favorites" : {
+
+    },
+    "Flags" : {
+
+    },
+    "Forget" : {
+
+    },
+    "Forget %@" : {
+
+    },
+    "Forget %@?" : {
+
+    },
+    "Forget %@…" : {
+
+    },
+    "Forget the recently opened apps" : {
+
+    },
+    "Forget this Apple TV?" : {
+
+    },
+    "Forget this pairing" : {
+
+    },
+    "GitHub" : {
+
+    },
+    "Guide" : {
+      "comment" : "Power menu: the TV program guide"
+    },
+    "Hide the Apple TV text field" : {
+
+    },
+    "Hold" : {
+
+    },
+    "Hold for Siri (S)" : {
+
+    },
+    "How this Mac appears in Remotes and Devices on the Apple TV. Changes apply the next time you pair." : {
+
+    },
+    "ID" : {
+
+    },
+    "Idle" : {
+      "comment" : "The Apple TV's power state"
+    },
+    "Interface" : {
+
+    },
+    "Inverted" : {
+      "comment" : "Trackpad swipe direction"
+    },
+    "Last checked %@." : {
+
+    },
+    "Left" : {
+
+    },
+    "Loading" : {
+
+    },
+    "Loading apps…" : {
+
+    },
+    "Looking for Apple TVs…" : {
+
+    },
+    "Make sure the Apple TV is on the same network as this Mac." : {
+
+    },
+    "Menu" : {
+
+    },
+    "Model" : {
+
+    },
+    "Mute" : {
+
+    },
+    "Mute (M)" : {
+
+    },
+    "Mute needs a HomePod, AirPlay or Bluetooth audio output" : {
+
+    },
+    "Name" : {
+
+    },
+    "Natural" : {
+      "comment" : "Trackpad swipe direction"
+    },
+    "No Results" : {
+
+    },
+    "No apps found" : {
+
+    },
+    "No local network access" : {
+
+    },
+    "Not connected" : {
+
+    },
+    "Not connected to the Apple TV." : {
+
+    },
+    "Not connected." : {
+
+    },
+    "Not paired" : {
+
+    },
+    "Offline" : {
+
+    },
+    "Open Privacy & Security" : {
+
+    },
+    "Open an app on the Apple TV" : {
+
+    },
+    "Open at Login" : {
+
+    },
+    "Opens or closes Clicker from any app. Click, then press the keys." : {
+
+    },
+    "Opens the list of Apple TVs" : {
+
+    },
+    "Opens the list of apps" : {
+
+    },
+    "PIN" : {
+
+    },
+    "Page Up" : {
+
+    },
+    "Pair" : {
+      "comment" : "Badge on an Apple TV that isn't paired yet"
+    },
+    "Pair with %@" : {
+
+    },
+    "Paired" : {
+
+    },
+    "Paired Devices" : {
+
+    },
+    "Paired, but the pairing couldn't be saved: %@" : {
+
+    },
+    "Pairing failed" : {
+
+    },
+    "Pairing has not been started." : {
+
+    },
+    "Pairing is turned off on this Apple TV. Allow it in Settings › Remotes and Devices › Remote App and Devices." : {
+
+    },
+    "Pairing isn't available right now." : {
+
+    },
+    "Pair…" : {
+
+    },
+    "Play/Pause" : {
+
+    },
+    "Play/Pause (Space)" : {
+
+    },
+    "Position" : {
+
+    },
+    "Power" : {
+
+    },
+    "Power · Asleep" : {
+
+    },
+    "Power · Awake" : {
+
+    },
+    "Power · Idle" : {
+
+    },
+    "Power · Screen saver on" : {
+
+    },
+    "Press Shortcut…" : {
+
+    },
+    "Press the keys, or Esc to cancel" : {
+
+    },
+    "Protocol" : {
+
+    },
+    "Quit Clicker" : {
+
+    },
+    "Ready" : {
+      "comment" : "The Apple TV's state: connected and on"
+    },
+    "Recents" : {
+
+    },
+    "Record Shortcut" : {
+
+    },
+    "Refresh apps" : {
+
+    },
+    "Refresh the app list" : {
+
+    },
+    "Release" : {
+
+    },
+    "Remote" : {
+
+    },
+    "Remove %@ from Favorites" : {
+
+    },
+    "Remove Shortcut" : {
+
+    },
+    "Remove from Favorites" : {
+
+    },
+    "Remove shortcut" : {
+
+    },
+    "Remove the shortcut" : {
+
+    },
+    "Report an Issue…" : {
+
+    },
+    "Rescan Network" : {
+
+    },
+    "Rescanning…" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Right" : {
+
+    },
+    "Screen Saver" : {
+
+    },
+    "Search" : {
+
+    },
+    "Search the network again" : {
+
+    },
+    "Searching" : {
+
+    },
+    "Searching…" : {
+
+    },
+    "Select" : {
+      "comment" : "Remote button: the clickpad's center"
+    },
+    "Select (Return)" : {
+
+    },
+    "Session" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Settings…" : {
+
+    },
+    "Shortcut" : {
+
+    },
+    "Shortcut: %@" : {
+
+    },
+    "Show the Apple TV text field" : {
+
+    },
+    "Sleep" : {
+      "comment" : "Power menu: put the Apple TV to sleep"
+    },
+    "Swipe Direction" : {
+
+    },
+    "TV" : {
+      "comment" : "Remote button: the Siri Remote's TV (Home) button"
+    },
+    "TV (H)" : {
+
+    },
+    "Text for the Apple TV" : {
+
+    },
+    "That code wasn't accepted." : {
+
+    },
+    "The Apple TV didn't respond in time." : {
+
+    },
+    "The Apple TV has reached its pairing limit." : {
+
+    },
+    "The Apple TV is busy with another pairing." : {
+
+    },
+    "The Apple TV needs a moment. Try again shortly." : {
+
+    },
+    "The Apple TV refused that command." : {
+
+    },
+    "The Apple TV reported an unknown error." : {
+
+    },
+    "The Apple TV sent an unexpected reply." : {
+
+    },
+    "The code didn't match. Check the TV and try again." : {
+
+    },
+    "The connection to the Apple TV was closed." : {
+
+    },
+    "This Apple TV no longer recognizes Clicker, so it needs to be paired again." : {
+
+    },
+    "This Apple TV was reset, so it needs to be paired again." : {
+
+    },
+    "This Mac" : {
+
+    },
+    "This audio output can't be muted." : {
+
+    },
+    "Too many failed attempts. Try again later." : {
+
+    },
+    "Try Again" : {
+
+    },
+    "Turn it on, or check that it's on the same network as this Mac." : {
+
+    },
+    "Type on the Apple TV" : {
+
+    },
+    "Unknown" : {
+      "comment" : "The Apple TV's power state"
+    },
+    "Unknown keychain error" : {
+
+    },
+    "Unmute" : {
+
+    },
+    "Unmute (M)" : {
+
+    },
+    "Up" : {
+
+    },
+    "Update" : {
+
+    },
+    "Update to %@…" : {
+
+    },
+    "Updates are off in development builds." : {
+
+    },
+    "Version" : {
+
+    },
+    "Version %@" : {
+
+    },
+    "Volume Down" : {
+
+    },
+    "Volume Down (−)" : {
+
+    },
+    "Volume Up" : {
+
+    },
+    "Volume Up (+)" : {
+
+    },
+    "Waiting for %@…" : {
+
+    },
+    "Wake" : {
+      "comment" : "Power menu: wake the Apple TV"
+    },
+    "Website" : {
+
+    }
+  },
+  "version" : "1.0"
+}

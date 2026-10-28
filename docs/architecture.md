@@ -30,7 +30,8 @@ Sources/ClickerApp               the app, a library both executables run
 ├── Services/   DeviceDiscovery, RemoteSession, PairingSession (the seams), DeviceBrowser
 │               (NWBrowser), PortKnocker (Rescan's wake knock)
 ├── Support/    Surface (glass and material helpers, SurfaceButtonStyle)
-└── Models/     AppleTVDevice, RemoteCommand+Display, TrackpadSwipe
+├── Models/     AppleTVDevice, RemoteCommand+Display, TrackpadSwipe
+└── Resources/  Localizable.xcstrings (see localization.md)
 
 Sources/ClickerCompanion         the protocol, a separate module the app imports
 ├── OPACK, TLV8                  Apple's OPACK serialization, HomeKit TLV8
@@ -45,9 +46,9 @@ Tests/ClickerTests, Tests/ClickerCompanionTests   see testing.md
 Resources/      Info.plist, Clicker.entitlements, Clicker.provisionprofile,
                 Clicker-AppStore.provisionprofile, PrivacyInfo.xcprivacy,
                 container-migration.plist, InternetAccessPolicy.plist, AppIcon.icon,
-                StatusIcon/
+                StatusIcon/, InfoPlist.xcstrings
 script/         build_and_run.sh, package_app.sh, release.sh, render_icon.sh,
-                make_status_icons.swift
+                make_status_icons.swift, sync_strings.sh, pseudo_localize.py
 .github/        ci.yml (lint, test, package both builds), release.yml (on v* tags), dependabot.yml
 site/           the Astro website (see site.md)
 ```

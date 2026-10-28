@@ -55,7 +55,10 @@ struct ShortcutRow: View {
                     ? "Press the keys, or Esc to cancel"
                     : "Opens or closes Clicker from any app. Click, then press the keys."
             )
-            .accessibilityLabel(shortcut.map { "Shortcut: \($0.description)" } ?? "Record Shortcut")
+            .accessibilityLabel(
+                shortcut.map { String(localized: "Shortcut: \($0.description)") }
+                    ?? String(localized: "Record Shortcut")
+            )
             // Floated beside the button rather than laid out next to it, so
             // the row keeps its width for "Record Shortcut" while hidden.
             .overlay(alignment: .leading) {
@@ -86,8 +89,8 @@ struct ShortcutRow: View {
     }
 
     private var label: String {
-        if isRecording { return "Press Shortcut…" }
-        return shortcut.map { "\($0)" } ?? "Record Shortcut"
+        if isRecording { return String(localized: "Press Shortcut…") }
+        return shortcut.map { "\($0)" } ?? String(localized: "Record Shortcut")
     }
 
     // MARK: - Recording

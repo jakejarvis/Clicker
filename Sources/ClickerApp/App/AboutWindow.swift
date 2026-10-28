@@ -30,7 +30,7 @@ package final class AboutWindow: NSWindow {
             backing: .buffered,
             defer: false
         )
-        title = "About Clicker"
+        title = String(localized: "About Clicker")
         titleVisibility = .hidden
         titlebarAppearsTransparent = true
         isMovableByWindowBackground = true

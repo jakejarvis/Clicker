@@ -73,20 +73,23 @@ package enum CompanionError: Error, LocalizedError, Sendable {
 
     package var errorDescription: String? {
         switch self {
-        case .notConnected: return "Not connected to the Apple TV."
-        case .disconnected: return "The connection to the Apple TV was closed."
-        case .timeout: return "The Apple TV didn't respond in time."
-        case .connectionFailed: return "Couldn't connect to the Apple TV."
-        case .unexpectedResponse: return "The Apple TV sent an unexpected reply."
-        case .remoteError: return "The Apple TV refused that command."
+        case .notConnected: return String(localized: "Not connected to the Apple TV.")
+        case .disconnected: return String(localized: "The connection to the Apple TV was closed.")
+        case .timeout: return String(localized: "The Apple TV didn't respond in time.")
+        case .connectionFailed: return String(localized: "Couldn't connect to the Apple TV.")
+        case .unexpectedResponse: return String(localized: "The Apple TV sent an unexpected reply.")
+        case .remoteError: return String(localized: "The Apple TV refused that command.")
         case .pairingError(let message): return message
         case .authenticationFailed(let message): return message
-        case .identityChanged: return "This Apple TV was reset, so it needs to be paired again."
-        case .pairingLost: return "This Apple TV no longer recognizes Clicker, so it needs to be paired again."
-        case .encryptionFailed: return "Couldn't decrypt a message from the Apple TV."
+        case .identityChanged: return String(localized: "This Apple TV was reset, so it needs to be paired again.")
+        case .pairingLost:
+            return String(localized: "This Apple TV no longer recognizes Clicker, so it needs to be paired again.")
+        case .encryptionFailed: return String(localized: "Couldn't decrypt a message from the Apple TV.")
         case .pairingDisabled:
-            return
-                "Pairing is turned off on this Apple TV. Allow it in Settings › Remotes and Devices › Remote App and Devices."
+            return String(
+                localized:
+                    "Pairing is turned off on this Apple TV. Allow it in Settings › Remotes and Devices › Remote App and Devices."
+            )
         }
     }
 }

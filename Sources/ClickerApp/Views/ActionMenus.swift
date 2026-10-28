@@ -91,7 +91,7 @@ struct AppMenu: View {
             Button("Settings…") { controller.showSettings() }
                 .keyboardShortcut(",")
             if updates.isEnabled {
-                Button(updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…") {
+                Button(updates.checkForUpdatesTitle) {
                     updates.checkForUpdates()
                 }
                 .disabled(!updates.canCheckForUpdates)

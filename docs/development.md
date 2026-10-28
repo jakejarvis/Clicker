@@ -8,7 +8,7 @@ Clicker is a SwiftUI menu bar app built with SwiftPM. It needs macOS 15 or later
 ./script/build_and_run.sh
 ```
 
-The script kills a running copy, calls `script/package_app.sh` to build with SwiftPM and stage `dist/Clicker.app` (Info.plist from `Resources/`, Sparkle.framework embedded, compiled icon, ad-hoc signature, sandbox entitlements), then launches it. It stages the `ClickerDemo` executable, which is the app as shipped plus `--demo`; see [Demo mode](#demo-mode). Modes:
+The script kills a running copy, calls `script/package_app.sh` to build with SwiftPM and stage `dist/Clicker.app` (Info.plist from `Resources/`, Sparkle.framework embedded, compiled icon, any translations, ad-hoc signature, sandbox entitlements), then launches it. It stages the `ClickerDemo` executable, which is the app as shipped plus `--demo`; see [Demo mode](#demo-mode). Modes:
 
 ```bash
 ./script/build_and_run.sh --install    # copy to /Applications and launch from there
@@ -16,6 +16,7 @@ The script kills a running copy, calls `script/package_app.sh` to build with Swi
 ./script/build_and_run.sh --telemetry  # launch and stream com.jakejarvis.Clicker logs
 ./script/build_and_run.sh --logs       # launch and stream every log line from the process
 ./script/build_and_run.sh --verify     # launch and confirm the process exists
+./script/build_and_run.sh --pseudo     # add the en-XA pseudo-language and launch in it (localization.md)
 ./script/build_and_run.sh --debug      # run under lldb
 swift test
 ```

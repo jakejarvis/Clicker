@@ -62,9 +62,9 @@ struct PairingCard: View {
         case .idle:
             CardTitle("Pair with \(device.name)")
             if device.pairingDisabled {
-                CardCaption(CompanionError.pairingDisabled.localizedDescription, tint: .orange)
+                CardCaption(verbatim: CompanionError.pairingDisabled.localizedDescription, tint: .orange)
             } else if let notice = controller.pairingNotice {
-                CardCaption(notice, tint: .orange)
+                CardCaption(verbatim: notice, tint: .orange)
             } else {
                 CardCaption("A code will appear on \(device.name).")
             }
@@ -105,12 +105,12 @@ struct PairingCard: View {
 
         case .failed(let message):
             CardTitle("Pairing failed")
-            CardCaption(message)
+            CardCaption(verbatim: message)
             retryButtons
 
         case .localNetworkDenied:
             CardTitle("No local network access")
-            CardCaption(RemoteController.localNetworkDeniedMessage)
+            CardCaption(verbatim: RemoteController.localNetworkDeniedMessage)
             // Opening Settings closes the panel (an outside click); the card
             // is still here on the next open, for Try Again.
             Button("Open Privacy & Security") { SystemSettings.openLocalNetworkPrivacy() }
@@ -158,7 +158,11 @@ struct SearchingCard: View {
         OverlayCard {
             Spinner()
             CardTitle("Looking for Apple TVs…")
-            CardCaption(message ?? "Make sure the Apple TV is on the same network as this Mac.")
+            if let message {
+                CardCaption(verbatim: message)
+            } else {
+                CardCaption("Make sure the Apple TV is on the same network as this Mac.")
+            }
         }
     }
 }
@@ -176,28 +180,34 @@ struct ChooseDeviceCard: View {
 }
 
 private struct CardTitle: View {
-    let text: String
+    let text: Text
 
-    init(_ text: String) { self.text = text }
+    init(_ key: LocalizedStringKey) { text = Text(key) }
 
     var body: some View {
-        Text(text)
+        text
             .font(.headline)
             .lineLimit(2)
     }
 }
 
 private struct CardCaption: View {
-    let text: String
+    let text: Text
     var tint: Color?
 
-    init(_ text: String, tint: Color? = nil) {
-        self.text = text
+    init(_ key: LocalizedStringKey, tint: Color? = nil) {
+        text = Text(key)
+        self.tint = tint
+    }
+
+    /// For text that is already localized, such as an error's description.
+    init(verbatim string: String, tint: Color? = nil) {
+        text = Text(verbatim: string)
         self.tint = tint
     }
 
     var body: some View {
-        Text(text)
+        text
             // Callout, not caption: caption is the 10 pt floor, and macOS has no
             // text size setting that could raise it.
             .font(.callout)

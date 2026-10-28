@@ -1,0 +1,18 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "Privacy - Local Network Usage Description: shown in the macOS prompt that asks to allow Clicker on the local network",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clicker finds and controls Apple TVs on your local network."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

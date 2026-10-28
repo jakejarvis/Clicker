@@ -117,7 +117,7 @@ package final class RemoteController {
     private(set) var favoriteAppIDsByDevice: [String: [String]] = [:]
     private(set) var lastActionError: String?
     /// Shown when a mute never took effect (HDMI output, see `confirmMute`).
-    nonisolated static let muteUnavailableMessage = "This audio output can't be muted."
+    nonisolated static let muteUnavailableMessage = String(localized: "This audio output can't be muted.")
     /// Non-nil while the Apple TV has a text field focused.
     private(set) var keyboardSession: TextInputArchive.Session?
     /// Our mirror of the text in the TV's focused field.
@@ -263,18 +263,18 @@ package final class RemoteController {
     /// Short state for the selected device's card and header.
     var selectedStateDescription: String {
         guard let device = selectedDevice else { return "" }
-        if !isPaired(device) { return device.isOnline ? "Not paired" : "Offline" }
-        if !device.isOnline { return "Offline" }
+        if !isPaired(device) { return device.isOnline ? String(localized: "Not paired") : String(localized: "Offline") }
+        if !device.isOnline { return String(localized: "Offline") }
         switch connectionState {
-        case .connecting: return "Connecting…"
-        case .failed: return "Connection failed"
-        case .localNetworkDenied: return "No local network access"
-        case .disconnected: return "Not connected"
+        case .connecting: return String(localized: "Connecting…")
+        case .failed: return String(localized: "Connection failed")
+        case .localNetworkDenied: return String(localized: "No local network access")
+        case .disconnected: return String(localized: "Not connected")
         case .connected:
             // "Ready" means connected and the TV is on; only sleep is called out.
             switch powerState.isOn {
-            case .some(false): return "Asleep"
-            default: return "Ready"
+            case .some(false): return String(localized: "Asleep", comment: "The Apple TV's state: asleep")
+            default: return String(localized: "Ready", comment: "The Apple TV's state: connected and on")
             }
         }
     }
@@ -1130,7 +1130,7 @@ package final class RemoteController {
         }
         let digits = pin.filter(\.isNumber)
         guard digits.count == 4 else {
-            pairingState = .failed("Enter the four-digit code shown on the Apple TV.")
+            pairingState = .failed(String(localized: "Enter the four-digit code shown on the Apple TV."))
             return
         }
         Log.pairing.info("Submitting PIN to \(device.name, privacy: .public)")
@@ -1183,15 +1183,15 @@ package final class RemoteController {
     /// The pair card's message when the TV accepted the pairing but the
     /// credentials could not be stored (`--demo savefailed`).
     nonisolated static func pairingNotSavedMessage(_ reason: String) -> String {
-        "Paired, but the pairing couldn't be saved: \(reason)"
+        String(localized: "Paired, but the pairing couldn't be saved: \(reason)")
     }
 
     nonisolated static func connectFailedMessage(_ deviceName: String) -> String {
-        "Couldn't connect to \(deviceName)."
+        String(localized: "Couldn't connect to \(deviceName).")
     }
 
     /// The notice's button opens Privacy & Security, not the Local Network
     /// list itself (see docs/protocol.md), so the message names the row.
-    nonisolated static let localNetworkDeniedMessage =
-        "Clicker isn't allowed on the local network. Turn it on under Privacy & Security › Local Network."
+    nonisolated static let localNetworkDeniedMessage = String(
+        localized: "Clicker isn't allowed on the local network. Turn it on under Privacy & Security › Local Network.")
 }

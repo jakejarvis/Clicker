@@ -236,21 +236,25 @@ final class StatusItemController: NSObject {
         if panel.isVisible { hidePanel() }
         let menu = NSMenu()
         menu.autoenablesItems = false
-        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(
+            title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
         if updates.isEnabled {
-            let title = updates.pendingUpdateVersion.map { "Update to \($0)…" } ?? "Check for Updates…"
-            let check = NSMenuItem(title: title, action: #selector(checkForUpdates), keyEquivalent: "")
+            let check = NSMenuItem(
+                title: updates.checkForUpdatesTitle, action: #selector(checkForUpdates), keyEquivalent: "")
             check.target = self
             check.isEnabled = updates.canCheckForUpdates
             menu.addItem(check)
         }
-        let about = NSMenuItem(title: "About Clicker", action: #selector(showAbout), keyEquivalent: "")
+        let about = NSMenuItem(
+            title: String(localized: "About Clicker"), action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Clicker", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(
+            title: String(localized: "Quit Clicker"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"
+        )
         menu.addItem(quit)
         statusItem.menu = menu
         statusItem.button?.performClick(nil)

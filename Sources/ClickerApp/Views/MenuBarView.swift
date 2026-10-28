@@ -169,7 +169,7 @@ struct MenuBarView: View {
             case .disconnected:
                 notices.append(
                     InlineNotice(
-                        id: "connection", kind: .warning, message: "Not connected.",
+                        id: "connection", kind: .warning, message: String(localized: "Not connected."),
                         action: .init(title: "Connect") { controller.retryConnection() }))
             case .localNetworkDenied:
                 // Opening Settings closes the panel (an outside click), and
@@ -189,7 +189,7 @@ struct MenuBarView: View {
         if let version = updates.pendingUpdateVersion {
             notices.append(
                 InlineNotice(
-                    id: "update", kind: .update, message: "Clicker \(version) is available.",
+                    id: "update", kind: .update, message: String(localized: "Clicker \(version) is available."),
                     action: .init(title: "Update") { updates.checkForUpdates() }))
         }
         return notices
@@ -217,7 +217,7 @@ extension MenuBarView {
     /// sits on a wrapper because a disabled button takes no hover.
     fileprivate var keyboardButton: some View {
         let canType = overlay == nil && controller.keyboardSession != nil
-        let help =
+        let help: LocalizedStringKey =
             !canType
             ? "Available when the Apple TV shows a keyboard"
             : controller.isTextFieldShown ? "Hide the Apple TV text field" : "Type on the Apple TV"

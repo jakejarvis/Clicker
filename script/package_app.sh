@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Build Clicker and assemble a signed dist/Clicker.app with Sparkle embedded.
-# Usage: script/package_app.sh [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z]
+# Usage: script/package_app.sh [--release] [--with-demo [--pseudo]] [--universal] [--sign <identity>] [--version X.Y.Z]
 #                              [--app-store [--installer <identity>] [--build N]]
 #   --release    optimized build
 #   --with-demo  stage the ClickerDemo executable (the app plus the --demo scenarios)
 #                instead of Clicker; ad hoc only, so it can never be released
+#   --pseudo     with --with-demo, add the en-XA pseudo-language (script/pseudo_localize.py);
+#                launch with -AppleLanguages '(en-XA)' to see it
 #   --universal  arm64 + x86_64
 #   --sign       codesigning identity (name or SHA-1). The default "-" signs ad hoc
 #                for local runs and drops SUFeedURL so dev builds never update.
@@ -26,6 +28,7 @@ set -euo pipefail
 
 CONFIGURATION="debug"
 WITH_DEMO=0
+PSEUDO=0
 UNIVERSAL=0
 IDENTITY="-"
 APP_STORE=0
@@ -36,6 +39,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --release) CONFIGURATION="release" ;;
     --with-demo) WITH_DEMO=1 ;;
+    --pseudo) PSEUDO=1 ;;
     --universal) UNIVERSAL=1 ;;
     --sign) IDENTITY="$2"; shift ;;
     --version) VERSION="$2"; shift ;;
@@ -43,7 +47,7 @@ while [[ $# -gt 0 ]]; do
     --installer) INSTALLER="$2"; shift ;;
     --build) RESUBMISSION="$2"; shift ;;
     *)
-      echo "usage: $0 [--release] [--with-demo] [--universal] [--sign <identity>] [--version X.Y.Z] [--app-store [--installer <identity>] [--build N]]" >&2
+      echo "usage: $0 [--release] [--with-demo [--pseudo]] [--universal] [--sign <identity>] [--version X.Y.Z] [--app-store [--installer <identity>] [--build N]]" >&2
       exit 2
       ;;
   esac
@@ -51,6 +55,10 @@ while [[ $# -gt 0 ]]; do
 done
 if [[ "$WITH_DEMO" == 1 && "$IDENTITY" != "-" ]]; then
   echo "--with-demo is for ad-hoc development builds; it can't be signed" >&2
+  exit 2
+fi
+if [[ "$PSEUDO" == 1 && "$WITH_DEMO" != 1 ]]; then
+  echo "--pseudo is for development builds; add --with-demo" >&2
   exit 2
 fi
 if [[ -n "$INSTALLER" && "$APP_STORE" != 1 ]]; then
@@ -143,6 +151,10 @@ fi
 # generated accessor looks only in Contents/Resources and crashes without it.
 SHORTCUTS_BUNDLE="$BUILD_DIR/KeyboardShortcuts_KeyboardShortcuts.bundle"
 [[ -d "$SHORTCUTS_BUNDLE" ]] || { echo "missing $SHORTCUTS_BUNDLE" >&2; exit 1; }
+# SwiftPM compiles ClickerApp's string catalog into this bundle. Only its
+# .lproj folders ship (see below); nothing calls Bundle.module.
+STRINGS_BUNDLE="$BUILD_DIR/Clicker_ClickerApp.bundle"
+[[ -d "$STRINGS_BUNDLE" ]] || { echo "missing $STRINGS_BUNDLE" >&2; exit 1; }
 if [[ "$UNIVERSAL" == 1 ]]; then
   for arch in arm64 x86_64; do
     lipo "$BUILD_BINARY" -verify_arch "$arch" || { echo "missing $arch slice" >&2; exit 1; }
@@ -162,6 +174,26 @@ xcrun actool "$ROOT_DIR/Resources/AppIcon.icon" --compile "$CONTENTS/Resources" 
 mkdir -p "$CONTENTS/Resources/StatusIcon"
 cp "$ROOT_DIR"/Resources/StatusIcon/*.pdf "$CONTENTS/Resources/StatusIcon/"
 ditto "$SHORTCUTS_BUNDLE" "$CONTENTS/Resources/$(basename "$SHORTCUTS_BUNDLE")"
+# Text, Button and String(localized:) look strings up in the main bundle, so
+# the compiled translations go in Contents/Resources rather than in a bundle
+# of their own. A catalog compiles only its translations; English comes from
+# the keys in the code and from Info.plist, so an untranslated catalog adds
+# nothing here.
+for lproj in "$STRINGS_BUNDLE"/Contents/Resources/*.lproj; do
+  if [[ -d "$lproj" ]]; then
+    ditto "$lproj" "$CONTENTS/Resources/$(basename "$lproj")"
+  fi
+done
+xcrun xcstringstool compile "$ROOT_DIR/Resources/InfoPlist.xcstrings" --output-directory "$CONTENTS/Resources"
+if [[ "$PSEUDO" == 1 ]]; then
+  PSEUDO_DIR="$(mktemp -d)"
+  for catalog in Sources/ClickerApp/Resources/Localizable.xcstrings Resources/InfoPlist.xcstrings; do
+    python3 -I "$ROOT_DIR/script/pseudo_localize.py" "$ROOT_DIR/$catalog" "$PSEUDO_DIR/$(basename "$catalog")"
+    xcrun xcstringstool compile "$PSEUDO_DIR/$(basename "$catalog")" \
+      --output-directory "$CONTENTS/Resources" --language en-XA
+  done
+  rm -rf "$PSEUDO_DIR"
+fi
 # Required-reason APIs (UserDefaults), which App Store uploads check.
 cp "$ROOT_DIR/Resources/PrivacyInfo.xcprivacy" "$CONTENTS/Resources/"
 # Moves what an unsandboxed Clicker (0.2.x) kept in ~/Library into the new
@@ -183,6 +215,17 @@ cp "$ROOT_DIR/Resources/Info.plist" "$INFO_PLIST"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$INFO_PLIST"
 plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$INFO_PLIST"
 plutil -replace NSHumanReadableCopyright -string "Copyright © $(date +%Y) Jake Jarvis" "$INFO_PLIST"
+# Every language the app speaks: English, which has no .lproj, plus each
+# translation. Without English listed, a Mac set to English then German
+# would pick German, the only localization macOS could see.
+LOCALIZATIONS=(en)
+for lproj in "$CONTENTS"/Resources/*.lproj; do
+  if [[ -d "$lproj" ]]; then
+    language="$(basename "$lproj" .lproj)"
+    [[ "$language" == en ]] || LOCALIZATIONS+=("$language")
+  fi
+done
+plutil -replace CFBundleLocalizations -json "$(printf '"%s",' "${LOCALIZATIONS[@]}" | sed 's/^/[/; s/,$/]/')" "$INFO_PLIST"
 if [[ "$APP_STORE" == 1 ]]; then
   for key in SUFeedURL SUPublicEDKey SUEnableAutomaticChecks SUAllowsAutomaticUpdates SUEnableInstallerLauncherService; do
     plutil -remove "$key" "$INFO_PLIST"

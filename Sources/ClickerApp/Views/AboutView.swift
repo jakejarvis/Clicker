@@ -18,7 +18,7 @@ struct AboutView: View {
                 .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
                 .accessibilityHidden(true)
 
-            Text("Clicker")
+            Text(verbatim: "Clicker")
                 .font(.title2.weight(.semibold))
                 .padding(.top, 10)
 
@@ -71,7 +71,7 @@ struct AboutView: View {
         .help("Copy the version")
     }
 
-    private func link(_ title: String, systemImage: String, url: URL) -> some View {
+    private func link(_ title: LocalizedStringKey, systemImage: String, url: URL) -> some View {
         Button {
             openURL(url)
         } label: {

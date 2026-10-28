@@ -60,6 +60,7 @@ A full-width control with a popover list; it is custom because a system `Menu` c
 ## Settings
 
 - Section headers `.subheadline.semibold` secondary; row titles `.body`; secondary text `.caption`. Rows are 40 pt minimum with 12/8 padding and a hairline `SettingsDivider` between them.
+- A row (`SettingsRowLayout`) keeps its title and control on one line, at least 28 pt apart, while both fit at their natural widths. When they don't, as in a long translation, the title wraps across the row and the control goes under it, still right-aligned. The panel never widens. Controls keep their natural width either way, so a row is never squeezed into truncation. Rejected: `ViewThatFits`, which builds the control twice (the Name field, the shortcut button's frame tracking).
 - The Name field is the system `.roundedBorder` text field, the only text field in Settings; the shortcut is a button ([panel.md](panel.md#global-shortcut)).
 - A row's action is a hover-revealed, highlight-only glyph button with a matching context-menu item (Forget's `xmark.circle.fill`). Every toggle is a small `.switch`.
 - Explanations go in section footers, or behind a row's `info.circle` with a `.help` tooltip (`SettingsRow(help:)`, used only by Name) when they belong to one row. Never inline text. The glyph stays rare: a row whose header and label explain it gets none, which is why Shortcut, Position and Swipe Direction live under one header instead of carrying three glyphs.

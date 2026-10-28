@@ -60,7 +60,19 @@ struct AppPickerView: View {
         let id: String
         let app: AppleTVApp
         /// Header drawn above this row, for the first row of a section.
-        let header: String?
+        let header: Header?
+    }
+
+    private enum Header {
+        case favorites, recents, allApps
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .favorites: return "Favorites"
+            case .recents: return "Recents"
+            case .allApps: return "All Apps"
+            }
+        }
     }
 
     private var isSearching: Bool {
@@ -82,14 +94,14 @@ struct AppPickerView: View {
         let favorites = controller.favoriteApps
         let recents = controller.recentApps.filter { !favorites.contains($0) }
         var rows = favorites.enumerated().map { index, app in
-            Row(id: "favorite.\(app.id)", app: app, header: index == 0 ? "Favorites" : nil)
+            Row(id: "favorite.\(app.id)", app: app, header: index == 0 ? .favorites : nil)
         }
         rows += recents.enumerated().map { index, app in
-            Row(id: "recent.\(app.id)", app: app, header: index == 0 ? "Recents" : nil)
+            Row(id: "recent.\(app.id)", app: app, header: index == 0 ? .recents : nil)
         }
         let pinned = !favorites.isEmpty || !recents.isEmpty
         rows += controller.apps.enumerated().map { index, app in
-            Row(id: "all.\(app.id)", app: app, header: index == 0 && pinned ? "All Apps" : nil)
+            Row(id: "all.\(app.id)", app: app, header: index == 0 && pinned ? .allApps : nil)
         }
         return rows
     }
@@ -123,7 +135,7 @@ struct AppPickerView: View {
         .card(cornerRadius: PanelMetrics.innerCornerRadius)
     }
 
-    private func placeholder(_ text: String) -> some View {
+    private func placeholder(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(.callout)
             // Centered, so half of it sits over the clickpad behind the popover.
@@ -139,8 +151,8 @@ struct AppPickerView: View {
                     ForEach(rows) { row in
                         if let header = row.header {
                             HStack {
-                                Text(header)
-                                if header == "Recents" {
+                                Text(header.title)
+                                if header == .recents {
                                     Spacer()
                                     Button("Clear") {
                                         highlightedRowID = nil
