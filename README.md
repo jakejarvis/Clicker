@@ -82,7 +82,7 @@ Clicker checks for a new version once a day. When one is ready, a notice with an
 
 ## Privacy
 
-Clicker only talks to Apple TVs on your own network. It doesn't collect analytics, and the only other connection it makes is the daily update check. Pairing keys are stored in your Mac's keychain and can only be read by Clicker; **Forget** in Settings removes them.
+Clicker only talks to Apple TVs on your own network. It doesn't collect analytics, and the only other connection it makes is the daily update check, which the website counts anonymously by app version (see the [privacy policy](https://clicker.jarv.is/privacy)). Pairing keys are stored in your Mac's keychain and can only be read by Clicker; **Forget** in Settings removes them.
 
 ## Troubleshooting
 

@@ -1,9 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/appcast.xml",
-      "destination": "https://jakejarvis.github.io/Clicker/appcast.xml"
-    }
-  ]
-}

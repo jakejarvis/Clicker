@@ -1,6 +1,6 @@
 # The website
 
-`site/` is the Astro site for clicker.jarv.is, deployed on Vercel from that directory. Every page is prerendered; there is no server code.
+`site/` is the Astro site for clicker.jarv.is, deployed on Vercel from that directory. Every page is prerendered; the only server code is the `/appcast.xml` route.
 
 ```bash
 cd site
@@ -24,7 +24,7 @@ People ask search engines and AI assistants for "an Apple TV remote for Mac", an
 
 ## Keep it static
 
-The Vercel adapter only lays out the static build; there is no server function. Keep it that way: a server-rendered version once crashed on cold start (the adapter's build-time import got bundled into the function), which turned every non-prerendered path, 404s included, into a 500.
+The Vercel adapter lays out the static build plus one function, for `/appcast.xml` ([update check counts](#update-check-counts)). Keep every page prerendered: a server-rendered version once crashed on cold start (the adapter's build-time import got bundled into the function), which turned every non-prerendered path, 404s included, into a 500. The appcast route imports nothing from `src/lib`, so the releases code stays out of the function. After `npm run build`, `.vercel/output/config.json` should send only `/appcast.xml` and Astro's own `/_image` and `/_server-islands` to `_render`; a page that lost its prerendering shows up there.
 
 ## Release data
 
@@ -32,7 +32,21 @@ The homepage's download button and `/changelog` are built from the GitHub releas
 
 The pages only change when the site is rebuilt, so the release workflow asks Vercel to redeploy after each release (`VERCEL_DEPLOY_HOOK_URL`, see [releasing.md](releasing.md#secrets)); without the hook the site catches up on the next push to `main`.
 
-`/appcast.xml`, the app's Sparkle feed, is not part of the build: `site/vercel.json` rewrites it to `appcast.xml` on the repository's `gh-pages` branch, which the release workflow updates.
+`/appcast.xml`, the app's Sparkle feed, is not part of the build: on each request `src/pages/appcast.xml.ts` fetches `appcast.xml` from the repository's `gh-pages` branch on GitHub Pages, which the release workflow updates, and returns it. A feed GitHub can't serve comes back with GitHub's status, or as a 502 when GitHub doesn't answer within 10 seconds, and Sparkle reports a failed check.
+
+## Update check counts
+
+The appcast route counts update checks, the only usage figure the direct download has. Every copy with Check Automatically on fetches the feed about once a day while it runs. Each GET whose user agent is Sparkle's (`Clicker/<version> Sparkle/<version>`) and that gets the feed becomes one PostHog `update_check` event, sent after the response (`waitUntil` from `@vercel/functions`) with a 2-second timeout; a failure is dropped, so counting never delays or breaks the feed, and a non-2xx answer from PostHog is logged in the function's logs. Checks that get an error instead of the feed aren't counted, nor are Homebrew's livecheck, browsers and HEAD requests, which are served.
+
+- Properties: `app_version` and `sparkle_version` from the user agent, `check` (`background` for Sparkle's scheduled check, `user` for Check for Updates…, `unknown` from releases that don't send it) and `first_check` (the install's first check ever).
+- `check` and `first` come from the app: `UpdateController` adds them to the feed URL through Sparkle's `feedParameters(for:sendingSystemProfile:)`, after `updater(_:mayPerform:)` has recorded which kind of check it is. `first` is decided when the updater starts, since Sparkle stamps `lastUpdateCheckDate` before it asks for the parameters. Sparkle's system profile stays off.
+- Anonymous by construction: a fresh random `distinct_id` per event, `$process_person_profile` false (no person profiles) and `$geoip_disable`. The function makes the request, so PostHog sees Vercel's address, never the Mac's. Turn on "Discard client IP data" in the PostHog project as well.
+- Configuration, as Vercel environment variables for Production: `POSTHOG_PROJECT_TOKEN` (without it nothing is sent and the feed is served as before) and `POSTHOG_HOST` (default `https://us.i.posthog.com`, where Clicker's project is; `https://eu.i.posthog.com` for an EU project). The function reads them at runtime; a change takes effect with the next deployment.
+- Reading them: a day's `background` checks approximate the installs that ran that day with automatic checks on. There is no identifier, so days can't be deduplicated into weekly or monthly users, and installs with automatic checks off only show up when someone checks by hand. The App Store build has no Sparkle and is never counted; App Store Connect's own analytics cover it.
+
+The privacy policy (`/privacy`) describes exactly what is sent, so a new property or parameter changes it too.
+
+To try the route locally, run a listener on port 9999 that prints what it receives, start `POSTHOG_PROJECT_TOKEN=test POSTHOG_HOST=http://127.0.0.1:9999 npm run dev`, then `curl -A "Clicker/1.0 Sparkle/2.10.0" "http://localhost:4321/appcast.xml?check=background&first=1"`.
 
 ## The homepage shot
 

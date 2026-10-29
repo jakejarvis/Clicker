@@ -5,7 +5,7 @@
 Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml` on a macOS runner. It lints and tests, then calls `script/release.sh`, which builds a universal app, signs it with the Developer ID certificate and the hardened runtime, notarizes and staples it, and produces `Clicker-X.Y.Z.dmg`, `Clicker-X.Y.Z.zip` and a Sparkle `appcast.xml`. The workflow then:
 
 1. publishes the DMG and zip as a GitHub release;
-2. commits the appcast to the `gh-pages` branch, which `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) rewrites to (`site/vercel.json`);
+2. commits the appcast to the `gh-pages` branch, which `https://clicker.jarv.is/appcast.xml` (the app's `SUFeedURL`) serves through the site ([site.md](site.md#update-check-counts));
 3. writes the Homebrew cask to `jakejarvis/homebrew-tap`;
 4. asks Vercel to redeploy the site, so the homepage's download button and the changelog show the release ([site.md](site.md#release-data));
 5. when the App Store secrets are set, builds the Mac App Store package and uploads it to App Store Connect, where it lands in TestFlight ([app-store.md](app-store.md#uploading)). Submitting it for review stays manual.
@@ -85,6 +85,7 @@ If an update fails with "An error occurred while connecting to the installer" (`
 - Updates are alert-only: `SUAllowsAutomaticUpdates` is false in Info.plist, which hides Sparkle's "automatically download and install" checkbox and overrides any stored preference. Settings offers only Check Automatically.
 - Gentle reminders, which an accessory app needs: a background find always just sets `pendingUpdateVersion`, which shows an inline notice under the remote with an Update button and turns both menus' item into Update to X…. Sparkle's alert only comes from a click on Update or Check for Updates…, never on its own, since right after launch (at login, with Open at Login) it would land in front of whatever the user was doing.
 - While a Sparkle window is up, the app switches to `.regular` and hides the panel, then restores the launch activation policy.
+- Each check's feed URL carries `check=background` or `check=user` and, on the install's first check, `first=1`, which the site counts ([site.md](site.md#update-check-counts)). Sparkle's system profiling stays off.
 
 ## Testing an update locally
 

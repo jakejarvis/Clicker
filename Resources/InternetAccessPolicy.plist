@@ -42,7 +42,7 @@
 			<key>Port</key>
 			<string>443</string>
 			<key>Purpose</key>
-			<string>Clicker checks for new versions.</string>
+			<string>Clicker checks for new versions. The site counts these checks anonymously, by app version.</string>
 			<key>DenyConsequences</key>
 			<string>Clicker won't find out about updates.</string>
 		</dict>

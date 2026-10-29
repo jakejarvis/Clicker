@@ -47,6 +47,10 @@ package final class UpdateController: NSObject {
             userDriverDelegate: self
         )
         @ObservationIgnored private var canCheckObservation: NSKeyValueObservation?
+        /// The check Sparkle is about to make, and whether this install has
+        /// never checked before; both go in the feed URL (`feedParameters`).
+        @ObservationIgnored private var currentUpdateCheck: SPUUpdateCheck?
+        @ObservationIgnored private var isFirstUpdateCheck = false
     #endif
 
     init(launchPolicy: NSApplication.ActivationPolicy) {
@@ -63,6 +67,9 @@ package final class UpdateController: NSObject {
             canCheckObservation = updater.observe(\.canCheckForUpdates, options: options) { [weak self] updater, _ in
                 MainActor.assumeIsolated { self?.canCheckForUpdates = updater.canCheckForUpdates }
             }
+            // Read before starting: Sparkle stamps the date as a check begins,
+            // before it asks for the feed parameters.
+            isFirstUpdateCheck = updater.lastUpdateCheckDate == nil
             updaterController.startUpdater()
             lastUpdateCheckDate = updaterController.updater.lastUpdateCheckDate
         #endif
@@ -106,6 +113,25 @@ package final class UpdateController: NSObject {
 #if Sparkle
 
     extension UpdateController: SPUUpdaterDelegate {
+        /// Sparkle asks this before it builds the feed URL for the same check.
+        package func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
+            currentUpdateCheck = updateCheck
+        }
+
+        /// Appended to the appcast request so the site can count checks
+        /// (docs/site.md): whether Sparkle checked on its schedule or the user
+        /// asked, and whether this install has checked before. Nothing that
+        /// identifies the Mac; Sparkle's system profile stays off.
+        package func feedParameters(for updater: SPUUpdater, sendingSystemProfile: Bool) -> [[String: String]] {
+            let check = currentUpdateCheck == .updatesInBackground ? "background" : "user"
+            var parameters = [["key": "check", "value": check]]
+            if isFirstUpdateCheck {
+                parameters.append(["key": "first", "value": "1"])
+                isFirstUpdateCheck = false
+            }
+            return parameters
+        }
+
         package func updater(
             _ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?
         ) {

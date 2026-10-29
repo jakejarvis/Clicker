@@ -10,7 +10,7 @@ const repo = "https://github.com/jakejarvis/Clicker";
 >
   <article class="prose">
     <h1>Privacy Policy</h1>
-    <p class="muted">Last updated October 19, 2026</p>
+    <p class="muted">Last updated October 26, 2026</p>
 
     <p>
       Clicker is a free, open-source Apple TV remote for macOS, made by Jake
@@ -53,19 +53,33 @@ const repo = "https://github.com/jakejarvis/Clicker";
       user agent names the app, its version and Sparkle's version (for example, <code
         >Clicker/1.0 Sparkle/2.10.0</code
       >). Sparkle's optional system profiling, which would send details about
-      your Mac, is turned off, so nothing else is sent.
+      your Mac, is turned off. Instead, the address Clicker requests says
+      whether this is the daily automatic check or one you asked for, and, the
+      very first time a new copy of Clicker checks, that it's the first.
+      Older versions of Clicker don't send these two details.
     </p>
     <p>
-      The feed is served through Vercel, which passes the request on to GitHub
-      Pages, where the feed file is stored. If you install an update, the update
-      itself is downloaded from GitHub Releases. Vercel and GitHub may log these
+      This website counts update checks to see roughly how many copies of
+      Clicker are in use and which versions they run. For each check, it sends
+      <a href="https://posthog.com">PostHog</a> a record of the app version, the
+      Sparkle version, the two details above and the time. The record has no
+      identifier for you or your Mac, and your IP address isn't passed on:
+      PostHog only sees Vercel's server, so it can't tell where a check came
+      from or link one check to another.
+    </p>
+    <p>
+      The feed is served by Vercel, which fetches it from GitHub Pages, where
+      the feed file is stored. If you install an update, the update itself is
+      downloaded from GitHub Releases. Vercel and GitHub may log these
       requests as described in their own policies (see <a href="#services"
         >Services this relies on</a
       >).
     </p>
     <p>
       You can turn this off with <strong>Check Automatically</strong> in Settings.
-      Clicker never installs an update without asking you first.
+      Clicker then only checks, and is only counted, when you choose <strong
+        >Check for Updates…</strong
+      >. Clicker never installs an update without asking you first.
     </p>
 
     <h2>What the app stores on your Mac</h2>
@@ -138,6 +152,11 @@ const repo = "https://github.com/jakejarvis/Clicker";
         >.
       </li>
       <li>
+        <strong>PostHog</strong> stores the anonymous update check counts. See the <a
+          href="https://posthog.com/privacy">PostHog Privacy Policy</a
+        >.
+      </li>
+      <li>
         <strong>GitHub</strong> hosts the source code, stores the update feed (on
         GitHub Pages) and hosts the downloads (on GitHub Releases). See the <a
           href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
@@ -157,9 +176,9 @@ const repo = "https://github.com/jakejarvis/Clicker";
     <h2>What Clicker doesn't do</h2>
     <p>
       Clicker doesn't sell, rent or share personal information, because it
-      doesn't collect any beyond the aggregate site statistics above. There's no
-      advertising, no tracking across apps or websites, and no data used to
-      train AI models.
+      doesn't collect any beyond the anonymous site statistics and update check
+      counts above. There's no advertising, no tracking across apps or
+      websites, and no data used to train AI models.
     </p>
 
     <h2>Children</h2>
