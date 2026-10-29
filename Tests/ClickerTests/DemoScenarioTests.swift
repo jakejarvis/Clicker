@@ -160,6 +160,58 @@ import Testing
         #expect(run.controller.selectedStateDescription == "Not connected")
     }
 
+    /// A press the TV leaves unanswered drops the session, and the presses
+    /// queued behind it go too rather than replay on the next session.
+    @Test func anUnansweredPressDropsTheSessionAndTheQueue() async throws {
+        let run = try await DemoRun("unresponsive") {
+            $0.livingRoom.inputTimeout = .milliseconds(100)
+            $0.steps = []
+        }
+        let controller = run.controller
+        #expect(await run.connected())
+        controller.buttonDown(.down)
+        controller.buttonUp(.down)
+        controller.press(.up)
+        #expect(await eventually { controller.connectionState == .disconnected })
+        #expect(controller.lastActionError == CompanionError.timeout.localizedDescription)
+
+        // With the panel hidden nothing reconnects until the next press,
+        // which a fresh session answers.
+        controller.press(.select)
+        #expect(await eventually { controller.connectionState == .connected && controller.lastActionError == nil })
+        #expect(run.world.sessions.count == 2)
+        #expect(await run.world.sessions[0].buttons == [.down(.down)])
+        #expect(await run.world.sessions[1].buttons == [.press(.select)])
+    }
+
+    @Test func anUnansweredPressReconnectsWhileThePanelIsOpen() async throws {
+        let run = try await DemoRun("unresponsive") {
+            $0.livingRoom.inputTimeout = .milliseconds(100)
+            $0.timings.reconnectDelay = .zero
+            $0.steps = []
+        }
+        let controller = run.controller
+        controller.panelDidAppear()
+        #expect(await run.connected())
+        controller.press(.select)
+        controller.press(.down)
+        #expect(await eventually { run.world.sessions.count == 2 && controller.connectionState == .connected })
+        #expect(await run.world.sessions[0].buttons == [.press(.select)])
+        #expect(await run.world.sessions[1].buttons.isEmpty)
+    }
+
+    @Test func anUnansweredTouchDropsTheSession() async throws {
+        let run = try await DemoRun("unresponsive") {
+            $0.livingRoom.inputTimeout = .milliseconds(100)
+            $0.steps = []
+        }
+        let controller = run.controller
+        #expect(await run.connected())
+        controller.handleTrackpadSwipe(.touchDown(CGPoint(x: 500, y: 500)))
+        controller.handleTrackpadSwipe(.touchUp(CGPoint(x: 500, y: 800)))
+        #expect(await eventually { controller.connectionState == .disconnected })
+    }
+
     @Test func hdmiWithholdsMuteAfterItDoesNothing() async throws {
         let run = try await DemoRun("hdmi")
         let controller = run.controller

@@ -10,8 +10,9 @@ final class DemoWorld {
     /// How long pair-setup takes on the "TV". A second in the app, so the
     /// spinner shows; tests pass zero.
     private let latency: Duration
-    /// The session the controller is using, for `.dropSession`.
-    private var session: DemoSession?
+    /// Every session the controller has opened, oldest first; the last is
+    /// the one `.dropSession` closes.
+    private(set) var sessions: [DemoSession] = []
 
     init(scenario: DemoScenario, latency: Duration = .seconds(1)) {
         self.scenario = scenario
@@ -33,8 +34,9 @@ final class DemoWorld {
             makeSession: { _, credentials, _ in
                 var tv = self.tv(id: credentials.deviceID)
                 if credentials.pairedAt != .distantPast { tv.connectError = nil }
+                if !self.sessions.isEmpty { tv.inputTimeout = nil }
                 let session = DemoSession(tv: tv)
-                self.session = session
+                self.sessions.append(session)
                 return session
             },
             makePairingSession: { endpoint in
@@ -74,7 +76,10 @@ final class DemoWorld {
                 // app refresh it queues would otherwise run after the drop
                 // and connect again, as any queued command does.
                 await until { controller.connectionState == .connected && !controller.apps.isEmpty }
-                session?.drop()
+                sessions.last?.drop()
+            case .press(let command):
+                await until { controller.connectionState == .connected && !controller.apps.isEmpty }
+                controller.press(command)
             }
         }
     }

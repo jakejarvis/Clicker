@@ -19,6 +19,8 @@ nonisolated struct DemoScenario: Sendable {
         case mute
         /// The TV closes the session.
         case dropSession
+        /// A whole press of a remote button, once connected.
+        case press(HIDCommand)
     }
 
     let name: String
@@ -139,6 +141,13 @@ nonisolated struct DemoScenario: Sendable {
         DemoScenario("disconnected") {
             $0.steps = [.dropSession]
             $0.timings.reconnectDelay = .seconds(3600)
+        },
+        // Living Room's session stops answering: Select times out, the
+        // session is dropped (Not connected), and a second later the
+        // reconnect shows the timeout notice until a fresh session is ready.
+        DemoScenario("unresponsive") {
+            $0.livingRoom.inputTimeout = .seconds(1)
+            $0.steps = [.press(.select)]
         },
         // Living Room over HDMI: Mute was tried, did nothing, and is now disabled.
         DemoScenario("hdmi") {

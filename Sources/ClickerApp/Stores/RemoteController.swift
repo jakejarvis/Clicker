@@ -173,6 +173,10 @@ package final class RemoteController {
     @ObservationIgnored private var pairingSession: (any PairingSession)?
     @ObservationIgnored private var pairingDeviceID: String?
     @ObservationIgnored private var commandQueue: Task<Void, Never>?
+    /// Bumped when a session is dropped for not answering; a queued command
+    /// from an earlier generation is skipped rather than replayed on the
+    /// next session.
+    @ObservationIgnored private var commandGeneration = 0
     @ObservationIgnored private var reconnectTask: Task<Void, Never>?
     @ObservationIgnored private var volumeBeforeMute: Double = 0.5
     /// The pad's keys currently held down on the TV. A key-down sends the
@@ -606,10 +610,10 @@ package final class RemoteController {
         return client
     }
 
-    /// One connection attempt a moment after the TV dropped the session
-    /// while the panel was open; otherwise the panel sat on "Not connected"
-    /// until a click. The attempt has its own retry, and a failure leaves
-    /// the banner's Retry as before.
+    /// One connection attempt a moment after the session dropped (the TV
+    /// closed it, or it stopped answering) while the panel was open;
+    /// otherwise the panel sat on "Not connected" until a click. The attempt
+    /// has its own retry, and a failure leaves the banner's Retry as before.
     private func scheduleReconnect() {
         reconnectTask?.cancel()
         let delay = timings.reconnectDelay
@@ -719,10 +723,10 @@ package final class RemoteController {
 
     // MARK: - Actions
 
-    func press(_ command: HIDCommand) {
+    package func press(_ command: HIDCommand) {
         if command == .volumeUp || command == .volumeDown { isMuted = false }
         Log.remote.info("Press \(command.title, privacy: .public)")
-        perform { try await $0.press(command) }
+        perform(isInput: true) { try await $0.press(command) }
     }
 
     /// Sends a media-control command to the TV's current player.
@@ -743,7 +747,7 @@ package final class RemoteController {
         Log.remote.info(
             "Swipe \(start.x, privacy: .public),\(start.y, privacy: .public) to \(end.x, privacy: .public),\(end.y, privacy: .public)"
         )
-        perform { try await $0.swipe(from: start, to: end, duration: duration) }
+        perform(isInput: true) { try await $0.swipe(from: start, to: end, duration: duration) }
     }
 
     /// A two-finger scroll over the clickpad, already translated into a touch
@@ -763,7 +767,7 @@ package final class RemoteController {
             touchHolds = 0
             touchGesture += 1
             touchHoldQueued = false
-            perform { try await $0.touch(x: point.x, y: point.y, phase: .press) }
+            perform(isInput: true) { try await $0.touch(x: point.x, y: point.y, phase: .press) }
         case .touchMove(let point):
             // Moves and releases only mean something while a press is out;
             // after a disconnect or a release the TV has no finger to move.
@@ -773,7 +777,7 @@ package final class RemoteController {
             touchHoldQueued = true
             touchHolds += 1
             let gesture = touchGesture
-            perform { [weak self] client in
+            perform(isInput: true) { [weak self] client in
                 guard let self, self.touchGesture == gesture, let point = self.touchPosition else { return }
                 try await client.touch(x: point.x, y: point.y, phase: .hold)
             } completion: { [weak self] in
@@ -786,7 +790,7 @@ package final class RemoteController {
                 "Touch up at \(Int(point.x), privacy: .public),\(Int(point.y), privacy: .public) after \(self.touchHolds, privacy: .public) holds"
             )
             touchPosition = nil
-            perform { try await $0.touch(x: point.x, y: point.y, phase: .release) }
+            perform(isInput: true) { try await $0.touch(x: point.x, y: point.y, phase: .release) }
         }
     }
 
@@ -855,12 +859,12 @@ package final class RemoteController {
     func buttonDown(_ command: HIDCommand) {
         if command == .volumeUp || command == .volumeDown { isMuted = false }
         Log.remote.info("Down \(command.title, privacy: .public)")
-        perform { try await $0.buttonDown(command) }
+        perform(isInput: true) { try await $0.buttonDown(command) }
     }
 
     func buttonUp(_ command: HIDCommand) {
         Log.remote.info("Up \(command.title, privacy: .public)")
-        perform { try await $0.buttonUp(command) }
+        perform(isInput: true) { try await $0.buttonUp(command) }
     }
 
     /// A pad key went down. The Mac's key repeats never get here: tvOS
@@ -1027,15 +1031,23 @@ package final class RemoteController {
 
     /// Runs an action against the connected client. Actions are serialized so a
     /// button "down" is always delivered before its "up".
+    ///
+    /// `isInput` marks the pad's presses and touches, which the TV answers at
+    /// once: one that times out means the session has stopped answering
+    /// (`dropUnansweredSession`). Other requests keep a timeout to themselves,
+    /// since the app list, run after every connect, could otherwise drop
+    /// each new session in turn.
     private func perform(
+        isInput: Bool = false,
         _ action: @escaping @MainActor @Sendable (any RemoteSession) async throws -> Void,
         completion: (@MainActor () -> Void)? = nil
     ) {
         let previous = commandQueue
+        let generation = commandGeneration
         commandQueue = Task { [weak self] in
             await previous?.value
             defer { completion?() }
-            guard let self else { return }
+            guard let self, self.commandGeneration == generation else { return }
             guard let client = await self.readyClient() else { return }
             do {
                 try await action(client)
@@ -1046,11 +1058,27 @@ package final class RemoteController {
                 switch error {
                 case CompanionError.disconnected, CompanionError.notConnected:
                     self.disconnect()
+                case CompanionError.timeout where isInput && self.client === client:
+                    self.dropUnansweredSession()
                 default:
                     break
                 }
             }
         }
+    }
+
+    /// A press or touch went unanswered while the connection stayed up, as a
+    /// session hours old has done. Every command after it would wait out a
+    /// timeout of its own, each press reaching the TV seconds late with its
+    /// release seconds after that, so the session goes, and with it what
+    /// queued up behind the silence: those presses were meant for the moment
+    /// they were made. One reconnect follows while the panel is open; a
+    /// fresh session has answered at once.
+    private func dropUnansweredSession() {
+        Log.connection.error("The TV stopped answering; dropping the session and the commands queued behind it")
+        commandGeneration += 1
+        disconnect()
+        if isPanelVisible { scheduleReconnect() }
     }
 
     /// Returns a connected client, connecting first when necessary. Waits

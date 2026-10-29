@@ -1,6 +1,6 @@
 # Input
 
-How presses, keys, swipes and text get from the panel to the TV. Commands all go through `RemoteController.perform`, which serializes them, so each waits for the previous one.
+How presses, keys, swipes and text get from the panel to the TV. Commands all go through `RemoteController.perform`, which serializes them, so each waits for the previous one. A press or touch the TV leaves unanswered drops the session and whatever queued up behind it ([protocol.md](protocol.md#connection-lifecycle)).
 
 ## Buttons
 

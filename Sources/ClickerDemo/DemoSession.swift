@@ -39,13 +39,43 @@ actor DemoSession: RemoteSession {
         eventSink.finish()
     }
 
-    func press(_ command: HIDCommand) async throws {}
-    func buttonDown(_ command: HIDCommand) async throws {}
-    func buttonUp(_ command: HIDCommand) async throws {}
+    /// A button as it reached the TV.
+    enum Button: Equatable, Sendable {
+        case press(HIDCommand)
+        case down(HIDCommand)
+        case up(HIDCommand)
+    }
+
+    /// Every button sent to this session, answered or not, for the tests.
+    private(set) var buttons: [Button] = []
+
+    func press(_ command: HIDCommand) async throws {
+        buttons.append(.press(command))
+        try await answerInput()
+    }
+
+    func buttonDown(_ command: HIDCommand) async throws {
+        buttons.append(.down(command))
+        try await answerInput()
+    }
+
+    func buttonUp(_ command: HIDCommand) async throws {
+        buttons.append(.up(command))
+        try await answerInput()
+    }
+
     func mediaControl(_ command: CompanionClient.MediaControlCommand) async throws {}
     func skip(by seconds: Double) async throws {}
-    func touch(x: Double, y: Double, phase: TouchPhase) async throws {}
-    func swipe(from start: CGPoint, to end: CGPoint, duration: Duration) async throws {}
+    func touch(x: Double, y: Double, phase: TouchPhase) async throws { try await answerInput() }
+    func swipe(from start: CGPoint, to end: CGPoint, duration: Duration) async throws { try await answerInput() }
+
+    /// Waits out the request as `CompanionClient` would for a TV that has
+    /// stopped answering (`DemoTV.inputTimeout`).
+    private func answerInput() async throws {
+        guard let timeout = tv.inputTimeout else { return }
+        try await Task.sleep(for: timeout)
+        throw CompanionError.timeout
+    }
 
     func fetchVolume() async throws -> Double { volume }
 

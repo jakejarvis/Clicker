@@ -8,6 +8,7 @@ What is reasoned out or documented but not yet confirmed. When you confirm one, 
 - The pairing-lost path (`CompanionError.pairingLost`) against a TV that had Clicker removed from Remotes and Devices. It is reasoned from HAP pair-verify, where M4 carries error 2 for an unknown controller.
 - Whether port knocking on Rescan ever wakes an Apple TV. The Living Room TV has not been seen to drop off Bonjour.
 - Caption settings (`_mcc` 12 and 13): payload unknown. The other `_mcc` commands, user accounts and touch work but have no UI.
+- Why a long-lived session stops answering `_hidC` (see [protocol.md](protocol.md#connection-lifecycle)), whether the TV still acts on the presses it leaves unanswered, and whether it lets go of a button whose release never comes when the session drops. The lines that would tell a late or mismatched reply from none (`Response without a waiting request`, `Ignoring request from device`) are debug level and not persisted, so stream them with `/usr/bin/log stream --level debug --predicate 'subsystem == "com.jakejarvis.Clicker"'` while it happens.
 
 ## In the app
 

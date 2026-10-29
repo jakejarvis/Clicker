@@ -33,6 +33,10 @@ nonisolated struct DemoTV: Sendable {
     /// False leaves a connect waiting. Unlike a real session it never times
     /// out, so the Connecting… state holds for a screenshot.
     var answersConnect = true
+    /// Set, presses and touches go unanswered and time out after this long,
+    /// as a session that has stopped answering does. Only the session open
+    /// at launch: one opened later answers, as a real TV's fresh one did.
+    var inputTimeout: Duration?
 
     static let livingRoom = DemoTV(
         name: "Living Room", model: "AppleTV14,1", host: "192.168.1.42", bluetoothAddress: "A4:83:E7:2C:91:0D",
