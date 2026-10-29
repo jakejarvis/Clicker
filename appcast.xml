@@ -3,6 +3,20 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.11</title>
+            <pubDate>Thu, 29 Oct 2026 20:44:47 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>311</sparkle:version>
+            <sparkle:shortVersionString>0.3.11</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.11
+
+- If an Apple TV stops responding partway through a session, Clicker now reconnects instead of carrying on. Before, each press waited several seconds for an answer that never came, so presses could reach the TV late or as long presses and kept arriving after you stopped. Presses made while the TV wasn't answering are dropped rather than sent late.
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.11/Clicker-0.3.11.zip" length="5280928" type="application/octet-stream" sparkle:edSignature="Ro5MovgP+ysq6NRsPdo1fOGan1Kg8wP0n7Dl1XL+6WJir87/NqaaDiG2ii2hQH7FEKe1BEt6tW0k4njCpWXJBQ=="/>
+        </item>
+        <item>
             <title>0.3.10</title>
             <pubDate>Sun, 25 Oct 2026 08:43:09 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
