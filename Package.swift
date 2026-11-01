@@ -20,7 +20,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/attaswift/BigInt.git", from: "6.0.1"),
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.0"),
-        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "1.17.0"),
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "3.1.0"),
     ],
     targets: [
         // The app as shipped: a thin entry point that runs ClickerApp against
