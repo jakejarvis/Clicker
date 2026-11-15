@@ -3,6 +3,26 @@
     <channel>
         <title>Clicker</title>
         <item>
+            <title>0.3.12</title>
+            <pubDate>Sun, 15 Nov 2026 21:09:33 +0000</pubDate>
+            <link>https://clicker.jarv.is</link>
+            <sparkle:version>312</sparkle:version>
+            <sparkle:shortVersionString>0.3.12</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[Clicker 0.3.12
+
+- Hovering over Clicker in the menu bar now shows which Apple TV it controls and how it's doing, worded as in the remote's header (for example "Living Room · Ready"), so you can check the connection without opening the remote.
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgd642VJmarKAzhc3v76mZ+s1SwX
+MCOXFpgeg78ldV1PkAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQGM7r/wx1WLjrCFFrssXrMb2Y48EUTx97bOvV7f6V/KjDUGU+YPJ+x3Awqvx0xc/gl
+jBnG8MPeMkyMlU+6qEfw4=
+-----END SSH SIGNATURE-----
+
+]]></description>
+            <enclosure url="https://github.com/jakejarvis/Clicker/releases/download/v0.3.12/Clicker-0.3.12.zip" length="5431543" type="application/octet-stream" sparkle:edSignature="Robx7pel5sx+u5xGXcZzrY9bAyps4Lno9HRGZFep5l72nKQa7uOGUDts1HWiEO+oVAl3HqonnB/afnfJIsbrDA=="/>
+        </item>
+        <item>
             <title>0.3.11</title>
             <pubDate>Thu, 29 Oct 2026 20:44:47 +0000</pubDate>
             <link>https://clicker.jarv.is</link>
