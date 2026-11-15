@@ -26,6 +26,7 @@ final class StatusItemController: NSObject {
     private var anchorAlignment = PanelAlignment.right
     private var defaultsObserver: NSObjectProtocol?
     private var shadowSettleTask: Task<Void, Never>?
+    private var shownIconName: String?
 
     init(controller: RemoteController, updates: UpdateController) {
         self.controller = controller
@@ -48,7 +49,7 @@ final class StatusItemController: NSObject {
         configureStatusItem()
         installKeyMonitor()
         installHotKey()
-        updateStatusImage()
+        updateStatusItem()
         updates.onWillPresent = { [weak self] in
             guard let self, self.panel.isVisible else { return }
             self.hidePanel()
@@ -125,19 +126,23 @@ final class StatusItemController: NSObject {
         button.target = self
         button.action = #selector(statusButtonClicked)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        button.toolTip = "Clicker"
     }
 
-    /// Filled glyph while connected, outlined otherwise; re-armed on each
-    /// change. A pending update shows in the panel's footer, not here.
-    private func updateStatusImage() {
-        let iconName = withObservationTracking {
-            controller.menuBarIconName
+    /// Filled glyph while connected, outlined otherwise, and a tooltip naming
+    /// the TV and its state; re-armed on each change. A pending update shows
+    /// in the panel's footer, not here.
+    private func updateStatusItem() {
+        let (iconName, toolTip) = withObservationTracking {
+            (controller.menuBarIconName, controller.menuBarToolTip)
         } onChange: { [weak self] in
-            Task { @MainActor [weak self] in self?.updateStatusImage() }
+            Task { @MainActor [weak self] in self?.updateStatusItem() }
         }
-        guard let glyph = Self.statusIcon(named: iconName) else { return }
-        statusItem.button?.image = Self.statusImage(glyph)
+        guard let button = statusItem.button else { return }
+        if button.toolTip != toolTip { button.toolTip = toolTip }
+        // The tooltip also follows discovery, so most changes leave the glyph.
+        guard iconName != shownIconName, let glyph = Self.statusIcon(named: iconName) else { return }
+        shownIconName = iconName
+        button.image = Self.statusImage(glyph)
     }
 
     /// PDF glyphs from Resources/StatusIcon (see script/make_status_icons.swift),

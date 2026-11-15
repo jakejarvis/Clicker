@@ -4,6 +4,10 @@
 
 `MenuBarExtra`'s window is SwiftUI-internal chrome, with no control over its corner radius, size animation or key status. The app uses an `NSStatusItem` plus a borderless, non-activating `NSPanel` that overrides `canBecomeKey`, so keystrokes work without activating the app (the approach is modeled on robinebers/openusage).
 
+## Status item
+
+- The glyph is the filled remote while connected and the outlined one otherwise (`RemoteController.menuBarIconName`, PDFs in `Resources/StatusIcon`). The tooltip is "Clicker" with the selected TV and its state on a second line, worded as in the panel header ("Living Room · Ready", `menuBarToolTip`); with no TV selected it is just "Clicker". `StatusItemController.updateStatusItem` follows both through Observation and redraws the image only when the glyph changes, since the tooltip also changes with discovery.
+
 ## Window
 
 - Backdrop: `NSGlassEffectView` on macOS 26, a behind-window `NSVisualEffectView` with a rounded mask on macOS 15. The SwiftUI host layer is clipped to `PanelMetrics.cornerRadius`. Clear glass stays: an opaque tray filled with `windowBackgroundColor` read as flat in dark mode, and glass tinted toward the window color (`NSGlassEffectView.tintColor` at 0.5 to 0.7 alpha) put a color wash over the vibrancy.

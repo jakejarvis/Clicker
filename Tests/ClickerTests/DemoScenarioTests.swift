@@ -32,6 +32,7 @@ import Testing
         #expect(await run.connected())
         #expect(controller.selectedDevice?.name == "Living Room")
         #expect(controller.selectedStateDescription == "Ready")
+        #expect(controller.menuBarToolTip == "Clicker\nLiving Room · Ready")
         #expect(controller.apps == DemoScenario.apps)
         #expect(controller.connectionInfo?.addressDescription == "192.168.1.42:49153")
         #expect(controller.devices.map(\.name) == ["Bedroom", "Living Room", "Office"])
@@ -158,6 +159,7 @@ import Testing
         let run = try await DemoRun("disconnected")
         #expect(await eventually { run.controller.connectionState == .disconnected })
         #expect(run.controller.selectedStateDescription == "Not connected")
+        #expect(run.controller.menuBarToolTip == "Clicker\nLiving Room · Not connected")
     }
 
     /// A press the TV leaves unanswered drops the session, and the presses

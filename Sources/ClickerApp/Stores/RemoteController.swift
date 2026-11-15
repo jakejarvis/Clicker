@@ -264,6 +264,13 @@ package final class RemoteController {
         connectionState == .connected ? "Connected" : "Disconnected"
     }
 
+    /// The status item's tooltip: the app's name, then the selected TV and
+    /// its state, as in the panel header ("Living Room · Ready").
+    var menuBarToolTip: String {
+        guard let device = selectedDevice else { return "Clicker" }
+        return "Clicker\n\(device.name) · \(selectedStateDescription)"
+    }
+
     /// Short state for the selected device's card and header.
     var selectedStateDescription: String {
         guard let device = selectedDevice else { return "" }
