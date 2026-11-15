@@ -217,11 +217,11 @@ final class StatusItemController: NSObject {
 
     /// The global shortcut goes through the same path as a click on the
     /// status item, so the panel opens without activating Clicker and the
-    /// clickpad takes keyboard focus the same way. Carbon calls on the main
-    /// thread.
+    /// clickpad takes keyboard focus the same way. The package is main-actor
+    /// isolated, so the handler runs here directly.
     private func installHotKey() {
         KeyboardShortcuts.onKeyDown(for: .togglePanel) { [weak self] in
-            MainActor.assumeIsolated { self?.togglePanel() }
+            self?.togglePanel()
         }
     }
 
