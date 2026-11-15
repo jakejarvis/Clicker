@@ -15,7 +15,7 @@ git tag -a --cleanup=verbatim -F notes.md v1.2.3
 git push origin v1.2.3
 ```
 
-The tag's whole message (`%(contents)`, signature block stripped) becomes the release notes on GitHub and in Sparkle's update window, so write it in Markdown in a file and pass it with `-F`. `--cleanup=verbatim` keeps it as written, since `git tag -m` strips every line that starts with `#`. `release.sh` validates the notes before building and fails on a lightweight tag or an empty message.
+The tag's whole message (`%(contents)`, with the signature block of a PGP, SSH or X.509 signed tag stripped) becomes the release notes on GitHub and in Sparkle's update window, so write it in Markdown in a file and pass it with `-F`. `--cleanup=verbatim` keeps it as written, since `git tag -m` strips every line that starts with `#`. `release.sh` validates the notes before building and fails on a lightweight tag or an empty message.
 
 The tag is the only version source. `CFBundleVersion` is derived from it (`1.2.3` → `10203`) because Sparkle compares that, so minor and patch numbers stay below 100. The App Store build can add a resubmission number (`10203.1`, see [app-store.md](app-store.md#build-numbers)).
 

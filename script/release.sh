@@ -64,12 +64,13 @@ fi
 # Notes first, so a lightweight tag or an empty message fails before the
 # build and the two notarizations, not after. The whole tag message, as
 # written: %(contents:subject) would join the first paragraph (usually a
-# bullet list) into one line. A signed tag's signature block is dropped.
+# bullet list) into one line. A signed tag's signature block (PGP, SSH or
+# X.509, whichever gpg.format signed it) is dropped.
 echo "==> Writing release notes"
 if [[ -n "${NOTES_FILE:-}" ]]; then
   cp "$NOTES_FILE" "$NOTES"
 elif [[ "$(git -C "$ROOT_DIR" cat-file -t "v$VERSION" 2>/dev/null)" == "tag" ]]; then
-  git -C "$ROOT_DIR" tag -l --format='%(contents)' "v$VERSION" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d' >"$NOTES"
+  git -C "$ROOT_DIR" tag -l --format='%(contents)' "v$VERSION" | sed -E '/^-----BEGIN (PGP SIGNATURE|SSH SIGNATURE|SIGNED MESSAGE)-----$/,$d' >"$NOTES"
 else
   : >"$NOTES"
 fi
